@@ -1,7 +1,1 @@
-{
-  "functions": {
-    "api/whales.js": {
-      "runtime": "nodejs20.x"
-    }
-  }
-}
+{}
