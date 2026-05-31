@@ -3,494 +3,395 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SSoW PSA Vault | Secret Society of Whales</title>
-  <meta name="description" content="View your Secret Society of Whales NFTs as certified PSA 10 Gem Mint graded cards." />
+  <title>SSoW Vault | Secret Society of Whales</title>
+  <meta name="description" content="View your Secret Society of Whales NFTs as certified Gem Mint 10 graded slabs." />
+  <meta property="og:title" content="SSoW Vault" />
+  <meta property="og:description" content="Your whales. Graded. Gem Mint 10. Every time. 🐋" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script src="rarity-data.js"></script>
   <script src="trait-rarities.js"></script>
   <style>
     :root {
-      --ocean-deep: #020c18;
-      --foam: #7eb8e8;
-      --foam-light: #b8d8f4;
-      --gold: #f5c518;
-      --gold-dim: #8a6e0a;
-      --psa-blue: #1a3a70;
-      --psa-blue-mid: #1e4898;
-      --psa-accent: #2666cc;
-      --psa-red: #cc0000;
-      --off-white: #e8f0f8;
-      --muted: #7a9bbc;
-      --font-display: 'Bebas Neue', sans-serif;
-      --font-mono: 'DM Mono', monospace;
-      --font-body: 'DM Sans', sans-serif;
+      --black:#060606;--black-2:#0e0e0e;--black-3:#1a1a1a;
+      --gold:#c9a84c;--gold-light:#f0d060;--gold-dark:#8b6914;--gold-dim:rgba(200,160,40,0.35);
+      --red:#b80000;--red-mid:#cc0000;--psa-blue:#1a3a80;
+      --white:#f8f8f8;--muted:rgba(255,255,255,0.18);
+      --font-serif:'Cormorant Garamond',serif;--font-display:'Bebas Neue',sans-serif;--font-mono:'DM Mono',monospace;
     }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--ocean-deep); color: var(--off-white); font-family: var(--font-body); min-height: 100vh; overflow-x: hidden; }
-    body::before {
-      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
-      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(10,74,138,0.35) 0%, transparent 70%),
-                  radial-gradient(ellipse 50% 40% at 80% 100%, rgba(6,42,80,0.5) 0%, transparent 60%);
-    }
-    body::after {
-      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
-      background-image: radial-gradient(1px 1px at 20% 30%, rgba(126,184,232,0.4) 0%, transparent 100%),
-                        radial-gradient(1px 1px at 60% 70%, rgba(126,184,232,0.3) 0%, transparent 100%),
-                        radial-gradient(1px 1px at 80% 20%, rgba(126,184,232,0.25) 0%, transparent 100%);
-      animation: drift 20s ease-in-out infinite alternate;
-    }
-    @keyframes drift { from{transform:translateY(0)} to{transform:translateY(-12px)} }
-    .site-wrap { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 0 2rem; }
-    header { text-align: center; padding: 4rem 0 2.5rem; border-bottom: 0.5px solid rgba(126,184,232,0.15); margin-bottom: 3rem; }
-    .logo-whale { font-size: 3.5rem; line-height: 1; margin-bottom: 0.5rem; display: block; filter: drop-shadow(0 0 20px rgba(126,184,232,0.5)); animation: bob 4s ease-in-out infinite; }
-    @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-    .site-title { font-family: var(--font-display); font-size: clamp(3rem,8vw,6rem); letter-spacing: 0.08em; line-height: 0.9; background: linear-gradient(135deg,#fff 0%,var(--foam-light) 40%,var(--gold) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .site-subtitle { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.25em; color: var(--muted); text-transform: uppercase; margin-top: 0.5rem; }
-    .header-links { display: flex; justify-content: center; gap: 1.5rem; margin-top: 1.5rem; }
-    .header-links a { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.15em; color: var(--muted); text-decoration: none; text-transform: uppercase; border: 0.5px solid rgba(126,184,232,0.2); padding: 6px 14px; border-radius: 2px; transition: color 0.2s, border-color 0.2s, background 0.2s; }
-    .header-links a:hover { color: var(--foam-light); border-color: rgba(126,184,232,0.5); background: rgba(126,184,232,0.05); }
-    .search-section { max-width: 620px; margin: 0 auto 3.5rem; text-align: center; }
-    .search-eyebrow { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.3em; color: var(--gold-dim); text-transform: uppercase; margin-bottom: 1rem; }
-    .search-label { font-family: var(--font-display); font-size: 1.8rem; letter-spacing: 0.06em; margin-bottom: 1.25rem; }
-    .search-row { display: flex; border: 1px solid rgba(126,184,232,0.25); border-radius: 3px; overflow: hidden; background: rgba(4,24,48,0.8); backdrop-filter: blur(8px); transition: border-color 0.2s; }
-    .search-row:focus-within { border-color: rgba(126,184,232,0.6); box-shadow: 0 0 0 3px rgba(126,184,232,0.08); }
-    .search-row input { flex: 1; background: transparent; border: none; outline: none; color: var(--off-white); font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.05em; padding: 14px 18px; }
-    .search-row input::placeholder { color: rgba(122,155,188,0.5); }
-    .search-btn { background: linear-gradient(135deg,var(--psa-blue) 0%,var(--psa-blue-mid) 100%); border: none; color: var(--off-white); font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.12em; padding: 0 28px; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
-    .search-btn:hover { background: linear-gradient(135deg,var(--psa-blue-mid) 0%,var(--psa-accent) 100%); }
-    .search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .status { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.1em; color: var(--muted); margin-top: 1rem; min-height: 1.4em; text-align: center; }
-    .status.error { color: #f07070; }
-    .results-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 0.5px solid rgba(126,184,232,0.12); }
-    .results-count { font-family: var(--font-display); font-size: 1.6rem; letter-spacing: 0.06em; }
-    .results-count span { color: var(--gold); }
-    .results-wallet { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.1em; color: var(--muted); }
-    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 2.5rem; padding-bottom: 5rem; }
-
-    /* ── SLAB ── */
-    .slab-wrapper { cursor: pointer; }
-    .slab-wrapper:hover .slab { transform: rotateY(5deg) rotateX(-3deg) scale(1.04); box-shadow: -10px 14px 50px rgba(0,0,0,0.75), 0 0 0 1.5px #aaa, 0 0 30px rgba(126,184,232,0.12); }
-    .slab { background: #c0d0e0; border-radius: 5px; overflow: hidden; box-shadow: -5px 8px 30px rgba(0,0,0,0.6), 0 0 0 1.5px #999, inset 0 0 0 1px rgba(255,255,255,0.15); transform: rotateY(0) rotateX(0) scale(1); transition: transform 0.3s ease, box-shadow 0.3s ease; transform-style: preserve-3d; perspective: 800px; animation: slabReveal 0.5s ease both; font-family: Arial, Helvetica, sans-serif; }
-    @keyframes slabReveal { from{opacity:0;transform:translateY(20px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
-    .psa-label-red { background: #cc0000; padding: 4px 8px 3px; display: flex; justify-content: space-between; align-items: flex-start; }
-    .psa-red-left { font-size: 7.5px; font-weight: 700; color: #fff; letter-spacing: 0.4px; line-height: 1.45; }
-    .psa-red-right { font-size: 7.5px; font-weight: 700; color: #fff; letter-spacing: 0.4px; line-height: 1.45; text-align: right; }
-    .psa-label-white { background: #fff; padding: 5px 8px; display: flex; justify-content: space-between; align-items: center; gap: 4px; border-bottom: 2px solid #cc0000; }
-    .psa-white-left { font-size: 7px; font-weight: 700; color: #111; letter-spacing: 0.3px; line-height: 1.5; flex: 1; }
-    .psa-white-center { display: flex; flex-direction: column; align-items: center; gap: 1px; }
-    .psa-logo-box { background: #1a3a80; color: #fff; font-family: 'Arial Black', Arial, sans-serif; font-size: 12px; font-weight: 900; letter-spacing: 2px; padding: 2px 8px; border-radius: 2px; line-height: 1.2; }
-    .psa-auth-text { font-size: 5px; color: #666; letter-spacing: 0.5px; text-transform: uppercase; text-align: center; white-space: nowrap; }
-    .psa-white-right { text-align: right; }
-    .psa-gem-mt { font-size: 8px; font-weight: 700; color: #111; letter-spacing: 0.5px; line-height: 1.2; }
-    .psa-grade-num { font-family: 'Arial Black', Arial, sans-serif; font-size: 30px; font-weight: 900; color: #111; line-height: 1; letter-spacing: -1px; }
-    .psa-cert-num { font-size: 6px; color: #888; letter-spacing: 0.3px; }
-    .slab-window { background: #b0c4d8; padding: 7px; }
-    .slab-card { width: 100%; aspect-ratio: 1; background: #0a1520; border-radius: 2px; overflow: hidden; }
-    .slab-card img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s ease; }
-    .slab-wrapper:hover .slab-card img { transform: scale(1.04); }
-    .slab-card-loading { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; animation: pulse 1.5s ease-in-out infinite; }
-    @keyframes pulse { 0%,100%{opacity:0.3} 50%{opacity:0.8} }
-    .slab-footer { background: #fff; border-top: 2px solid #cc0000; padding: 4px 8px; display: flex; justify-content: space-between; align-items: center; }
-    .barcode { display: flex; flex-direction: column; gap: 1px; }
-    .barcode-lines { display: flex; gap: 1.5px; height: 14px; align-items: flex-end; }
-    .barcode-lines span { display: inline-block; width: 1.5px; background: #222; }
-    .barcode-num { font-size: 5.5px; color: #444; letter-spacing: 0.3px; margin-top: 1px; }
-    .slab-footer-right { font-size: 6.5px; color: #555; text-align: right; font-weight: 700; letter-spacing: 0.3px; line-height: 1.5; }
-    .slab-traits { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
-    .trait-pill { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.05em; padding: 3px 7px; border-radius: 2px; border: 0.5px solid rgba(126,184,232,0.2); color: var(--muted); background: rgba(4,24,48,0.5); white-space: nowrap; }
-    .trait-pill.rare { border-color: rgba(245,197,24,0.4); color: #c8a820; background: rgba(245,197,24,0.06); }
-    .trait-pill.ultra-rare { border-color: rgba(245,100,24,0.5); color: #e07030; background: rgba(245,100,24,0.08); }
-    .slab-hint { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.08em; color: rgba(122,155,188,0.4); text-align: center; margin-top: 6px; }
-    .state-empty { text-align: center; padding: 6rem 0; }
-    .state-empty .whale-icon { font-size: 4rem; display: block; margin-bottom: 1rem; opacity: 0.3; animation: bob 4s ease-in-out infinite; }
-    .state-empty p { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.15em; color: var(--muted); text-transform: uppercase; }
-    .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(126,184,232,0.2); border-top-color: var(--foam); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 8px; }
-    @keyframes spin { to{transform:rotate(360deg)} }
-    footer { text-align: center; padding: 2rem 0 3rem; border-top: 0.5px solid rgba(126,184,232,0.1); margin-top: 4rem; }
-    footer p { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.15em; color: rgba(122,155,188,0.4); text-transform: uppercase; }
-    footer a { color: rgba(122,155,188,0.6); text-decoration: none; }
-    footer a:hover { color: var(--foam); }
-
-    /* ── MODAL ── */
-    .modal-backdrop {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(1,6,14,0.92);
-      z-index: 1000;
-      align-items: center;
-      justify-content: center;
-      backdrop-filter: blur(6px);
-      padding: 20px;
-    }
-    .modal-backdrop.open { display: flex; }
-    .modal-box {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-      animation: modalIn 0.25s ease;
-      max-height: 95vh;
-      overflow-y: auto;
-    }
-    @keyframes modalIn { from{opacity:0;transform:scale(0.92) translateY(16px)} to{opacity:1;transform:scale(1) translateY(0)} }
-    .modal-close {
-      position: absolute;
-      top: -12px;
-      right: -12px;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: rgba(10,30,60,0.95);
-      border: 0.5px solid rgba(126,184,232,0.3);
-      color: var(--muted);
-      font-size: 18px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
-      transition: color 0.2s, border-color 0.2s;
-      z-index: 10;
-    }
-    .modal-close:hover { color: #fff; border-color: rgba(126,184,232,0.7); }
-
-    /* Large slab in modal — same HTML structure, bigger scale */
-    .modal-slab-wrap { width: min(400px, 90vw); }
-    .modal-slab { font-family: Arial, Helvetica, sans-serif; background: #c0d0e0; border-radius: 7px; overflow: hidden; box-shadow: -8px 14px 60px rgba(0,0,0,0.8), 0 0 0 2px #999, inset 0 0 0 1px rgba(255,255,255,0.2); }
-    .modal-slab .psa-label-red { padding: 7px 14px 5px; }
-    .modal-slab .psa-red-left { font-size: 12px; }
-    .modal-slab .psa-red-right { font-size: 12px; }
-    .modal-slab .psa-label-white { padding: 8px 14px; border-bottom-width: 3px; }
-    .modal-slab .psa-white-left { font-size: 11px; }
-    .modal-slab .psa-logo-box { font-size: 20px; padding: 3px 12px; }
-    .modal-slab .psa-auth-text { font-size: 7.5px; }
-    .modal-slab .psa-gem-mt { font-size: 13px; }
-    .modal-slab .psa-grade-num { font-size: 52px; }
-    .modal-slab .psa-cert-num { font-size: 10px; }
-    .modal-slab .slab-window { padding: 10px; }
-    .modal-slab .slab-footer { padding: 6px 14px; border-top-width: 3px; }
-    .modal-slab .barcode-lines { height: 22px; gap: 2px; }
-    .modal-slab .barcode-lines span { width: 2px; }
-    .modal-slab .barcode-num { font-size: 8px; }
-    .modal-slab .slab-footer-right { font-size: 10px; }
-
-    .modal-actions { display: flex; gap: 10px; }
-    .modal-btn {
-      font-family: var(--font-display);
-      font-size: 1rem;
-      letter-spacing: 0.1em;
-      padding: 10px 24px;
-      border-radius: 3px;
-      border: none;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
-    }
-    .modal-btn:active { transform: scale(0.97); }
-    .modal-btn-download { background: linear-gradient(135deg, #f5c518 0%, #e0a800 100%); color: #0d2a5e; }
-    .modal-btn-download:hover { opacity: 0.9; }
-    .modal-btn-os { background: transparent; border: 0.5px solid rgba(126,184,232,0.3); color: var(--muted); font-size: 0.85rem; }
-    .modal-btn-os:hover { border-color: rgba(126,184,232,0.6); color: var(--foam-light); }
-    .modal-dl-note { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.08em; color: rgba(122,155,188,0.5); text-align: center; }
-
-    @media (max-width: 640px) {
-      .site-wrap { padding: 0 1rem; }
-      header { padding: 2.5rem 0 1.5rem; }
-      .card-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.5rem; }
-      .results-header { flex-direction: column; gap: 0.4rem; }
-    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{background:var(--black);color:rgba(255,255,255,0.75);font-family:var(--font-mono);min-height:100vh;overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 45% at 50% -5%,rgba(180,140,30,0.09) 0%,transparent 60%),radial-gradient(ellipse 40% 25% at 85% 95%,rgba(180,140,30,0.04) 0%,transparent 50%);pointer-events:none;z-index:0}
+    body::after{content:'';position:fixed;top:0;left:-100%;width:60%;height:1px;background:linear-gradient(90deg,transparent,rgba(212,175,55,0.7),transparent);animation:shimmer 6s ease-in-out infinite;z-index:1;pointer-events:none}
+    @keyframes shimmer{0%{left:-60%}70%,100%{left:120%}}
+    .site-wrap{position:relative;z-index:2;max-width:1380px;margin:0 auto;padding:0 2.5rem}
+    header{text-align:center;padding:5rem 0 3rem;position:relative}
+    header::after{content:'';display:block;width:100%;height:1px;background:linear-gradient(90deg,transparent,rgba(200,160,40,0.25),transparent);margin-top:3rem}
+    .logo-whale{font-size:3rem;display:block;margin-bottom:1rem;filter:drop-shadow(0 0 20px rgba(200,160,40,0.35));animation:bob 5s ease-in-out infinite}
+    @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+    .site-title{font-family:var(--font-serif);font-weight:300;font-size:clamp(3rem,9vw,6.5rem);letter-spacing:0.22em;line-height:1;text-transform:uppercase;background:linear-gradient(135deg,#a07820 0%,#f0d060 35%,#c9a84c 65%,#7a5500 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .header-rule{display:flex;align-items:center;gap:14px;justify-content:center;margin:14px 0 10px}
+    .header-rule-line{flex:1;max-width:80px;height:0.5px;background:linear-gradient(90deg,transparent,rgba(200,160,40,0.35))}
+    .header-rule-line.r{background:linear-gradient(90deg,rgba(200,160,40,0.35),transparent)}
+    .header-diamond{width:5px;height:5px;background:var(--gold);transform:rotate(45deg);box-shadow:0 0 6px rgba(200,160,40,0.5)}
+    .site-subtitle{font-size:0.6rem;letter-spacing:0.35em;color:rgba(200,160,40,0.4);text-transform:uppercase}
+    .header-links{display:flex;justify-content:center;gap:20px;margin-top:20px}
+    .header-links a{font-size:0.58rem;letter-spacing:0.2em;color:rgba(200,160,40,0.4);text-decoration:none;text-transform:uppercase;border:0.5px solid rgba(200,160,40,0.15);padding:6px 16px;border-radius:1px;transition:color 0.2s,border-color 0.2s,background 0.2s}
+    .header-links a:hover{color:rgba(200,160,40,0.9);border-color:rgba(200,160,40,0.4);background:rgba(200,160,40,0.04)}
+    .search-section{max-width:560px;margin:3.5rem auto 4rem;text-align:center}
+    .search-eyebrow{font-size:0.58rem;letter-spacing:0.3em;color:rgba(200,160,40,0.3);text-transform:uppercase;margin-bottom:10px}
+    .search-label{font-family:var(--font-serif);font-weight:300;font-size:1.8rem;letter-spacing:0.18em;color:rgba(255,255,255,0.6);text-transform:uppercase;margin-bottom:16px}
+    .search-row{display:flex;border:0.5px solid rgba(200,160,40,0.2);background:rgba(255,255,255,0.02);transition:border-color 0.2s,box-shadow 0.2s}
+    .search-row:focus-within{border-color:rgba(200,160,40,0.5);box-shadow:0 0 0 3px rgba(200,160,40,0.05)}
+    .search-row input{flex:1;background:transparent;border:none;outline:none;color:rgba(255,255,255,0.7);font-family:var(--font-mono);font-size:0.78rem;letter-spacing:0.05em;padding:14px 18px}
+    .search-row input::placeholder{color:rgba(255,255,255,0.12)}
+    .search-btn{background:linear-gradient(135deg,var(--gold-dark) 0%,var(--gold) 50%,var(--gold-dark) 100%);border:none;color:#080808;font-family:var(--font-display);font-size:1rem;letter-spacing:0.15em;padding:0 28px;cursor:pointer;transition:opacity 0.2s;white-space:nowrap}
+    .search-btn:hover{opacity:0.85}
+    .search-btn:disabled{opacity:0.4;cursor:not-allowed}
+    .status{font-size:0.7rem;letter-spacing:0.1em;color:var(--gold-dim);margin-top:12px;min-height:1.4em;text-align:center}
+    .status.error{color:#e06060}
+    .results-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:2.5rem;padding-bottom:1rem;border-bottom:0.5px solid rgba(200,160,40,0.12)}
+    .results-count{font-family:var(--font-serif);font-weight:300;font-size:1.5rem;letter-spacing:0.12em;color:rgba(255,255,255,0.5);text-transform:uppercase}
+    .results-count span{color:var(--gold)}
+    .results-wallet{font-size:0.62rem;letter-spacing:0.1em;color:rgba(200,160,40,0.3)}
+    .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:3rem;padding-bottom:6rem}
+    .slab-wrapper{cursor:pointer}
+    .psa-case{border-radius:10px;padding:13px;background:linear-gradient(160deg,#242424 0%,#181818 50%,#1c1c1c 100%);box-shadow:0 0 0 1px #080808,0 0 0 2.5px rgba(180,140,30,0.15),-8px 16px 55px rgba(0,0,0,0.95),inset 0 1px 0 rgba(255,255,255,0.06),inset 0 -2px 5px rgba(0,0,0,0.7);transition:transform 0.35s ease,box-shadow 0.35s ease;transform-style:preserve-3d;perspective:900px;position:relative;animation:slabIn 0.55s ease both}
+    @keyframes slabIn{from{opacity:0;transform:translateY(22px) scale(0.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+    .psa-case::before{content:'';position:absolute;top:0;left:12%;right:12%;height:1px;background:linear-gradient(90deg,transparent,rgba(220,180,60,0.4),transparent);border-radius:50%;pointer-events:none}
+    .slab-wrapper:hover .psa-case{transform:rotateY(6deg) rotateX(-3deg) scale(1.04);box-shadow:0 0 0 1px #080808,0 0 0 2.5px rgba(200,160,40,0.4),-14px 22px 70px rgba(0,0,0,0.98),0 0 35px rgba(180,140,30,0.07),inset 0 1px 0 rgba(255,255,255,0.08)}
+    .psa-case-inner{background:#0c0c0c;border-radius:5px;padding:6px;box-shadow:inset 0 3px 10px rgba(0,0,0,0.95),inset 0 0 0 1px rgba(0,0,0,0.9)}
+    .slab{border-radius:4px;overflow:hidden;font-family:Arial,Helvetica,sans-serif}
+    .psa-red{background:linear-gradient(180deg,#d00 0%,#a50000 100%)}
+    .psa-red-top{padding:5px 10px 4px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:0.5px solid rgba(0,0,0,0.3)}
+    .psa-red-name{font-family:'Bebas Neue',sans-serif;font-size:10.5px;color:#fff;letter-spacing:0.8px;line-height:1.35;text-shadow:0 1px 2px rgba(0,0,0,0.4)}
+    .psa-red-id{font-family:'Bebas Neue',sans-serif;font-size:10.5px;color:rgba(255,255,255,0.9);text-align:right;letter-spacing:0.8px;line-height:1.35}
+    .psa-red-bar{padding:3px 10px 4px;display:flex;align-items:center;justify-content:space-between}
+    .barcode-lines{display:flex;gap:1.5px;height:14px;align-items:flex-end}
+    .barcode-lines span{display:inline-block;width:1.5px}
+    .barcode-cert{font-family:'DM Mono',monospace;font-size:5.5px;color:rgba(255,255,255,0.5);letter-spacing:0.5px;margin-top:1px}
+    .psa-red-rarity{font-family:'DM Mono',monospace;font-size:5.5px;color:rgba(255,255,255,0.4);text-align:right;letter-spacing:0.5px;line-height:1.6;text-transform:uppercase}
+    .psa-white{background:linear-gradient(180deg,#f9f9f9 0%,#ececec 100%);padding:6px 10px 5px;display:flex;align-items:center;justify-content:space-between;gap:5px;border-bottom:3px solid #a50000}
+    .psa-white-left{flex:1}
+    .psa-rarity-badge{display:inline-block;font-family:'Bebas Neue',sans-serif;font-size:8px;letter-spacing:1.5px;color:#6a4400;background:linear-gradient(135deg,#f5e070 0%,#c9a84c 100%);padding:1px 7px;border-radius:1px;margin-bottom:2px}
+    .psa-collection{font-family:'DM Mono',monospace;font-size:5.8px;color:#444;letter-spacing:0.4px;text-transform:uppercase;line-height:1.5}
+    .psa-white-center{display:flex;flex-direction:column;align-items:center;gap:2px}
+    .psa-logo{background:linear-gradient(160deg,#0d2060 0%,#1e4090 50%,#0d2060 100%);color:#fff;font-family:'Arial Black',Arial,sans-serif;font-size:13px;font-weight:900;letter-spacing:2.5px;padding:3px 9px;border-radius:2px;box-shadow:0 1px 4px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.1)}
+    .psa-logo-sub{font-size:4px;color:#888;letter-spacing:0.4px;text-transform:uppercase;text-align:center;margin-top:1px}
+    .psa-white-right{text-align:right}
+    .psa-grade-label{font-family:'DM Mono',monospace;font-size:5.5px;color:#999;letter-spacing:1px;text-transform:uppercase}
+    .psa-grade-gemmt{font-family:'Bebas Neue',sans-serif;font-size:12px;color:#111;letter-spacing:1px;line-height:1}
+    .psa-grade-10{font-family:'Bebas Neue',sans-serif;font-size:44px;line-height:0.88;letter-spacing:-1px;background:linear-gradient(180deg,#000 0%,#2a2a2a 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .psa-cert{font-family:'DM Mono',monospace;font-size:6.5px;color:#8b6914;letter-spacing:0.3px}
+    .slab-window{background:linear-gradient(180deg,#9ab4c8 0%,#b8ccd8 100%);padding:7px}
+    .slab-card{width:100%;aspect-ratio:1;background:linear-gradient(135deg,#060e18 0%,#0f1e30 60%,#050c14 100%);border-radius:2px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:3rem;position:relative}
+    .slab-card img{width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.4s ease}
+    .slab-wrapper:hover .slab-card img{transform:scale(1.04)}
+    .slab-card::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,0.06) 0px,rgba(0,0,0,0.06) 1px,transparent 1px,transparent 3px);pointer-events:none}
+    .slab-card-loading{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2.5rem;animation:pulse 1.5s ease-in-out infinite}
+    @keyframes pulse{0%,100%{opacity:0.3}50%{opacity:0.8}}
+    .slab-bottom{background:linear-gradient(180deg,#f0f0f0 0%,#e8e8e8 100%);border-top:3px solid #a50000;padding:5px 10px;display:flex;align-items:center;justify-content:space-between}
+    .bottom-cert{font-family:'Bebas Neue',sans-serif;font-size:10px;color:#222;letter-spacing:0.5px}
+    .bottom-chain{font-family:'DM Mono',monospace;font-size:5px;color:#8b6914;letter-spacing:0.8px;text-transform:uppercase;margin-top:1px}
+    .psa-stamp{font-family:'Arial Black',Arial,sans-serif;font-size:8px;font-weight:900;color:rgba(26,58,128,0.2);letter-spacing:2px;transform:rotate(-14deg);border:1.5px solid rgba(26,58,128,0.15);padding:2px 5px;border-radius:1px}
+    .case-wm{text-align:right;margin-top:5px;font-family:'Arial Black',Arial;font-size:6.5px;font-weight:900;color:rgba(200,160,40,0.15);letter-spacing:2px}
+    .slab-meta{margin-top:12px}
+    .slab-rank{font-family:var(--font-serif);font-style:italic;font-weight:300;font-size:0.78rem;letter-spacing:0.08em;color:rgba(200,160,40,0.6);text-align:center;margin-bottom:7px}
+    .trait-pills{display:flex;flex-wrap:wrap;gap:4px;justify-content:center}
+    .trait-pill{font-size:0.52rem;letter-spacing:0.05em;padding:3px 7px;border:0.5px solid rgba(200,160,40,0.12);color:rgba(200,160,40,0.3);background:rgba(200,160,40,0.03);border-radius:1px}
+    .trait-pill.rare{border-color:rgba(200,160,40,0.4);color:rgba(200,160,40,0.75);background:rgba(200,160,40,0.06)}
+    .trait-pill.ultra{border-color:rgba(220,130,30,0.5);color:rgba(220,150,40,0.9);background:rgba(220,120,30,0.07)}
+    .slab-hint{font-size:0.5rem;letter-spacing:0.12em;color:rgba(255,255,255,0.08);text-align:center;margin-top:8px;text-transform:uppercase}
+    .state-empty{text-align:center;padding:7rem 0}
+    .state-empty .whale-icon{font-size:3.5rem;display:block;margin-bottom:1rem;opacity:0.2;animation:bob 5s ease-in-out infinite}
+    .state-empty p{font-size:0.65rem;letter-spacing:0.2em;color:rgba(200,160,40,0.25);text-transform:uppercase}
+    .spinner{display:inline-block;width:14px;height:14px;border:1.5px solid rgba(200,160,40,0.15);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:8px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    footer{text-align:center;padding:2rem 0 3.5rem;border-top:0.5px solid rgba(200,160,40,0.08);margin-top:4rem}
+    footer p{font-size:0.6rem;letter-spacing:0.18em;color:rgba(200,160,40,0.2);text-transform:uppercase}
+    footer a{color:rgba(200,160,40,0.35);text-decoration:none}
+    footer a:hover{color:rgba(200,160,40,0.7)}
+    .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(2,2,2,0.94);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(8px);padding:20px}
+    .modal-backdrop.open{display:flex}
+    .modal-box{position:relative;display:flex;flex-direction:column;align-items:center;gap:20px;animation:modalIn 0.28s ease;max-height:95vh;overflow-y:auto}
+    @keyframes modalIn{from{opacity:0;transform:scale(0.9) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+    .modal-close{position:absolute;top:-14px;right:-14px;width:34px;height:34px;border-radius:50%;background:#111;border:0.5px solid rgba(200,160,40,0.2);color:rgba(200,160,40,0.5);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:color 0.2s,border-color 0.2s;z-index:10;line-height:1}
+    .modal-close:hover{color:var(--gold);border-color:rgba(200,160,40,0.5)}
+    .modal-case-wrap{width:min(420px,90vw)}
+    .modal-case-wrap .psa-case{animation:none}
+    .modal-case-wrap .psa-red-name{font-size:13px}
+    .modal-case-wrap .psa-red-id{font-size:13px}
+    .modal-case-wrap .psa-red-bar{padding:4px 14px 5px}
+    .modal-case-wrap .barcode-lines{height:20px;gap:2px}
+    .modal-case-wrap .barcode-lines span{width:2px}
+    .modal-case-wrap .barcode-cert{font-size:7px}
+    .modal-case-wrap .psa-red-rarity{font-size:7px}
+    .modal-case-wrap .psa-white{padding:8px 14px 7px}
+    .modal-case-wrap .psa-rarity-badge{font-size:10px;padding:2px 9px}
+    .modal-case-wrap .psa-collection{font-size:7.5px}
+    .modal-case-wrap .psa-logo{font-size:18px;padding:4px 13px;letter-spacing:3px}
+    .modal-case-wrap .psa-logo-sub{font-size:6px}
+    .modal-case-wrap .psa-grade-label{font-size:7px}
+    .modal-case-wrap .psa-grade-gemmt{font-size:16px}
+    .modal-case-wrap .psa-grade-10{font-size:64px}
+    .modal-case-wrap .psa-cert{font-size:8.5px}
+    .modal-case-wrap .slab-window{padding:10px}
+    .modal-case-wrap .slab-bottom{padding:6px 14px}
+    .modal-case-wrap .bottom-cert{font-size:13px}
+    .modal-case-wrap .bottom-chain{font-size:6.5px}
+    .modal-case-wrap .psa-stamp{font-size:10px}
+    .modal-actions{display:flex;gap:10px}
+    .modal-btn{font-family:var(--font-display);font-size:1rem;letter-spacing:0.15em;padding:11px 26px;border:none;cursor:pointer;transition:opacity 0.2s,transform 0.1s;border-radius:1px}
+    .modal-btn:active{transform:scale(0.97)}
+    .modal-btn-dl{background:linear-gradient(135deg,var(--gold-dark) 0%,var(--gold) 50%,var(--gold-dark) 100%);color:#080808}
+    .modal-btn-dl:hover{opacity:0.85}
+    .modal-btn-os{background:transparent;border:0.5px solid rgba(200,160,40,0.25);color:rgba(200,160,40,0.5);font-size:0.85rem;text-decoration:none;display:flex;align-items:center}
+    .modal-btn-os:hover{border-color:rgba(200,160,40,0.5);color:rgba(200,160,40,0.9)}
+    .modal-note{font-size:0.55rem;letter-spacing:0.1em;color:rgba(200,160,40,0.2);text-align:center;text-transform:uppercase}
+    @media(max-width:640px){.site-wrap{padding:0 1.2rem}header{padding:3rem 0 2rem}.card-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:2rem}.results-header{flex-direction:column;gap:0.4rem}}
   </style>
 </head>
 <body>
-
 <div class="site-wrap">
   <header>
     <span class="logo-whale">🐋</span>
-    <h1 class="site-title">SSoW PSA VAULT</h1>
-    <p class="site-subtitle">Secret Society of Whales · Certified Gem Mint · Est. 2021</p>
+    <h1 class="site-title">SSoW Vault</h1>
+    <div class="header-rule">
+      <div class="header-rule-line"></div><div class="header-diamond"></div><div class="header-rule-line r"></div>
+    </div>
+    <p class="site-subtitle">Secret Society of Whales &nbsp;·&nbsp; Certified Gem Mint &nbsp;·&nbsp; Est. 2021</p>
     <nav class="header-links">
       <a href="https://www.secretsocietyofwhales.com/" target="_blank" rel="noopener">Website</a>
       <a href="https://opensea.io/collection/secretsocietyofwhales" target="_blank" rel="noopener">OpenSea</a>
       <a href="https://x.com/SSofWhales" target="_blank" rel="noopener">Twitter</a>
     </nav>
   </header>
-
   <section class="search-section">
     <p class="search-eyebrow">// Enter Wallet Address</p>
-    <h2 class="search-label">GRADE YOUR POD</h2>
+    <h2 class="search-label">Grade Your Pod</h2>
     <div class="search-row">
       <input type="text" id="walletInput" placeholder="0x…" autocomplete="off" spellcheck="false" />
-      <button class="search-btn" id="searchBtn" onclick="fetchWhales()">DIVE IN</button>
+      <button class="search-btn" id="searchBtn" onclick="fetchWhales()">Dive In</button>
     </div>
     <p class="status" id="status"></p>
   </section>
-
   <section id="resultsSection" style="display:none">
     <div class="results-header">
-      <div class="results-count"><span id="nftCount">0</span> WHALES GRADED</div>
+      <div class="results-count"><span id="nftCount">0</span> Whales Graded</div>
       <div class="results-wallet" id="walletDisplay"></div>
     </div>
     <div class="card-grid" id="cardGrid"></div>
   </section>
-
   <div class="state-empty" id="emptyState">
     <span class="whale-icon">🐋</span>
     <p>Enter your wallet to surface your whales</p>
   </div>
-
   <footer>
-    <p>SSoW PSA Vault · Fan-made tool · <a href="https://www.secretsocietyofwhales.com/" target="_blank" rel="noopener">Secret Society of Whales</a> · #TogetherWeWhale</p>
+    <p>SSoW Vault &nbsp;·&nbsp; Fan-made &nbsp;·&nbsp; <a href="https://www.secretsocietyofwhales.com/" target="_blank" rel="noopener">Secret Society of Whales</a> &nbsp;·&nbsp; #TogetherWeWhale</p>
   </footer>
 </div>
 
-<!-- MODAL -->
-<div class="modal-backdrop" id="modalBackdrop" onclick="closeModal(event)">
+<div class="modal-backdrop" id="modalBackdrop" onclick="closeModalOutside(event)">
   <div class="modal-box" id="modalBox">
-    <button class="modal-close" onclick="closeModalDirect()" aria-label="Close">×</button>
-    <div class="modal-slab-wrap">
-      <div class="modal-slab" id="modalSlab">
-        <!-- populated by JS -->
-      </div>
-    </div>
+    <button class="modal-close" onclick="closeModal()" aria-label="Close">×</button>
+    <div class="modal-case-wrap" id="modalCaseWrap"></div>
     <div class="modal-actions">
-      <button class="modal-btn modal-btn-download" onclick="downloadSlab()">⬇ DOWNLOAD PNG</button>
+      <button class="modal-btn modal-btn-dl" onclick="downloadSlab()">⬇ Download PNG</button>
       <a class="modal-btn modal-btn-os" id="modalOsLink" href="#" target="_blank" rel="noopener">↗ OpenSea</a>
     </div>
-    <p class="modal-dl-note">Downloads a high-res PNG of your graded slab</p>
+    <p class="modal-note">High-res PNG · Your certified gem mint slab</p>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
-  const $ = id => document.getElementById(id);
-  let certCounter = 10000000 + Math.floor(Math.random() * 89999999);
-  function nextCert() { return (++certCounter).toString(); }
-  function shortWallet(addr) { return addr.slice(0,6) + '…' + addr.slice(-4); }
-  function setStatus(msg, isError=false) { const el=$('status'); el.innerHTML=msg; el.className='status'+(isError?' error':''); }
+const $=id=>document.getElementById(id);
+let certSeed=10000000+Math.floor(Math.random()*89999999);
+const nextCert=()=>(++certSeed).toString();
+const shortAddr=a=>a.slice(0,6)+'…'+a.slice(-4);
+const CONTRACT='0x42d2b41c5bb1f73f06d5adaa85e23b44f75c4cd2';
 
-  window.addEventListener('DOMContentLoaded', () => {
-    $('walletInput').addEventListener('keydown', e => { if(e.key==='Enter') fetchWhales(); });
-  });
+function setStatus(msg,err=false){const el=$('status');el.innerHTML=msg;el.className='status'+(err?' error':'');}
 
-  function getRarityData(tokenId) {
-    const traits = window.WHALE_TRAITS?.[String(tokenId)];
-    const traitRarities = window.TRAIT_RARITIES;
-    if (!traits) return null;
-    const traitList = [];
-    for (const key of ['background','blowholeRing','eyes','fins','hat','mouth','outfit','skin']) {
-      const val = traits[key];
-      if (!val || val.trim()==='' || val==='None') continue;
-      const pct = traitRarities?.[key]?.[val]?.percentage ?? traitRarities?.[key]?.[val.trim()]?.percentage ?? null;
-      traitList.push({ trait: key, value: val, pct });
-    }
-    return { rank: traits.rank, traits: traitList };
+window.addEventListener('DOMContentLoaded',()=>{
+  $('walletInput').addEventListener('keydown',e=>{if(e.key==='Enter')fetchWhales();});
+});
+
+function getRarity(tokenId){
+  const t=window.WHALE_TRAITS?.[String(tokenId)];
+  if(!t)return null;
+  const list=[];
+  for(const k of['background','blowholeRing','eyes','fins','hat','mouth','outfit','skin']){
+    const v=t[k];if(!v||v.trim()===''||v==='None')continue;
+    const pct=window.TRAIT_RARITIES?.[k]?.[v]?.percentage??window.TRAIT_RARITIES?.[k]?.[v.trim()]?.percentage??null;
+    list.push({key:k,value:v,pct});
   }
+  return{rank:t.rank,traits:list};
+}
 
-  function rarityLabel(rank) {
-    if (rank<=100) return 'LEGENDARY';
-    if (rank<=500) return 'EPIC';
-    if (rank<=1000) return 'RARE';
-    if (rank<=3000) return 'UNCOMMON';
-    return 'COMMON';
-  }
+function tierLabel(rank){
+  if(rank<=100)return'⬥ Legendary';
+  if(rank<=500)return'⬥ Epic';
+  if(rank<=1000)return'⬥ Rare';
+  if(rank<=3000)return'⬥ Uncommon';
+  return'⬥ Common';
+}
 
-  function makeBarcodeLines() {
-    const h=[100,70,100,55,100,80,100,65,100,90,100,50,100,75,100,60,100,85,100,70,100,55,100,95,100];
-    return h.map(v=>`<span style="height:${v}%"></span>`).join('');
-  }
+function barcodeHTML(){
+  const h=[100,65,100,50,100,80,100,60,100,90,100,55,100,75,100,45,100,85,100,70,100,95,100,60,100];
+  return h.map(v=>`<span style="height:${v}%;background:rgba(255,255,255,0.8)"></span>`).join('');
+}
 
-  function buildSlabHTML(data) {
-    return `
-      <div class="psa-label-red">
-        <div class="psa-red-left">
-          2021 SECRET SOCIETY OF WHALES<br>
-          ${esc(data.name.toUpperCase())}
+function buildSlabHTML(d){
+  return`<div class="psa-case"><div class="psa-case-inner"><div class="slab">
+    <div class="psa-red">
+      <div class="psa-red-top">
+        <div>
+          <div class="psa-red-name">2021 Secret Society of Whales</div>
+          <div class="psa-red-name">${esc(d.name)} · OG Collection</div>
         </div>
-        <div class="psa-red-right">
-          #${esc(String(data.tokenId))}<br>
-          GEM MT
-        </div>
+        <div class="psa-red-id">#${esc(String(d.tokenId))}<br>GEM MT</div>
       </div>
-      <div class="psa-label-white">
-        <div class="psa-white-left">
-          OG WHALE<br>
-          ${esc(data.label)} · RANK #${data.rank}
-        </div>
-        <div class="psa-white-center">
-          <div class="psa-logo-box">PSA</div>
-          <div class="psa-auth-text">Authenticated</div>
-        </div>
-        <div class="psa-white-right">
-          <div class="psa-gem-mt">GEM MT</div>
-          <div class="psa-grade-num">10</div>
-          <div class="psa-cert-num">${data.cert}</div>
-        </div>
+      <div class="psa-red-bar">
+        <div><div class="barcode-lines">${barcodeHTML()}</div><div class="barcode-cert">${d.cert}</div></div>
+        <div class="psa-red-rarity">${esc(d.tier.replace('⬥ ',''))}<br>Ethereum</div>
       </div>
-      <div class="slab-window">
-        <div class="slab-card">
-          ${data.imageUrl
-            ? `<img src="${esc(data.imageUrl)}" alt="${esc(data.name)}" crossorigin="anonymous" />`
-            : `<div class="slab-card-loading">🐋</div>`}
-        </div>
+    </div>
+    <div class="psa-white">
+      <div class="psa-white-left">
+        <div class="psa-rarity-badge">${esc(d.tier)}</div>
+        <div class="psa-collection">OG Whale · Rank #${d.rank} / 10,000<br>Ethereum Mainnet</div>
       </div>
-      <div class="slab-footer">
-        <div class="barcode">
-          <div class="barcode-lines">${makeBarcodeLines()}</div>
-          <div class="barcode-num">${data.cert}</div>
-        </div>
-        <div class="slab-footer-right">SSOW · ETH<br>TOKEN #${esc(String(data.tokenId))}</div>
+      <div class="psa-white-center">
+        <div class="psa-logo">SSoW</div>
+        <div class="psa-logo-sub">Secret Society of Whales</div>
       </div>
-    `;
-  }
+      <div class="psa-white-right">
+        <div class="psa-grade-label">Grade</div>
+        <div class="psa-grade-gemmt">GEM MT</div>
+        <div class="psa-grade-10">10</div>
+        <div class="psa-cert">${d.cert}</div>
+      </div>
+    </div>
+    <div class="slab-window"><div class="slab-card">
+      ${d.imageUrl?`<img src="${esc(d.imageUrl)}" alt="${esc(d.name)}" crossorigin="anonymous" loading="lazy" />`:`<div class="slab-card-loading">🐋</div>`}
+    </div></div>
+    <div class="slab-bottom">
+      <div><div class="bottom-cert">SSoW Cert · ${d.cert}</div><div class="bottom-chain">⬥ Ethereum · SSoW · Token #${esc(String(d.tokenId))}</div></div>
+      <div class="psa-stamp">SSoW</div>
+    </div>
+  </div></div><div class="case-wm">SSoW · Authenticated</div></div>`;
+}
 
-  async function fetchAllNFTs(wallet) {
-    const all=[];
-    let next=null;
-    do {
-      const params=new URLSearchParams({wallet});
-      if(next) params.set('next',next);
-      const res=await fetch(`/api/whales?${params}`);
-      const data=await res.json();
-      if(!res.ok) throw new Error(data.error||`Error ${res.status}`);
-      all.push(...(data.nfts||[]));
-      next=data.next||null;
-      setStatus(`<span class="spinner"></span> Loading… ${all.length} whales surfaced`);
-    } while(next);
-    return all;
-  }
+async function fetchAllNFTs(wallet){
+  const all=[];let next=null;
+  do{
+    const p=new URLSearchParams({wallet});
+    if(next)p.set('next',next);
+    const res=await fetch(`/api/whales?${p}`);
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||`Error ${res.status}`);
+    all.push(...(data.nfts||[]));
+    next=data.next||null;
+    setStatus(`<span class="spinner"></span> Loading… ${all.length} whales surfaced`);
+  }while(next);
+  return all;
+}
 
-  async function fetchWhales() {
-    const wallet=$('walletInput').value.trim();
-    if(!wallet) return;
-    if(!wallet.startsWith('0x')||wallet.length<10){ setStatus('Please enter a valid Ethereum wallet address.',true); return; }
-    $('searchBtn').disabled=true;
-    $('emptyState').style.display='none';
-    $('resultsSection').style.display='none';
-    $('cardGrid').innerHTML='';
-    setStatus('<span class="spinner"></span> Diving into the blockchain…');
-    try {
-      const nfts=await fetchAllNFTs(wallet);
-      if(nfts.length===0){ setStatus('No SSoW NFTs found for this wallet. 🐳'); $('emptyState').style.display='block'; return; }
-      nfts.sort((a,b)=>{
-        const ra=window.WHALE_TRAITS?.[String(a.identifier)]?.rank??99999;
-        const rb=window.WHALE_TRAITS?.[String(b.identifier)]?.rank??99999;
-        return ra-rb;
-      });
-      $('nftCount').textContent=nfts.length;
-      $('walletDisplay').textContent=shortWallet(wallet);
-      setStatus('');
-      $('resultsSection').style.display='block';
-      renderSlabs(nfts);
-    } catch(err) {
-      console.error(err);
-      setStatus(`Error: ${err.message}`,true);
-      $('emptyState').style.display='block';
-    } finally {
-      $('searchBtn').disabled=false;
-    }
-  }
-
-  const CONTRACT='0x42d2b41c5bb1f73f06d5adaa85e23b44f75c4cd2';
-
-  function renderSlabs(nfts) {
-    const grid=$('cardGrid');
-    grid.innerHTML='';
-    nfts.forEach((nft,i)=>{
-      const cert=nextCert();
-      const tokenId=nft.identifier||nft.token_id||'???';
-      const name=nft.name||`Whale #${tokenId}`;
-      const imageUrl=nft.display_image_url||nft.image_url||'';
-      const osLink=`https://opensea.io/assets/ethereum/${nft.contract||CONTRACT}/${tokenId}`;
-      const rarity=getRarityData(tokenId);
-      const rank=rarity?.rank??'?';
-      const label=rarity?rarityLabel(rank):'OG WHALE';
-      const cardData={cert,tokenId,name,imageUrl,osLink,rank,label};
-
-      let traitHTML='';
-      if(rarity?.traits?.length){
-        const sorted=[...rarity.traits].sort((a,b)=>(a.pct??100)-(b.pct??100)).slice(0,4);
-        traitHTML=sorted.map(t=>{
-          const cls=t.pct!==null&&t.pct<1?'ultra-rare':t.pct!==null&&t.pct<5?'rare':'';
-          const pctStr=t.pct!==null?` ${t.pct}%`:'';
-          return `<span class="trait-pill ${cls}">${esc(t.value)}${pctStr}</span>`;
-        }).join('');
-      }
-
-      const wrapper=document.createElement('div');
-      wrapper.className='slab-wrapper';
-      wrapper.style.animationDelay=`${i*0.04}s`;
-      wrapper.setAttribute('data-card', JSON.stringify(cardData));
-      wrapper.addEventListener('click', ()=>openModal(cardData));
-
-      wrapper.innerHTML=`
-        <div class="slab">${buildSlabHTML(cardData)}</div>
-        ${traitHTML?`<div class="slab-traits">${traitHTML}</div>`:''}
-        <p class="slab-hint">click to expand & download</p>
-      `;
-      grid.appendChild(wrapper);
+async function fetchWhales(){
+  const wallet=$('walletInput').value.trim();
+  if(!wallet)return;
+  if(!wallet.startsWith('0x')||wallet.length<10){setStatus('Please enter a valid Ethereum wallet address.',true);return;}
+  $('searchBtn').disabled=true;
+  $('emptyState').style.display='none';
+  $('resultsSection').style.display='none';
+  $('cardGrid').innerHTML='';
+  setStatus('<span class="spinner"></span> Diving into the blockchain…');
+  try{
+    const nfts=await fetchAllNFTs(wallet);
+    if(!nfts.length){setStatus('No SSoW NFTs found for this wallet.');$('emptyState').style.display='block';return;}
+    nfts.sort((a,b)=>{
+      const ra=window.WHALE_TRAITS?.[String(a.identifier)]?.rank??99999;
+      const rb=window.WHALE_TRAITS?.[String(b.identifier)]?.rank??99999;
+      return ra-rb;
     });
-  }
+    $('nftCount').textContent=nfts.length;
+    $('walletDisplay').textContent=shortAddr(wallet);
+    setStatus('');$('resultsSection').style.display='block';
+    renderSlabs(nfts);
+  }catch(err){console.error(err);setStatus(`Error: ${err.message}`,true);$('emptyState').style.display='block';}
+  finally{$('searchBtn').disabled=false;}
+}
 
-  // ── Modal ──
-  let currentCardData = null;
+function renderSlabs(nfts){
+  const grid=$('cardGrid');grid.innerHTML='';
+  nfts.forEach((nft,i)=>{
+    const cert=nextCert();
+    const tokenId=nft.identifier||nft.token_id||'???';
+    const name=nft.name||`Whale #${tokenId}`;
+    const imageUrl=nft.display_image_url||nft.image_url||'';
+    const osLink=`https://opensea.io/assets/ethereum/${nft.contract||CONTRACT}/${tokenId}`;
+    const rarity=getRarity(tokenId);
+    const rank=rarity?.rank??'?';
+    const tier=rarity?tierLabel(rank):'⬥ OG Whale';
+    const cardData={cert,tokenId,name,imageUrl,osLink,rank,tier};
 
-  function openModal(data) {
-    currentCardData = data;
-    $('modalSlab').innerHTML = buildSlabHTML(data);
-    $('modalOsLink').href = data.osLink;
-    $('modalBackdrop').classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeModalDirect() {
-    $('modalBackdrop').classList.remove('open');
-    document.body.style.overflow = '';
-  }
-
-  function closeModal(e) {
-    if(e.target === $('modalBackdrop')) closeModalDirect();
-  }
-
-  document.addEventListener('keydown', e => { if(e.key==='Escape') closeModalDirect(); });
-
-  async function downloadSlab() {
-    if(!currentCardData) return;
-    const btn = document.querySelector('.modal-btn-download');
-    btn.textContent = '⏳ RENDERING…';
-    btn.disabled = true;
-
-    // Wait for image to load in modal
-    const img = $('modalSlab').querySelector('img');
-    if(img && !img.complete) await new Promise(r => { img.onload=r; img.onerror=r; });
-
-    try {
-      const canvas = await html2canvas($('modalSlab'), {
-        scale: 3,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null,
-        logging: false,
-      });
-
-      const link = document.createElement('a');
-      link.download = `ssow-psa-${currentCardData.tokenId}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    } catch(err) {
-      console.error(err);
-      alert('Download failed — try right-clicking the slab image and saving instead.');
-    } finally {
-      btn.textContent = '⬇ DOWNLOAD PNG';
-      btn.disabled = false;
+    let traitHTML='';
+    if(rarity?.traits?.length){
+      const sorted=[...rarity.traits].sort((a,b)=>(a.pct??100)-(b.pct??100)).slice(0,5);
+      traitHTML=sorted.map(t=>{
+        const cls=t.pct!==null&&t.pct<1?'ultra':t.pct!==null&&t.pct<5?'rare':'';
+        return`<span class="trait-pill ${cls}">${esc(t.value)}${t.pct!==null?` · ${t.pct}%`:''}</span>`;
+      }).join('');
     }
-  }
 
-  function esc(str) {
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
+    const wrapper=document.createElement('div');
+    wrapper.className='slab-wrapper';
+    wrapper.style.animationDelay=`${i*0.05}s`;
+    wrapper.addEventListener('click',()=>openModal(cardData));
+    wrapper.innerHTML=`${buildSlabHTML(cardData)}
+      <div class="slab-meta">
+        <div class="slab-rank">${rank!=='?'?`Rank #${rank} of 10,000`:'OG Whale'} &nbsp;·&nbsp; ${esc(tier.replace('⬥ ',''))}</div>
+        ${traitHTML?`<div class="trait-pills">${traitHTML}</div>`:''}
+        <div class="slab-hint">click to expand &amp; download</div>
+      </div>`;
+    grid.appendChild(wrapper);
+  });
+}
+
+let activeCard=null;
+function openModal(data){
+  activeCard=data;
+  $('modalCaseWrap').innerHTML=buildSlabHTML(data);
+  $('modalOsLink').href=data.osLink;
+  $('modalBackdrop').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeModal(){$('modalBackdrop').classList.remove('open');document.body.style.overflow='';}
+function closeModalOutside(e){if(e.target===$('modalBackdrop'))closeModal();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+async function downloadSlab(){
+  if(!activeCard)return;
+  const btn=document.querySelector('.modal-btn-dl');
+  btn.textContent='⏳ Rendering…';btn.disabled=true;
+  const img=$('modalCaseWrap').querySelector('img');
+  if(img&&!img.complete)await new Promise(r=>{img.onload=r;img.onerror=r;});
+  try{
+    const canvas=await html2canvas($('modalCaseWrap').querySelector('.psa-case'),{
+      scale:3,useCORS:true,allowTaint:true,backgroundColor:null,logging:false,
+    });
+    const a=document.createElement('a');
+    a.download=`ssow-psa-${activeCard.tokenId}.png`;
+    a.href=canvas.toDataURL('image/png');
+    a.click();
+  }catch(err){console.error(err);alert('Download failed — try right-clicking the slab and saving instead.');}
+  finally{btn.textContent='⬇ Download PNG';btn.disabled=false;}
+}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 </script>
 </body>
 </html>
