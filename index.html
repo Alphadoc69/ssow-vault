@@ -5,215 +5,79 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SSoW PSA Vault | Secret Society of Whales</title>
   <meta name="description" content="View your Secret Society of Whales NFTs as certified PSA 10 Gem Mint graded cards." />
-  <meta property="og:title" content="SSoW PSA Vault" />
-  <meta property="og:description" content="Your whales, graded. PSA 10 Gem Mint. Every time. 🐋" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-
-  <!-- Rarity data — no API needed for ranks/traits -->
   <script src="rarity-data.js"></script>
   <script src="trait-rarities.js"></script>
-
   <style>
     :root {
-      --ocean-deep:   #020c18;
-      --foam:         #7eb8e8;
-      --foam-light:   #b8d8f4;
-      --gold:         #f5c518;
-      --gold-dim:     #8a6e0a;
-      --psa-blue:     #1a3a70;
+      --ocean-deep: #020c18;
+      --foam: #7eb8e8;
+      --foam-light: #b8d8f4;
+      --gold: #f5c518;
+      --gold-dim: #8a6e0a;
+      --psa-blue: #1a3a70;
       --psa-blue-mid: #1e4898;
-      --psa-accent:   #2666cc;
-      --psa-red:      #cc0000;
-      --off-white:    #e8f0f8;
-      --muted:        #7a9bbc;
+      --psa-accent: #2666cc;
+      --psa-red: #cc0000;
+      --off-white: #e8f0f8;
+      --muted: #7a9bbc;
       --font-display: 'Bebas Neue', sans-serif;
-      --font-mono:    'DM Mono', monospace;
-      --font-body:    'DM Sans', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+      --font-body: 'DM Sans', sans-serif;
     }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      background: var(--ocean-deep);
-      color: var(--off-white);
-      font-family: var(--font-body);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
+    body { background: var(--ocean-deep); color: var(--off-white); font-family: var(--font-body); min-height: 100vh; overflow-x: hidden; }
     body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(10,74,138,0.35) 0%, transparent 70%),
-        radial-gradient(ellipse 50% 40% at 80% 100%, rgba(6,42,80,0.5) 0%, transparent 60%);
-      pointer-events: none;
-      z-index: 0;
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(10,74,138,0.35) 0%, transparent 70%),
+                  radial-gradient(ellipse 50% 40% at 80% 100%, rgba(6,42,80,0.5) 0%, transparent 60%);
     }
-
     body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        radial-gradient(1px 1px at 20% 30%, rgba(126,184,232,0.4) 0%, transparent 100%),
-        radial-gradient(1px 1px at 60% 70%, rgba(126,184,232,0.3) 0%, transparent 100%),
-        radial-gradient(1px 1px at 80% 20%, rgba(126,184,232,0.25) 0%, transparent 100%),
-        radial-gradient(1.5px 1.5px at 40% 90%, rgba(126,184,232,0.35) 0%, transparent 100%);
-      pointer-events: none;
-      z-index: 0;
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image: radial-gradient(1px 1px at 20% 30%, rgba(126,184,232,0.4) 0%, transparent 100%),
+                        radial-gradient(1px 1px at 60% 70%, rgba(126,184,232,0.3) 0%, transparent 100%),
+                        radial-gradient(1px 1px at 80% 20%, rgba(126,184,232,0.25) 0%, transparent 100%);
       animation: drift 20s ease-in-out infinite alternate;
     }
-    @keyframes drift { from { transform: translateY(0); } to { transform: translateY(-12px); } }
-
+    @keyframes drift { from{transform:translateY(0)} to{transform:translateY(-12px)} }
     .site-wrap { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 0 2rem; }
-
-    header {
-      text-align: center;
-      padding: 4rem 0 2.5rem;
-      border-bottom: 0.5px solid rgba(126,184,232,0.15);
-      margin-bottom: 3rem;
-    }
-
-    .logo-whale {
-      font-size: 3.5rem;
-      line-height: 1;
-      margin-bottom: 0.5rem;
-      display: block;
-      filter: drop-shadow(0 0 20px rgba(126,184,232,0.5));
-      animation: bob 4s ease-in-out infinite;
-    }
+    header { text-align: center; padding: 4rem 0 2.5rem; border-bottom: 0.5px solid rgba(126,184,232,0.15); margin-bottom: 3rem; }
+    .logo-whale { font-size: 3.5rem; line-height: 1; margin-bottom: 0.5rem; display: block; filter: drop-shadow(0 0 20px rgba(126,184,232,0.5)); animation: bob 4s ease-in-out infinite; }
     @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-
-    .site-title {
-      font-family: var(--font-display);
-      font-size: clamp(3rem, 8vw, 6rem);
-      letter-spacing: 0.08em;
-      line-height: 0.9;
-      background: linear-gradient(135deg, #fff 0%, var(--foam-light) 40%, var(--gold) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .site-subtitle {
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      letter-spacing: 0.25em;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-top: 0.5rem;
-    }
-
+    .site-title { font-family: var(--font-display); font-size: clamp(3rem,8vw,6rem); letter-spacing: 0.08em; line-height: 0.9; background: linear-gradient(135deg,#fff 0%,var(--foam-light) 40%,var(--gold) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .site-subtitle { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.25em; color: var(--muted); text-transform: uppercase; margin-top: 0.5rem; }
     .header-links { display: flex; justify-content: center; gap: 1.5rem; margin-top: 1.5rem; }
-    .header-links a {
-      font-family: var(--font-mono);
-      font-size: 0.7rem;
-      letter-spacing: 0.15em;
-      color: var(--muted);
-      text-decoration: none;
-      text-transform: uppercase;
-      border: 0.5px solid rgba(126,184,232,0.2);
-      padding: 6px 14px;
-      border-radius: 2px;
-      transition: color 0.2s, border-color 0.2s, background 0.2s;
-    }
+    .header-links a { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.15em; color: var(--muted); text-decoration: none; text-transform: uppercase; border: 0.5px solid rgba(126,184,232,0.2); padding: 6px 14px; border-radius: 2px; transition: color 0.2s, border-color 0.2s, background 0.2s; }
     .header-links a:hover { color: var(--foam-light); border-color: rgba(126,184,232,0.5); background: rgba(126,184,232,0.05); }
-
     .search-section { max-width: 620px; margin: 0 auto 3.5rem; text-align: center; }
     .search-eyebrow { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.3em; color: var(--gold-dim); text-transform: uppercase; margin-bottom: 1rem; }
-    .search-label { font-family: var(--font-display); font-size: 1.8rem; letter-spacing: 0.06em; color: var(--off-white); margin-bottom: 1.25rem; }
-
-    .search-row {
-      display: flex;
-      border: 1px solid rgba(126,184,232,0.25);
-      border-radius: 3px;
-      overflow: hidden;
-      background: rgba(4,24,48,0.8);
-      backdrop-filter: blur(8px);
-      transition: border-color 0.2s;
-    }
+    .search-label { font-family: var(--font-display); font-size: 1.8rem; letter-spacing: 0.06em; margin-bottom: 1.25rem; }
+    .search-row { display: flex; border: 1px solid rgba(126,184,232,0.25); border-radius: 3px; overflow: hidden; background: rgba(4,24,48,0.8); backdrop-filter: blur(8px); transition: border-color 0.2s; }
     .search-row:focus-within { border-color: rgba(126,184,232,0.6); box-shadow: 0 0 0 3px rgba(126,184,232,0.08); }
-    .search-row input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: var(--off-white);
-      font-family: var(--font-mono);
-      font-size: 0.8rem;
-      letter-spacing: 0.05em;
-      padding: 14px 18px;
-    }
+    .search-row input { flex: 1; background: transparent; border: none; outline: none; color: var(--off-white); font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.05em; padding: 14px 18px; }
     .search-row input::placeholder { color: rgba(122,155,188,0.5); }
-    .search-btn {
-      background: linear-gradient(135deg, var(--psa-blue) 0%, var(--psa-blue-mid) 100%);
-      border: none;
-      color: var(--off-white);
-      font-family: var(--font-display);
-      font-size: 1rem;
-      letter-spacing: 0.12em;
-      padding: 0 28px;
-      cursor: pointer;
-      transition: background 0.2s;
-      white-space: nowrap;
-    }
-    .search-btn:hover { background: linear-gradient(135deg, var(--psa-blue-mid) 0%, var(--psa-accent) 100%); }
+    .search-btn { background: linear-gradient(135deg,var(--psa-blue) 0%,var(--psa-blue-mid) 100%); border: none; color: var(--off-white); font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.12em; padding: 0 28px; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
+    .search-btn:hover { background: linear-gradient(135deg,var(--psa-blue-mid) 0%,var(--psa-accent) 100%); }
     .search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
     .status { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.1em; color: var(--muted); margin-top: 1rem; min-height: 1.4em; text-align: center; }
     .status.error { color: #f07070; }
-
     .results-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 0.5px solid rgba(126,184,232,0.12); }
     .results-count { font-family: var(--font-display); font-size: 1.6rem; letter-spacing: 0.06em; }
     .results-count span { color: var(--gold); }
     .results-wallet { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.1em; color: var(--muted); }
-
     .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 2.5rem; padding-bottom: 5rem; }
 
-    /* ── PSA SLAB ── */
-    .slab-wrapper { perspective: 1000px; }
-    .slab-wrapper:hover .slab {
-      transform: rotateY(5deg) rotateX(-3deg) scale(1.04);
-      box-shadow: -10px 14px 50px rgba(0,0,0,0.75), 0 0 0 1.5px #aaa, 0 0 30px rgba(126,184,232,0.12);
-    }
-    .slab {
-      background: #c0d0e0;
-      border-radius: 5px;
-      overflow: hidden;
-      box-shadow: -5px 8px 30px rgba(0,0,0,0.6), 0 0 0 1.5px #999, inset 0 0 0 1px rgba(255,255,255,0.15);
-      transform: rotateY(0) rotateX(0) scale(1);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      transform-style: preserve-3d;
-      animation: slabReveal 0.5s ease both;
-      font-family: Arial, Helvetica, sans-serif;
-    }
+    /* ── SLAB ── */
+    .slab-wrapper { cursor: pointer; }
+    .slab-wrapper:hover .slab { transform: rotateY(5deg) rotateX(-3deg) scale(1.04); box-shadow: -10px 14px 50px rgba(0,0,0,0.75), 0 0 0 1.5px #aaa, 0 0 30px rgba(126,184,232,0.12); }
+    .slab { background: #c0d0e0; border-radius: 5px; overflow: hidden; box-shadow: -5px 8px 30px rgba(0,0,0,0.6), 0 0 0 1.5px #999, inset 0 0 0 1px rgba(255,255,255,0.15); transform: rotateY(0) rotateX(0) scale(1); transition: transform 0.3s ease, box-shadow 0.3s ease; transform-style: preserve-3d; perspective: 800px; animation: slabReveal 0.5s ease both; font-family: Arial, Helvetica, sans-serif; }
     @keyframes slabReveal { from{opacity:0;transform:translateY(20px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
-
-    /* Red top stripe */
-    .psa-label-red {
-      background: #cc0000;
-      padding: 4px 8px 3px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-    }
+    .psa-label-red { background: #cc0000; padding: 4px 8px 3px; display: flex; justify-content: space-between; align-items: flex-start; }
     .psa-red-left { font-size: 7.5px; font-weight: 700; color: #fff; letter-spacing: 0.4px; line-height: 1.45; }
     .psa-red-right { font-size: 7.5px; font-weight: 700; color: #fff; letter-spacing: 0.4px; line-height: 1.45; text-align: right; }
-
-    /* White middle stripe */
-    .psa-label-white {
-      background: #fff;
-      padding: 5px 8px 5px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 4px;
-      border-bottom: 2px solid #cc0000;
-    }
+    .psa-label-white { background: #fff; padding: 5px 8px; display: flex; justify-content: space-between; align-items: center; gap: 4px; border-bottom: 2px solid #cc0000; }
     .psa-white-left { font-size: 7px; font-weight: 700; color: #111; letter-spacing: 0.3px; line-height: 1.5; flex: 1; }
     .psa-white-center { display: flex; flex-direction: column; align-items: center; gap: 1px; }
     .psa-logo-box { background: #1a3a80; color: #fff; font-family: 'Arial Black', Arial, sans-serif; font-size: 12px; font-weight: 900; letter-spacing: 2px; padding: 2px 8px; border-radius: 2px; line-height: 1.2; }
@@ -222,85 +86,115 @@
     .psa-gem-mt { font-size: 8px; font-weight: 700; color: #111; letter-spacing: 0.5px; line-height: 1.2; }
     .psa-grade-num { font-family: 'Arial Black', Arial, sans-serif; font-size: 30px; font-weight: 900; color: #111; line-height: 1; letter-spacing: -1px; }
     .psa-cert-num { font-size: 6px; color: #888; letter-spacing: 0.3px; }
-
-    /* Card image */
     .slab-window { background: #b0c4d8; padding: 7px; }
-    .slab-card {
-      width: 100%;
-      aspect-ratio: 1;
-      background: #0a1520;
-      border-radius: 2px;
-      overflow: hidden;
-      position: relative;
-    }
+    .slab-card { width: 100%; aspect-ratio: 1; background: #0a1520; border-radius: 2px; overflow: hidden; }
     .slab-card img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s ease; }
     .slab-wrapper:hover .slab-card img { transform: scale(1.04); }
     .slab-card-loading { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; animation: pulse 1.5s ease-in-out infinite; }
     @keyframes pulse { 0%,100%{opacity:0.3} 50%{opacity:0.8} }
-
-    /* Bottom bar */
-    .slab-footer {
-      background: #fff;
-      border-top: 2px solid #cc0000;
-      padding: 4px 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+    .slab-footer { background: #fff; border-top: 2px solid #cc0000; padding: 4px 8px; display: flex; justify-content: space-between; align-items: center; }
     .barcode { display: flex; flex-direction: column; gap: 1px; }
     .barcode-lines { display: flex; gap: 1.5px; height: 14px; align-items: flex-end; }
     .barcode-lines span { display: inline-block; width: 1.5px; background: #222; }
     .barcode-num { font-size: 5.5px; color: #444; letter-spacing: 0.3px; margin-top: 1px; }
     .slab-footer-right { font-size: 6.5px; color: #555; text-align: right; font-weight: 700; letter-spacing: 0.3px; line-height: 1.5; }
-
-    /* Trait pills below slab */
-    .slab-traits {
-      margin-top: 8px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-    }
-    .trait-pill {
-      font-family: var(--font-mono);
-      font-size: 0.58rem;
-      letter-spacing: 0.05em;
-      padding: 3px 7px;
-      border-radius: 2px;
-      border: 0.5px solid rgba(126,184,232,0.2);
-      color: var(--muted);
-      background: rgba(4,24,48,0.5);
-      white-space: nowrap;
-    }
+    .slab-traits { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
+    .trait-pill { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.05em; padding: 3px 7px; border-radius: 2px; border: 0.5px solid rgba(126,184,232,0.2); color: var(--muted); background: rgba(4,24,48,0.5); white-space: nowrap; }
     .trait-pill.rare { border-color: rgba(245,197,24,0.4); color: #c8a820; background: rgba(245,197,24,0.06); }
     .trait-pill.ultra-rare { border-color: rgba(245,100,24,0.5); color: #e07030; background: rgba(245,100,24,0.08); }
-
-    .slab-opensea {
-      display: block;
-      text-align: center;
-      font-family: var(--font-mono);
-      font-size: 0.62rem;
-      letter-spacing: 0.12em;
-      color: var(--muted);
-      text-decoration: none;
-      margin-top: 6px;
-      padding: 5px 0;
-      border: 0.5px solid rgba(126,184,232,0.15);
-      border-radius: 2px;
-      transition: color 0.2s, border-color 0.2s, background 0.2s;
-    }
-    .slab-opensea:hover { color: var(--foam-light); border-color: rgba(126,184,232,0.4); background: rgba(126,184,232,0.05); }
-
+    .slab-hint { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.08em; color: rgba(122,155,188,0.4); text-align: center; margin-top: 6px; }
     .state-empty { text-align: center; padding: 6rem 0; }
     .state-empty .whale-icon { font-size: 4rem; display: block; margin-bottom: 1rem; opacity: 0.3; animation: bob 4s ease-in-out infinite; }
     .state-empty p { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.15em; color: var(--muted); text-transform: uppercase; }
-
     .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(126,184,232,0.2); border-top-color: var(--foam); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 8px; }
     @keyframes spin { to{transform:rotate(360deg)} }
-
     footer { text-align: center; padding: 2rem 0 3rem; border-top: 0.5px solid rgba(126,184,232,0.1); margin-top: 4rem; }
     footer p { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.15em; color: rgba(122,155,188,0.4); text-transform: uppercase; }
     footer a { color: rgba(122,155,188,0.6); text-decoration: none; }
     footer a:hover { color: var(--foam); }
+
+    /* ── MODAL ── */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(1,6,14,0.92);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(6px);
+      padding: 20px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-box {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      animation: modalIn 0.25s ease;
+      max-height: 95vh;
+      overflow-y: auto;
+    }
+    @keyframes modalIn { from{opacity:0;transform:scale(0.92) translateY(16px)} to{opacity:1;transform:scale(1) translateY(0)} }
+    .modal-close {
+      position: absolute;
+      top: -12px;
+      right: -12px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(10,30,60,0.95);
+      border: 0.5px solid rgba(126,184,232,0.3);
+      color: var(--muted);
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      transition: color 0.2s, border-color 0.2s;
+      z-index: 10;
+    }
+    .modal-close:hover { color: #fff; border-color: rgba(126,184,232,0.7); }
+
+    /* Large slab in modal — same HTML structure, bigger scale */
+    .modal-slab-wrap { width: min(400px, 90vw); }
+    .modal-slab { font-family: Arial, Helvetica, sans-serif; background: #c0d0e0; border-radius: 7px; overflow: hidden; box-shadow: -8px 14px 60px rgba(0,0,0,0.8), 0 0 0 2px #999, inset 0 0 0 1px rgba(255,255,255,0.2); }
+    .modal-slab .psa-label-red { padding: 7px 14px 5px; }
+    .modal-slab .psa-red-left { font-size: 12px; }
+    .modal-slab .psa-red-right { font-size: 12px; }
+    .modal-slab .psa-label-white { padding: 8px 14px; border-bottom-width: 3px; }
+    .modal-slab .psa-white-left { font-size: 11px; }
+    .modal-slab .psa-logo-box { font-size: 20px; padding: 3px 12px; }
+    .modal-slab .psa-auth-text { font-size: 7.5px; }
+    .modal-slab .psa-gem-mt { font-size: 13px; }
+    .modal-slab .psa-grade-num { font-size: 52px; }
+    .modal-slab .psa-cert-num { font-size: 10px; }
+    .modal-slab .slab-window { padding: 10px; }
+    .modal-slab .slab-footer { padding: 6px 14px; border-top-width: 3px; }
+    .modal-slab .barcode-lines { height: 22px; gap: 2px; }
+    .modal-slab .barcode-lines span { width: 2px; }
+    .modal-slab .barcode-num { font-size: 8px; }
+    .modal-slab .slab-footer-right { font-size: 10px; }
+
+    .modal-actions { display: flex; gap: 10px; }
+    .modal-btn {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      letter-spacing: 0.1em;
+      padding: 10px 24px;
+      border-radius: 3px;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .modal-btn:active { transform: scale(0.97); }
+    .modal-btn-download { background: linear-gradient(135deg, #f5c518 0%, #e0a800 100%); color: #0d2a5e; }
+    .modal-btn-download:hover { opacity: 0.9; }
+    .modal-btn-os { background: transparent; border: 0.5px solid rgba(126,184,232,0.3); color: var(--muted); font-size: 0.85rem; }
+    .modal-btn-os:hover { border-color: rgba(126,184,232,0.6); color: var(--foam-light); }
+    .modal-dl-note { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.08em; color: rgba(122,155,188,0.5); text-align: center; }
 
     @media (max-width: 640px) {
       .site-wrap { padding: 0 1rem; }
@@ -313,7 +207,6 @@
 <body>
 
 <div class="site-wrap">
-
   <header>
     <span class="logo-whale">🐋</span>
     <h1 class="site-title">SSoW PSA VAULT</h1>
@@ -351,210 +244,253 @@
   <footer>
     <p>SSoW PSA Vault · Fan-made tool · <a href="https://www.secretsocietyofwhales.com/" target="_blank" rel="noopener">Secret Society of Whales</a> · #TogetherWeWhale</p>
   </footer>
-
 </div>
 
+<!-- MODAL -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="closeModal(event)">
+  <div class="modal-box" id="modalBox">
+    <button class="modal-close" onclick="closeModalDirect()" aria-label="Close">×</button>
+    <div class="modal-slab-wrap">
+      <div class="modal-slab" id="modalSlab">
+        <!-- populated by JS -->
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-download" onclick="downloadSlab()">⬇ DOWNLOAD PNG</button>
+      <a class="modal-btn modal-btn-os" id="modalOsLink" href="#" target="_blank" rel="noopener">↗ OpenSea</a>
+    </div>
+    <p class="modal-dl-note">Downloads a high-res PNG of your graded slab</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
   const $ = id => document.getElementById(id);
   let certCounter = 10000000 + Math.floor(Math.random() * 89999999);
   function nextCert() { return (++certCounter).toString(); }
-  function shortWallet(addr) { return addr.slice(0, 6) + '…' + addr.slice(-4); }
-  function setStatus(msg, isError = false) {
-    const el = $('status');
-    el.innerHTML = msg;
-    el.className = 'status' + (isError ? ' error' : '');
-  }
+  function shortWallet(addr) { return addr.slice(0,6) + '…' + addr.slice(-4); }
+  function setStatus(msg, isError=false) { const el=$('status'); el.innerHTML=msg; el.className='status'+(isError?' error':''); }
 
   window.addEventListener('DOMContentLoaded', () => {
-    $('walletInput').addEventListener('keydown', e => { if (e.key === 'Enter') fetchWhales(); });
+    $('walletInput').addEventListener('keydown', e => { if(e.key==='Enter') fetchWhales(); });
   });
 
-  // Looks up local rarity data for a token
   function getRarityData(tokenId) {
     const traits = window.WHALE_TRAITS?.[String(tokenId)];
     const traitRarities = window.TRAIT_RARITIES;
     if (!traits) return null;
-
     const traitList = [];
-    const traitKeys = ['background','blowholeRing','eyes','fins','hat','mouth','outfit','skin'];
-
-    for (const key of traitKeys) {
+    for (const key of ['background','blowholeRing','eyes','fins','hat','mouth','outfit','skin']) {
       const val = traits[key];
-      if (!val || val.trim() === '' || val === 'None') continue;
+      if (!val || val.trim()==='' || val==='None') continue;
       const pct = traitRarities?.[key]?.[val]?.percentage ?? traitRarities?.[key]?.[val.trim()]?.percentage ?? null;
       traitList.push({ trait: key, value: val, pct });
     }
-
     return { rank: traits.rank, traits: traitList };
   }
 
   function rarityLabel(rank) {
-    if (rank <= 100)  return 'LEGENDARY';
-    if (rank <= 500)  return 'EPIC';
-    if (rank <= 1000) return 'RARE';
-    if (rank <= 3000) return 'UNCOMMON';
+    if (rank<=100) return 'LEGENDARY';
+    if (rank<=500) return 'EPIC';
+    if (rank<=1000) return 'RARE';
+    if (rank<=3000) return 'UNCOMMON';
     return 'COMMON';
   }
 
+  function makeBarcodeLines() {
+    const h=[100,70,100,55,100,80,100,65,100,90,100,50,100,75,100,60,100,85,100,70,100,55,100,95,100];
+    return h.map(v=>`<span style="height:${v}%"></span>`).join('');
+  }
+
+  function buildSlabHTML(data) {
+    return `
+      <div class="psa-label-red">
+        <div class="psa-red-left">
+          2021 SECRET SOCIETY OF WHALES<br>
+          ${esc(data.name.toUpperCase())}
+        </div>
+        <div class="psa-red-right">
+          #${esc(String(data.tokenId))}<br>
+          GEM MT
+        </div>
+      </div>
+      <div class="psa-label-white">
+        <div class="psa-white-left">
+          OG WHALE<br>
+          ${esc(data.label)} · RANK #${data.rank}
+        </div>
+        <div class="psa-white-center">
+          <div class="psa-logo-box">PSA</div>
+          <div class="psa-auth-text">Authenticated</div>
+        </div>
+        <div class="psa-white-right">
+          <div class="psa-gem-mt">GEM MT</div>
+          <div class="psa-grade-num">10</div>
+          <div class="psa-cert-num">${data.cert}</div>
+        </div>
+      </div>
+      <div class="slab-window">
+        <div class="slab-card">
+          ${data.imageUrl
+            ? `<img src="${esc(data.imageUrl)}" alt="${esc(data.name)}" crossorigin="anonymous" />`
+            : `<div class="slab-card-loading">🐋</div>`}
+        </div>
+      </div>
+      <div class="slab-footer">
+        <div class="barcode">
+          <div class="barcode-lines">${makeBarcodeLines()}</div>
+          <div class="barcode-num">${data.cert}</div>
+        </div>
+        <div class="slab-footer-right">SSOW · ETH<br>TOKEN #${esc(String(data.tokenId))}</div>
+      </div>
+    `;
+  }
+
   async function fetchAllNFTs(wallet) {
-    const allNFTs = [];
-    let next = null;
+    const all=[];
+    let next=null;
     do {
-      const params = new URLSearchParams({ wallet });
-      if (next) params.set('next', next);
-      const res = await fetch(`/api/whales?${params}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
-      allNFTs.push(...(data.nfts || []));
-      next = data.next || null;
-      setStatus(`<span class="spinner"></span> Loading… ${allNFTs.length} whales surfaced`);
-    } while (next);
-    return allNFTs;
+      const params=new URLSearchParams({wallet});
+      if(next) params.set('next',next);
+      const res=await fetch(`/api/whales?${params}`);
+      const data=await res.json();
+      if(!res.ok) throw new Error(data.error||`Error ${res.status}`);
+      all.push(...(data.nfts||[]));
+      next=data.next||null;
+      setStatus(`<span class="spinner"></span> Loading… ${all.length} whales surfaced`);
+    } while(next);
+    return all;
   }
 
   async function fetchWhales() {
-    const wallet = $('walletInput').value.trim();
-    if (!wallet) return;
-    if (!wallet.startsWith('0x') || wallet.length < 10) {
-      setStatus('Please enter a valid Ethereum wallet address.', true);
-      return;
-    }
-    $('searchBtn').disabled = true;
-    $('emptyState').style.display = 'none';
-    $('resultsSection').style.display = 'none';
-    $('cardGrid').innerHTML = '';
+    const wallet=$('walletInput').value.trim();
+    if(!wallet) return;
+    if(!wallet.startsWith('0x')||wallet.length<10){ setStatus('Please enter a valid Ethereum wallet address.',true); return; }
+    $('searchBtn').disabled=true;
+    $('emptyState').style.display='none';
+    $('resultsSection').style.display='none';
+    $('cardGrid').innerHTML='';
     setStatus('<span class="spinner"></span> Diving into the blockchain…');
-
     try {
-      const nfts = await fetchAllNFTs(wallet);
-      if (nfts.length === 0) {
-        setStatus('No SSoW NFTs found for this wallet. 🐳');
-        $('emptyState').style.display = 'block';
-        return;
-      }
-      // Sort by rarity rank if available
-      nfts.sort((a, b) => {
-        const ra = window.WHALE_TRAITS?.[String(a.identifier)]?.rank ?? 99999;
-        const rb = window.WHALE_TRAITS?.[String(b.identifier)]?.rank ?? 99999;
-        return ra - rb;
+      const nfts=await fetchAllNFTs(wallet);
+      if(nfts.length===0){ setStatus('No SSoW NFTs found for this wallet. 🐳'); $('emptyState').style.display='block'; return; }
+      nfts.sort((a,b)=>{
+        const ra=window.WHALE_TRAITS?.[String(a.identifier)]?.rank??99999;
+        const rb=window.WHALE_TRAITS?.[String(b.identifier)]?.rank??99999;
+        return ra-rb;
       });
-
-      $('nftCount').textContent = nfts.length;
-      $('walletDisplay').textContent = shortWallet(wallet);
+      $('nftCount').textContent=nfts.length;
+      $('walletDisplay').textContent=shortWallet(wallet);
       setStatus('');
-      $('resultsSection').style.display = 'block';
+      $('resultsSection').style.display='block';
       renderSlabs(nfts);
-    } catch (err) {
+    } catch(err) {
       console.error(err);
-      setStatus(`Error: ${err.message}`, true);
-      $('emptyState').style.display = 'block';
+      setStatus(`Error: ${err.message}`,true);
+      $('emptyState').style.display='block';
     } finally {
-      $('searchBtn').disabled = false;
+      $('searchBtn').disabled=false;
     }
   }
 
-  function makeBarcodeLines() {
-    const heights = [100,70,100,55,100,80,100,65,100,90,100,50,100,75,100,60,100,85,100,70,100,55,100,95,100];
-    return heights.map(h => `<span style="height:${h}%"></span>`).join('');
-  }
+  const CONTRACT='0x42d2b41c5bb1f73f06d5adaa85e23b44f75c4cd2';
 
   function renderSlabs(nfts) {
-    const grid = $('cardGrid');
-    grid.innerHTML = '';
-    const CONTRACT = '0x42d2b41c5bb1f73f06d5adaa85e23b44f75c4cd2';
+    const grid=$('cardGrid');
+    grid.innerHTML='';
+    nfts.forEach((nft,i)=>{
+      const cert=nextCert();
+      const tokenId=nft.identifier||nft.token_id||'???';
+      const name=nft.name||`Whale #${tokenId}`;
+      const imageUrl=nft.display_image_url||nft.image_url||'';
+      const osLink=`https://opensea.io/assets/ethereum/${nft.contract||CONTRACT}/${tokenId}`;
+      const rarity=getRarityData(tokenId);
+      const rank=rarity?.rank??'?';
+      const label=rarity?rarityLabel(rank):'OG WHALE';
+      const cardData={cert,tokenId,name,imageUrl,osLink,rank,label};
 
-    nfts.forEach((nft, i) => {
-      const cert = nextCert();
-      const tokenId = nft.identifier || nft.token_id || '???';
-      const name = nft.name || `Whale #${tokenId}`;
-      const imageUrl = nft.display_image_url || nft.image_url || '';
-      const osLink = `https://opensea.io/assets/ethereum/${nft.contract || CONTRACT}/${tokenId}`;
-      const rarity = getRarityData(tokenId);
-      const rank = rarity?.rank ?? '?';
-      const label = rarity ? rarityLabel(rank) : 'OG WHALE';
-
-      // Build trait pills — show top 4 rarest traits
-      let traitHTML = '';
-      if (rarity?.traits?.length) {
-        const sorted = [...rarity.traits].sort((a, b) => (a.pct ?? 100) - (b.pct ?? 100)).slice(0, 4);
-        traitHTML = sorted.map(t => {
-          const cls = t.pct !== null && t.pct < 1 ? 'ultra-rare' : t.pct !== null && t.pct < 5 ? 'rare' : '';
-          const pctStr = t.pct !== null ? ` ${t.pct}%` : '';
+      let traitHTML='';
+      if(rarity?.traits?.length){
+        const sorted=[...rarity.traits].sort((a,b)=>(a.pct??100)-(b.pct??100)).slice(0,4);
+        traitHTML=sorted.map(t=>{
+          const cls=t.pct!==null&&t.pct<1?'ultra-rare':t.pct!==null&&t.pct<5?'rare':'';
+          const pctStr=t.pct!==null?` ${t.pct}%`:'';
           return `<span class="trait-pill ${cls}">${esc(t.value)}${pctStr}</span>`;
         }).join('');
       }
 
-      const wrapper = document.createElement('div');
-      wrapper.className = 'slab-wrapper';
-      wrapper.style.animationDelay = `${i * 0.04}s`;
+      const wrapper=document.createElement('div');
+      wrapper.className='slab-wrapper';
+      wrapper.style.animationDelay=`${i*0.04}s`;
+      wrapper.setAttribute('data-card', JSON.stringify(cardData));
+      wrapper.addEventListener('click', ()=>openModal(cardData));
 
-      wrapper.innerHTML = `
-        <div class="slab">
-
-          <!-- Red top label -->
-          <div class="psa-label-red">
-            <div class="psa-red-left">
-              2021 SECRET SOCIETY OF WHALES<br>
-              ${esc(name.toUpperCase())}
-            </div>
-            <div class="psa-red-right">
-              #${esc(String(tokenId))}<br>
-              GEM MT
-            </div>
-          </div>
-
-          <!-- White middle label -->
-          <div class="psa-label-white">
-            <div class="psa-white-left">
-              OG WHALE<br>
-              ${esc(label)} · RANK #${rank}
-            </div>
-            <div class="psa-white-center">
-              <div class="psa-logo-box">PSA</div>
-              <div class="psa-auth-text">Authenticated</div>
-            </div>
-            <div class="psa-white-right">
-              <div class="psa-gem-mt">GEM MT</div>
-              <div class="psa-grade-num">10</div>
-              <div class="psa-cert-num">${cert}</div>
-            </div>
-          </div>
-
-          <!-- Card image window -->
-          <div class="slab-window">
-            <div class="slab-card">
-              ${imageUrl
-                ? `<img src="${esc(imageUrl)}" alt="${esc(name)}" loading="lazy" />`
-                : `<div class="slab-card-loading">🐋</div>`}
-            </div>
-          </div>
-
-          <!-- Bottom barcode bar -->
-          <div class="slab-footer">
-            <div class="barcode">
-              <div class="barcode-lines">${makeBarcodeLines()}</div>
-              <div class="barcode-num">${cert}</div>
-            </div>
-            <div class="slab-footer-right">
-              SSOW · ETH<br>
-              TOKEN #${esc(String(tokenId))}
-            </div>
-          </div>
-
-        </div>
-
-        ${traitHTML ? `<div class="slab-traits">${traitHTML}</div>` : ''}
-        <a class="slab-opensea" href="${esc(osLink)}" target="_blank" rel="noopener">↗ View on OpenSea</a>
+      wrapper.innerHTML=`
+        <div class="slab">${buildSlabHTML(cardData)}</div>
+        ${traitHTML?`<div class="slab-traits">${traitHTML}</div>`:''}
+        <p class="slab-hint">click to expand & download</p>
       `;
-
       grid.appendChild(wrapper);
     });
+  }
+
+  // ── Modal ──
+  let currentCardData = null;
+
+  function openModal(data) {
+    currentCardData = data;
+    $('modalSlab').innerHTML = buildSlabHTML(data);
+    $('modalOsLink').href = data.osLink;
+    $('modalBackdrop').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModalDirect() {
+    $('modalBackdrop').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function closeModal(e) {
+    if(e.target === $('modalBackdrop')) closeModalDirect();
+  }
+
+  document.addEventListener('keydown', e => { if(e.key==='Escape') closeModalDirect(); });
+
+  async function downloadSlab() {
+    if(!currentCardData) return;
+    const btn = document.querySelector('.modal-btn-download');
+    btn.textContent = '⏳ RENDERING…';
+    btn.disabled = true;
+
+    // Wait for image to load in modal
+    const img = $('modalSlab').querySelector('img');
+    if(img && !img.complete) await new Promise(r => { img.onload=r; img.onerror=r; });
+
+    try {
+      const canvas = await html2canvas($('modalSlab'), {
+        scale: 3,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null,
+        logging: false,
+      });
+
+      const link = document.createElement('a');
+      link.download = `ssow-psa-${currentCardData.tokenId}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch(err) {
+      console.error(err);
+      alert('Download failed — try right-clicking the slab image and saving instead.');
+    } finally {
+      btn.textContent = '⬇ DOWNLOAD PNG';
+      btn.disabled = false;
+    }
   }
 
   function esc(str) {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 </script>
-
 </body>
 </html>
