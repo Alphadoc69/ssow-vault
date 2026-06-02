@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SSoW Cards | Secret Society of Whales</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet" />
+  <script src="rarity-data.js"></script>
+  <script src="trait-rarities.js"></script>
+  <style>
+    :root {
+      --black: #0a0a0a;
+      --card-bg: #111111;
+      --card-border: #222222;
+      --card-shine: rgba(255,255,255,0.04);
+      --gold: #c9a84c;
+      --gold-light: #f0d060;
+      --blue: #7dd4e8;
+      --text: rgba(220,220,220,0.92);
+      --text-dim: rgba(160,160,160,0.6);
+      --font-display: 'Bebas Neue', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+      --font-serif: 'Cormorant Garamond', serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--black);
+      color: var(--text);
+      font-family: var(--font-mono);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 50% 0%, rgba(10,50,80,0.3) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 20% 100%, rgba(0,40,70,0.2) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrap { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 0 2rem; }
+
+    /* ── HEADER ── */
+    header {
+      text-align: center;
+      padding: 4rem 0 3rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+      text-decoration: none;
+      text-transform: uppercase;
+      margin-bottom: 2rem;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--blue); }
+    .site-eyebrow {
+      font-size: 0.6rem;
+      letter-spacing: 0.4em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+    .site-title {
+      font-family: var(--font-display);
+      font-size: clamp(3rem, 8vw, 6rem);
+      letter-spacing: 0.15em;
+      color: #fff;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+    .site-title span {
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .site-sub {
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 2.5rem;
+    }
+    .header-links {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 1.5rem;
+    }
+    .header-links a {
+      font-size: 0.55rem;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+      text-decoration: none;
+      text-transform: uppercase;
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 6px 14px;
+      transition: all 0.2s;
+    }
+    .header-links a:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+
+    /* ── SEARCH ── */
+    .search-section {
+      max-width: 500px;
+      margin: 4rem auto 5rem;
+      text-align: center;
+    }
+    .search-label {
+      font-family: var(--font-serif);
+      font-weight: 300;
+      font-size: 1.6rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(220,220,220,0.8);
+      margin-bottom: 1.2rem;
+    }
+    .search-row {
+      display: flex;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.03);
+      transition: border-color 0.2s;
+    }
+    .search-row:focus-within { border-color: rgba(255,255,255,0.3); }
+    .search-row input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      padding: 14px 18px;
+    }
+    .search-row input::placeholder { color: rgba(255,255,255,0.2); }
+    .search-btn {
+      background: #fff;
+      color: #000;
+      border: none;
+      font-family: var(--font-display);
+      font-size: 1rem;
+      letter-spacing: 0.12em;
+      padding: 0 24px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+    .search-btn:hover { opacity: 0.85; }
+    .search-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .status {
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      margin-top: 12px;
+      min-height: 1.4em;
+    }
+    .status.error { color: #e06060; }
+
+    /* ── RESULTS HEADER ── */
+    .results-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 3rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .results-count {
+      font-family: var(--font-serif);
+      font-weight: 300;
+      font-size: 1.4rem;
+      letter-spacing: 0.12em;
+      color: rgba(220,220,220,0.7);
+      text-transform: uppercase;
+    }
+    .results-count span { color: #fff; }
+    .results-wallet { font-size: 0.6rem; letter-spacing: 0.1em; color: var(--text-dim); }
+
+    /* ── CARD GRID ── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 2.5rem;
+      padding-bottom: 8rem;
+      align-items: start;
+    }
+
+    /* ── THE CARD ── */
+    .whale-card {
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .whale-card:hover { transform: translateY(-6px) scale(1.01); }
+
+    .card-inner {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow:
+        0 4px 24px rgba(0,0,0,0.8),
+        0 1px 0 rgba(255,255,255,0.06) inset;
+      position: relative;
+    }
+
+    .card-inner::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+    }
+
+    /* card header */
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 12px 14px 10px;
+      background: #0d0d0d;
+    }
+    .card-id {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      letter-spacing: 0.05em;
+      color: #fff;
+      line-height: 1;
+    }
+    .card-cert {
+      text-align: right;
+    }
+    .card-cert-top {
+      font-family: var(--font-mono);
+      font-size: 0.45rem;
+      letter-spacing: 0.2em;
+      color: rgba(255,255,255,0.35);
+      text-transform: uppercase;
+      line-height: 1.4;
+    }
+
+    /* image area */
+    .card-image-wrap {
+      position: relative;
+      aspect-ratio: 1;
+      background: #141414;
+      overflow: hidden;
+    }
+    .card-image-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    /* scanline overlay */
+    .card-image-wrap::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0,0,0,0.04) 0px,
+        rgba(0,0,0,0.04) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+      pointer-events: none;
+    }
+    .card-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      opacity: 0.15;
+    }
+
+    /* card body */
+    .card-body {
+      padding: 14px 14px 16px;
+      background: #0d0d0d;
+    }
+    .card-personality {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      letter-spacing: 0.08em;
+      color: #fff;
+      line-height: 1.1;
+      margin-bottom: 3px;
+    }
+    .card-subtitle {
+      font-family: var(--font-mono);
+      font-size: 0.5rem;
+      letter-spacing: 0.25em;
+      color: rgba(255,255,255,0.35);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .card-quote {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 0.75rem;
+      line-height: 1.5;
+      color: rgba(200,200,200,0.65);
+      margin-bottom: 14px;
+      min-height: 2.4em;
+    }
+
+    /* card footer */
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .card-brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .card-brand-icon { font-size: 0.9rem; opacity: 0.5; }
+    .card-brand-name {
+      font-family: var(--font-mono);
+      font-size: 0.45rem;
+      letter-spacing: 0.2em;
+      color: rgba(255,255,255,0.3);
+      text-transform: uppercase;
+    }
+    .card-number {
+      font-family: var(--font-mono);
+      font-size: 0.48rem;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.3);
+    }
+
+    /* rarity tiers change card accent */
+    .whale-card.legendary .card-inner {
+      border-color: rgba(201,168,76,0.35);
+      box-shadow: 0 4px 30px rgba(0,0,0,0.8), 0 0 0 1px rgba(201,168,76,0.15), 0 1px 0 rgba(255,255,255,0.08) inset;
+    }
+    .whale-card.legendary .card-id { color: var(--gold-light); }
+    .whale-card.epic .card-inner { border-color: rgba(180,100,255,0.2); }
+    .whale-card.rare .card-inner { border-color: rgba(100,180,255,0.2); }
+
+    /* share button below card */
+    .card-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .card-action-btn {
+      flex: 1;
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      letter-spacing: 0.12em;
+      padding: 8px 0;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: transparent;
+      color: rgba(255,255,255,0.5);
+      cursor: pointer;
+      transition: all 0.2s;
+      border-radius: 2px;
+    }
+    .card-action-btn:hover {
+      border-color: rgba(255,255,255,0.3);
+      color: #fff;
+      background: rgba(255,255,255,0.04);
+    }
+    .card-action-btn.share {
+      border-color: rgba(201,168,76,0.3);
+      color: rgba(201,168,76,0.7);
+    }
+    .card-action-btn.share:hover {
+      background: rgba(201,168,76,0.08);
+      color: var(--gold-light);
+    }
+
+    /* empty / loading states */
+    .state-empty {
+      text-align: center;
+      padding: 8rem 0;
+    }
+    .state-empty .whale { font-size: 3.5rem; display: block; margin-bottom: 1rem; opacity: 0.15; }
+    .state-empty p { font-size: 0.6rem; letter-spacing: 0.2em; color: var(--text-dim); text-transform: uppercase; }
+
+    .spinner {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border: 1.5px solid rgba(255,255,255,0.15);
+      border-top-color: rgba(255,255,255,0.7);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    footer {
+      text-align: center;
+      padding: 2rem 0 3rem;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      margin-top: 4rem;
+    }
+    footer p { font-size: 0.55rem; letter-spacing: 0.2em; color: rgba(255,255,255,0.2); text-transform: uppercase; }
+    footer a { color: rgba(255,255,255,0.35); text-decoration: none; }
+    footer a:hover { color: rgba(255,255,255,0.7); }
+
+    @media (max-width: 640px) {
+      .wrap { padding: 0 1.2rem; }
+      header { padding: 3rem 0 2rem; }
+      .card-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.5rem; }
+      .results-header { flex-direction: column; gap: 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a href="/" class="back-link">← SSoW Vault</a>
+    <p class="site-eyebrow">Secret Society of Whales</p>
+    <h1 class="site-title">YOUR <span>CARDS</span></h1>
+    <p class="site-sub">Every whale has a personality &nbsp;·&nbsp; est. 2021</p>
+    <nav class="header-links">
+      <a href="https://www.secretsocietyofwhales.com/" target="_blank" rel="noopener">Website</a>
+      <a href="https://opensea.io/collection/secretsocietyofwhales" target="_blank" rel="noopener">OpenSea</a>
+      <a href="https://x.com/SSofWhales" target="_blank" rel="noopener">Twitter</a>
+    </nav>
+  </header>
+
+  <section class="search-section">
+    <p class="search-label">Load Your Pod</p>
+    <div class="search-row">
+      <input type="text" id="walletInput" placeholder="0x…" autocomplete="off" spellcheck="false" />
+      <button class="search-btn" id="searchBtn" onclick="fetchWhales()">Dive In</button>
+    </div>
+    <p class="status" id="status"></p>
+  </section>
+
+  <section id="resultsSection" style="display:none">
+    <div class="results-header">
+      <div class="results-count"><span id="nftCount">0</span> Whales Identified</div>
+      <div class="results-wallet" id="walletDisplay"></div>
+    </div>
+    <div class="card-grid" id="cardGrid"></div>
+  </section>
+
+  <div class="state-empty" id="emptyState">
+    <span class="whale">🐋</span>
+    <p>Enter your wallet to reveal your pod's personalities</p>
+  </div>
+
+  <footer>
+    <p>SSoW Cards &nbsp;·&nbsp; Fan-made &nbsp;·&nbsp; <a href="https://www.secretsocietyofwhales.com/" target="_blank" rel="noopener">Secret Society of Whales</a> &nbsp;·&nbsp; #TogetherWeWhale</p>
+  </footer>
+</div>
+
+<script>
+// ─── PERSONALITY ENGINE ───────────────────────────────────────────────────
+// Each whale gets a deterministic personality from their traits.
+// Priority: rare traits > outfit > eyes > hat > skin
+
+
+// ─── PERSONALITY ENGINE v2 ────────────────────────────────────────────────
+// Strategy: Primary = eyes (28 values, near-complete coverage)
+// Modifier = skin color (common) or special traits (rare)
+// Result: eyes × skin = ~200+ combos, but we reduce to ~80 meaningful ones
+// Rare overrides: fins > special skin > special eyes > normal logic
+
+const FINS = {
+  'Trident':       { name: 'THE TRIDENT BEARER',    subtitle: 'COMMANDER OF CURRENTS',           quote: '"sovereignty isn\'t given. it\'s minted."' },
+  'Diamond Hands': { name: 'THE DIAMOND HAND',       subtitle: 'HOLDS THROUGH ALL CONDITIONS',    quote: '"they said sell. i didn\'t. i won\'t."' },
+  'Halo':          { name: 'THE BLESSED FIN',        subtitle: 'TOUCHED BY THE DEEP',             quote: '"i didn\'t get lucky. i got patient. there\'s a difference."' },
+  'Staff':         { name: 'THE ELDER',              subtitle: 'WISDOM OF A THOUSAND CYCLES',     quote: '"i\'ve outlasted every bear. i\'ll outlast this one too."' },
+  'Money Bags':    { name: 'THE LOADED',             subtitle: 'BAGS NEVER TOUCH THE FLOOR',      quote: '"the floor is wherever i decide to stop buying."' },
+  'Jewels':        { name: 'THE ADORNED',            subtitle: 'VALUE ON EVERY LAYER',            quote: '"i don\'t wear status. i hold it."' },
+  'Bag Holder':    { name: 'THE UNSHAKEABLE',        subtitle: 'PROOF THAT PATIENCE WORKS',       quote: '"they called me a bag holder. they were early."' },
+  'Punks Comic':   { name: 'THE OG COLLECTOR',       subtitle: 'HERITAGE RUNS DEEP',              quote: '"the history of this space lives in my wallet."' },
+};
+
+const SPECIAL_SKIN = {
+  'Mega Bot':   { name: 'THE MACHINE',       subtitle: 'OPERATES BEYOND EMOTION',       quote: '"latency: 0ms. conviction: maximum. regret: null."' },
+  'Gold':       { name: 'THE GILDED',        subtitle: 'UNTARNISHED CONVICTION',        quote: '"i don\'t seek value. i am value."' },
+  'Ice':        { name: 'THE COLD ORACLE',   subtitle: 'SEES THROUGH THE NOISE',        quote: '"the market is emotional. i am not."' },
+  'Trippy':     { name: 'THE PATTERN SEER',  subtitle: 'FRACTURES EXPECTATIONS',        quote: '"everyone\'s looking at the chart. i\'m looking at the signal behind it."' },
+  'Lightning':  { name: 'THE VOLTAGE',       subtitle: 'SHIPS BEFORE SLEEPING',         quote: '"i don\'t ask for permission. i ask for mainnet."' },
+};
+
+const SPECIAL_EYES = {
+  'Laser':          { name: 'THE LASER FOCUS',     subtitle: 'LOCKED IN PERPETUALLY',          quote: '"one target. everything else is noise."' },
+  'Green Lasers':   { name: 'THE MONEY VISION',    subtitle: 'ONLY SEES OPPORTUNITY',          quote: '"i don\'t see problems. i see entry points."' },
+  'Ego Death':      { name: 'THE ENLIGHTENED',     subtitle: 'BEYOND PRICE AND FUD',           quote: '"the floor doesn\'t matter when you\'ve transcended the concept of floors."' },
+  'VR':             { name: 'THE METAVERSE NATIVE', subtitle: 'LIVES IN THE SIMULATION',       quote: '"touch grass? i own digital grass. it\'s more scarce."' },
+  'Cyborg':         { name: 'THE AUGMENTED',       subtitle: 'HALF HUMAN, FULLY DEGENERATE',   quote: '"my left eye tracks prices. my right eye tracks alpha."' },
+  'Monocle':        { name: 'THE DISTINGUISHED',   subtitle: 'STANDARDS OTHERS CAN\'T MEET',   quote: '"i examine everything carefully. i invest in very few things."' },
+  'Turtle Glasses': { name: 'THE INTELLECTUAL',    subtitle: 'READS THE WHITEPAPER TWICE',     quote: '"slow and steady doesn\'t just win races. it wins cycles."' },
+};
+
+// Eyes × skin color personality matrix
+// Format: eyes trait → skin group → personality
+// Skin groups: DARK (Black, Dark Gray), LIGHT (White, Light Gray, Light Blue), WARM (Tan, Pink, Red), COOL (Blue, Green), NEUTRAL (Purple, Orange, Coral, Gray, Wood, Army)
+
+function skinGroup(skin) {
+  if (['Black','Dark Gray'].includes(skin)) return 'DARK';
+  if (['White','Light Gray','Light Blue'].includes(skin)) return 'LIGHT';
+  if (['Tan','Pink','Red'].includes(skin)) return 'WARM';
+  if (['Blue','Green'].includes(skin)) return 'COOL';
+  return 'NEUTRAL'; // Purple, Orange, Coral, Gray, Wood, Army
+}
+
+const EYE_SKIN = {
+  'Unamused': {
+    DARK:    { name: 'THE SHADOW STOIC',     subtitle: 'UNMOVED IN DARKNESS',          quote: '"you can\'t rattle what you can\'t find."' },
+    LIGHT:   { name: 'THE COMPOSED',         subtitle: 'UNBOTHERED BY EVERYTHING',     quote: '"yes i saw the chart. no i\'m not reacting."' },
+    WARM:    { name: 'THE WARM SKEPTIC',     subtitle: 'FRIENDLY BUT UNCONVINCED',     quote: '"i like you. i still won\'t sell."' },
+    COOL:    { name: 'THE DEEP STOIC',       subtitle: 'COOL HEAD IN HOT MARKETS',     quote: '"depth doesn\'t panic. i have depth."' },
+    NEUTRAL: { name: 'THE UNIMPRESSED',      subtitle: 'SEEN IT ALL BEFORE',           quote: '"you call that a dip? i\'ll show you a dip."' },
+  },
+  'Haughty': {
+    DARK:    { name: 'THE DARK SOVEREIGN',   subtitle: 'ABOVE COMMON MARKETS',         quote: '"my floor is your ceiling. respectfully."' },
+    LIGHT:   { name: 'THE SUPERIOR',         subtitle: 'STANDARDS ABOVE THE REST',     quote: '"i don\'t compare portfolios. it\'s not fair to you."' },
+    WARM:    { name: 'THE PROUD WHALE',      subtitle: 'CONFIDENCE IN ALL CONDITIONS', quote: '"i\'ve been right before. i\'m right now."' },
+    COOL:    { name: 'THE DEEP ARISTOCRAT',  subtitle: 'REFINED CONVICTION',           quote: '"quality. always quality."' },
+    NEUTRAL: { name: 'THE HAUGHTY HOLDER',   subtitle: 'ELEVATED PERSPECTIVE',         quote: '"i don\'t chase floors. floors chase me."' },
+  },
+  'Skeptical': {
+    DARK:    { name: 'THE DARK DOUBTER',     subtitle: 'QUESTIONS EVERYTHING, HOLDS ANYWAY',  quote: '"i asked all the hard questions. then i bought."' },
+    LIGHT:   { name: 'THE ANALYST',          subtitle: 'DUE DILIGENCE BEFORE EVERYTHING',     quote: '"i read the contract before buying. and the audit. twice."' },
+    WARM:    { name: 'THE CAUTIOUS BULL',    subtitle: 'BULLISH WITH CONDITIONS',             quote: '"i\'m bullish. conditionally. mostly."' },
+    COOL:    { name: 'THE COOL SKEPTIC',     subtitle: 'TRUSTS THE DATA, NOT THE HYPE',       quote: '"show me the on-chain. then we talk."' },
+    NEUTRAL: { name: 'THE DOUBTER WHO BOUGHT', subtitle: 'QUESTIONED IT, THEN APED IN',      quote: '"i had concerns. i resolved them. i bought."' },
+  },
+  'Bloodshot': {
+    DARK:    { name: 'THE SHADOW GRINDER',   subtitle: 'NEVER SLEEPS, NEVER FADES',    quote: '"some people chase the pump. i set the alarm for 3am."' },
+    LIGHT:   { name: 'THE SLEEPLESS',        subtitle: 'HASN\'T SLEPT SINCE MINT',     quote: '"another late night in the trenches. another green candle."' },
+    WARM:    { name: 'THE HEATED GRINDER',   subtitle: 'RUNS HOT, HOLDS LONGER',       quote: '"tired? yes. selling? no."' },
+    COOL:    { name: 'THE DEEP DIVER',       subtitle: 'GOES WHERE OTHERS WON\'T',     quote: '"while you watched the surface, i was buying the bottom."' },
+    NEUTRAL: { name: 'THE NIGHT SHIFT',      subtitle: 'PRICE ACTION NEVER SLEEPS',    quote: '"best entries happen when most people are in bed."' },
+  },
+  'Sleepy': {
+    DARK:    { name: 'THE DARK SLEEPER',     subtitle: 'PASSIVE POWER',                quote: '"i barely check prices. i barely need to."' },
+    LIGHT:   { name: 'THE PASSIVE HOLDER',   subtitle: 'PROFITS WHILE RESTING',        quote: '"i set it, forgot it, and woke up when it was up 10x."' },
+    WARM:    { name: 'THE LAZY GENIUS',      subtitle: 'EFFORTLESS POSITIONING',       quote: '"they called me lazy. i call it trust."' },
+    COOL:    { name: 'THE CHILL DIVER',      subtitle: 'RELAXED ABOUT THE LONG GAME',  quote: '"stressed? no. positioned? yes. same thing."' },
+    NEUTRAL: { name: 'THE PATIENT ACCUMULATOR', subtitle: 'SLOW AND WINNING',         quote: '"i don\'t watch the chart. i live my life. it works out."' },
+  },
+  'Stoned': {
+    DARK:    { name: 'THE ZEN SHADOW',       subtitle: 'DEEPLY UNBOTHERED',            quote: '"corrections are just the market exhaling. i exhale too."' },
+    LIGHT:   { name: 'THE ZEN WHALE',        subtitle: 'INNER PEACE, OUTER GAINS',     quote: '"the market can\'t find what it can\'t disturb."' },
+    WARM:    { name: 'THE MELLOW BULL',      subtitle: 'CALM CONVICTION',              quote: '"i\'m bullish. i\'m just not loud about it."' },
+    COOL:    { name: 'THE DEEP ZEN',         subtitle: 'STILLNESS IS STRATEGY',        quote: '"i don\'t move until i have to. i rarely have to."' },
+    NEUTRAL: { name: 'THE PHILOSOPHER KING', subtitle: 'THINKS BEFORE EVERY MOVE',    quote: '"what is price? what is value? i know both."' },
+  },
+  'Sad': {
+    DARK:    { name: 'THE STOIC SHADOW',     subtitle: 'FEELS THE MARKET, DOESN\'T MOVE', quote: '"yes i see the chart. yes it\'s down. no i\'m not selling."' },
+    LIGHT:   { name: 'THE STOIC',            subtitle: 'HOLDS THROUGH ALL CONDITIONS', quote: '"every bear market looked like this at some point."' },
+    WARM:    { name: 'THE WEATHERED',        subtitle: 'SCARS MAKE BETTER HOLDERS',    quote: '"i\'ve been down before. i\'m still here."' },
+    COOL:    { name: 'THE DEEP FEELER',      subtitle: 'FEELS IT ALL, HOLDS THROUGH IT', quote: '"emotion acknowledged. conviction unchanged."' },
+    NEUTRAL: { name: 'THE RESILIENT',        subtitle: 'BENDS BUT NEVER BREAKS',       quote: '"i\'ve seen worse. i\'ve held through worse. i will again."' },
+  },
+  'Glasses': {
+    DARK:    { name: 'THE DARK SCHOLAR',     subtitle: 'READS EVERYTHING TWICE',       quote: '"most people skim. i study. the difference is in the returns."' },
+    LIGHT:   { name: 'THE READER',           subtitle: 'DUE DILIGENCE BEFORE EVERYTHING', quote: '"i read the contract before i bought. and the audit."' },
+    WARM:    { name: 'THE WARM ANALYST',     subtitle: 'SMART AND FRIENDLY ABOUT IT',  quote: '"i did the research. happy to walk you through it."' },
+    COOL:    { name: 'THE COOL PROFESSOR',   subtitle: 'KNOWLEDGE IS THE EDGE',        quote: '"information asymmetry is a real thing. i lean into it."' },
+    NEUTRAL: { name: 'THE STUDIOUS',         subtitle: 'RESEARCH FIRST, ALWAYS',       quote: '"i\'ve been doing this long enough to know what to look for."' },
+  },
+  'Colored Lenses': {
+    DARK:    { name: 'THE DARK OPTIMIST',    subtitle: 'SEES GREEN IN ALL MARKETS',    quote: '"even in bear markets, i see opportunity. everywhere."' },
+    LIGHT:   { name: 'THE OPTIMIST',         subtitle: 'SEES EVERY MARKET AS GREEN',   quote: '"my tint isn\'t rose-colored. it\'s profit-colored."' },
+    WARM:    { name: 'THE ROSY WHALE',       subtitle: 'PERPETUALLY BULLISH',          quote: '"i\'ve never found a chart that didn\'t look like a buy."' },
+    COOL:    { name: 'THE VISION HOLDER',    subtitle: 'SEES WHAT OTHERS MISS',        quote: '"the future looks different through these lenses. better."' },
+    NEUTRAL: { name: 'THE COLORFUL',         subtitle: 'UNIQUE PERSPECTIVE, ALWAYS',   quote: '"everyone else sees the same thing. i don\'t."' },
+  },
+  'Heart Eyes': {
+    DARK:    { name: 'THE TRUE BELIEVER',    subtitle: 'SPIRITUALLY INVESTED',         quote: '"i\'m not emotionally invested. i\'m spiritually invested."' },
+    LIGHT:   { name: 'THE DEVOTED',          subtitle: 'LOVE IS THE THESIS',           quote: '"love the project. love the pod. love the hold."' },
+    WARM:    { name: 'THE PASSIONATE HOLDER', subtitle: 'ALL IN, ALWAYS',              quote: '"when you believe, you don\'t need to be convinced."' },
+    COOL:    { name: 'THE DEEP BELIEVER',    subtitle: 'CONVICTION RUNS DEEP',         quote: '"not a fan. a true holder. there\'s a difference."' },
+    NEUTRAL: { name: 'THE FAITHFUL WHALE',   subtitle: 'NEVER DOUBTED FOR A MOMENT',   quote: '"#TogetherWeWhale isn\'t a hashtag. it\'s a lifestyle."' },
+  },
+  'Angry': {
+    DARK:    { name: 'THE DARK BULL',        subtitle: 'PERMANENTLY ACTIVATED',        quote: '"bearish takes make me more bullish. keep going."' },
+    LIGHT:   { name: 'THE RIGHTEOUS BULL',   subtitle: 'ANGRY AT UNDERVALUATION',      quote: '"the market is wrong. i\'m not. eventually it catches up."' },
+    WARM:    { name: 'THE HOT HOLDER',       subtitle: 'RUNS HOT, HOLDS HARDER',       quote: '"bear market FUD? that just makes me buy more."' },
+    COOL:    { name: 'THE AGGRESSIVE ACCUMULATOR', subtitle: 'BUYS THE DIP LOUDLY',   quote: '"every red day is a green opportunity. i\'m taking it."' },
+    NEUTRAL: { name: 'THE BULL',             subtitle: 'PERMANENTLY BULLISH, PERPETUALLY RIGHT', quote: '"i was told the thesis was wrong. the thesis was not wrong."' },
+  },
+  'Shy': {
+    DARK:    { name: 'THE QUIET ACCUMULATOR', subtitle: 'BUYS IN SILENCE',            quote: '"i don\'t announce my positions. my portfolio does."' },
+    LIGHT:   { name: 'THE SILENT HOLDER',    subtitle: 'WHISPERS IN GAINS',            quote: '"i let the wallet do the talking."' },
+    WARM:    { name: 'THE GENTLE WHALE',     subtitle: 'KIND BUT POSITIONED',          quote: '"i don\'t say much. my bags say enough."' },
+    COOL:    { name: 'THE UNDERWATER MOVER', subtitle: 'DEEP, QUIET, LETHAL',         quote: '"you don\'t hear me coming. that\'s the point."' },
+    NEUTRAL: { name: 'THE RESERVED',         subtitle: 'ACCUMULATES QUIETLY',          quote: '"i don\'t market myself. i just hold."' },
+  },
+  'Closed': {
+    DARK:    { name: 'THE MEDITATING SHADOW', subtitle: 'INNER CLARITY OVER OUTER CHAOS', quote: '"i don\'t watch the price. the price watches me."' },
+    LIGHT:   { name: 'THE MEDITATOR',        subtitle: 'EYES CLOSED, MIND OPEN',       quote: '"clarity comes from stillness, not charts."' },
+    WARM:    { name: 'THE INNER KNOWER',     subtitle: 'KNOWS WITHOUT LOOKING',        quote: '"i don\'t need to check the price. i already know."' },
+    COOL:    { name: 'THE ZEN DIVER',        subtitle: 'DEPTH OVER SURFACE',           quote: '"what matters lives below the surface. i live there."' },
+    NEUTRAL: { name: 'THE CONTEMPLATIVE',    subtitle: 'THINKS BEFORE MOVING',         quote: '"every great decision began with silence."' },
+  },
+  'Tripping': {
+    DARK:    { name: 'THE DARK VISIONARY',   subtitle: 'SEES THE PATTERN IN THE NOISE', quote: '"others see chaos. i see structure."' },
+    LIGHT:   { name: 'THE VISIONARY',        subtitle: 'SEES WHAT OTHERS CANNOT',      quote: '"the whitepaper made total sense to me. it still does."' },
+    WARM:    { name: 'THE WILD SEER',        subtitle: 'UNUSUAL CLARITY',              quote: '"i know what i know. it\'s hard to explain but easy to hold."' },
+    COOL:    { name: 'THE DEEP PSYCHIC',     subtitle: 'READS THINGS OTHERS MISS',     quote: '"i don\'t predict markets. i feel them."' },
+    NEUTRAL: { name: 'THE PATTERN SEEKER',   subtitle: 'FRACTURED EXPECTATIONS',       quote: '"you\'re looking at the chart. i\'m looking at the signal behind it."' },
+  },
+  'Eyepatch': {
+    DARK:    { name: 'THE SHADOW PIRATE',    subtitle: 'TAKES WHAT THE MARKET OFFERS', quote: '"i don\'t wait for permission. i wait for the dip."' },
+    LIGHT:   { name: 'THE PIRATE',           subtitle: 'SAILS BY OWN COMPASS',         quote: '"no roadmap. just conviction and a wallet."' },
+    WARM:    { name: 'THE BOLD BUCCANEER',   subtitle: 'RISKS WHAT OTHERS WON\'T',     quote: '"fortune favors the brave. i\'m very brave."' },
+    COOL:    { name: 'THE DEEP RAIDER',      subtitle: 'STRIKES FROM THE DEPTHS',      quote: '"i move fast and i move quiet. until i don\'t."' },
+    NEUTRAL: { name: 'THE PRIVATEER',        subtitle: 'LICENSED TO ACCUMULATE',       quote: '"different rules. better outcomes."' },
+  },
+  'Ski Mask': {
+    DARK:    { name: 'THE PHANTOM',          subtitle: 'MOVES WITHOUT A TRACE',        quote: '"my wallet address is my only identity."' },
+    LIGHT:   { name: 'THE ANONYMOUS',        subtitle: 'UNKNOWN BUT POWERFUL',         quote: '"you don\'t know my name. you know my gains."' },
+    WARM:    { name: 'THE MASKED MOVER',     subtitle: 'CONCEALED, CONVICTED',         quote: '"privacy is a feature. so is my portfolio."' },
+    COOL:    { name: 'THE DEEP GHOST',       subtitle: 'THERE AND NOT THERE',          quote: '"i was in this trade before you knew it existed."' },
+    NEUTRAL: { name: 'THE INCOGNITO',        subtitle: 'HIDDEN, HOLDING',              quote: '"i don\'t need credit. i need yield."' },
+  },
+  'Battle Scar': {
+    DARK:    { name: 'THE DARK VETERAN',     subtitle: 'BEARS MADE THIS WHALE',        quote: '"i\'ve seen three crashes. i\'m still here. better positioned."' },
+    LIGHT:   { name: 'THE VETERAN',          subtitle: 'SURVIVED EVERY BEAR',          quote: '"every scar is a lesson i paid for and kept."' },
+    WARM:    { name: 'THE SCARRED BELIEVER', subtitle: 'HURT BUT NOT BROKEN',          quote: '"the market hit me. i hit back harder."' },
+    COOL:    { name: 'THE BATTLE-TESTED',    subtitle: 'PRESSURE MAKES DIAMONDS',      quote: '"i didn\'t just survive the bear. i thrived in it."' },
+    NEUTRAL: { name: 'THE SURVIVOR',         subtitle: 'WHAT DOESN\'T SELL MAKES STRONGER', quote: '"i\'ve been liquidated. i came back. stronger."' },
+  },
+  'Groucho Glasses': {
+    DARK:    { name: 'THE DARK JESTER',      subtitle: 'LAUGHS LAST, PROFITS FIRST',   quote: '"i make jokes. my wallet doesn\'t."' },
+    LIGHT:   { name: 'THE COMEDIAN',         subtitle: 'HUMOR IS THE STRATEGY',        quote: '"if you\'re not laughing, you\'re not holding long enough."' },
+    WARM:    { name: 'THE LOVABLE DEGEN',    subtitle: 'CHAOS WITH CONVICTION',        quote: '"chaotic? yes. profitable? also yes."' },
+    COOL:    { name: 'THE WIT',              subtitle: 'SHARP MIND, SHARPER BAGS',     quote: '"i\'m funnier when i\'m in profit. always in profit."' },
+    NEUTRAL: { name: 'THE JESTER',           subtitle: 'MOCKS THE BEARS, COUNTS GAINS', quote: '"the best comedy is a green portfolio."' },
+  },
+  'Pimp Glasses': {
+    DARK:    { name: 'THE DARK SHOWMAN',     subtitle: 'COMMANDS EVERY ROOM',          quote: '"i don\'t enter quietly. ever."' },
+    LIGHT:   { name: 'THE SHOWMAN',          subtitle: 'NEVER ENTERS QUIETLY',         quote: '"if they\'re not watching, you\'re not doing it right."' },
+    WARM:    { name: 'THE FLASH',            subtitle: 'STYLE IS THE ALPHA',           quote: '"you can smell success before you see the gains."' },
+    COOL:    { name: 'THE SPECTACULAR',      subtitle: 'MEMORABLE IN ALL CONDITIONS',  quote: '"they\'ll remember my entry. and my exit."' },
+    NEUTRAL: { name: 'THE OPERATOR',         subtitle: 'RUNS THE WHOLE SHOW',          quote: '"everybody eats. some just eat first."' },
+  },
+  '3D Glasses': {
+    DARK:    { name: 'THE DARK DIMENSION',   subtitle: 'SEES MULTIPLE FUTURES',        quote: '"every scenario i\'ve modeled ends the same way: i hold."' },
+    LIGHT:   { name: 'THE MULTI-DIMENSIONAL', subtitle: 'PERSPECTIVE OTHERS LACK',    quote: '"i can see around corners. this is one of those corners."' },
+    WARM:    { name: 'THE COLORFUL THINKER', subtitle: 'PROCESSES THE WHOLE PICTURE',  quote: '"bear, bull, sideways — i\'ve modeled all of it."' },
+    COOL:    { name: 'THE DEEP ANALYST',     subtitle: 'LAYERS UPON LAYERS',           quote: '"the real analysis lives three levels deep. i live there."' },
+    NEUTRAL: { name: 'THE DIMENSION JUMPER', subtitle: 'SEES EVERY ANGLE AT ONCE',    quote: '"most people see one side. i see all of them."' },
+  },
+  'Circle Shades': {
+    DARK:    { name: 'THE COSMIC SHADOW',    subtitle: 'ALIGNED WITH DARK FORCES',     quote: '"the market works in cycles. so do i."' },
+    LIGHT:   { name: 'THE COSMIC',           subtitle: 'ALIGNED WITH THE UNIVERSE',    quote: '"the stars said buy. the chart confirmed it."' },
+    WARM:    { name: 'THE GROOVY HOLDER',    subtitle: 'VIBES AND CONVICTION',         quote: '"it just feels right. usually is."' },
+    COOL:    { name: 'THE FLOW STATE',       subtitle: 'IN HARMONY WITH THE MARKET',   quote: '"i don\'t force trades. they come to me."' },
+    NEUTRAL: { name: 'THE CIRCULAR THINKER', subtitle: 'WHAT GOES AROUND COMES AROUND', quote: '"cycles repeat. i study them."' },
+  },
+};
+
+// Outfit gives a name suffix or standalone personality for rarer combos
+const OUTFIT_NAMES = {
+  'King of the Sea':        'THE DEEP KING',
+  'Astronaut':              'THE MOONSHOT',
+  'Venture Capitalist':     'THE CAPITAL',
+  'Tech CEO':               'THE FOUNDER',
+  'NFT Degen':              'THE COLLECTOR',
+  'Day Trader':             'THE CHARTIST',
+  'Magnate':                'THE MAGNATE',
+  'Chocolate Factory Owner':'THE GOLDEN TICKET',
+  'Sports Card Collector':  'THE CURATOR',
+  'Trust Fund Kid':         'THE INHERITOR',
+  'Rockstar':               'THE LEGEND',
+  'Night Club Owner':       'THE HOST',
+  'Philosopher':            'THE PHILOSOPHER',
+  'Hip Hop Artist':         'THE CULTURE',
+  'Play Boy':               'THE EFFORTLESS',
+  'Pimp':                   'THE ENTREPRENEUR',
+  'Bullet Proof':           'THE UNTOUCHABLE',
+  'Caveman':                'THE PRIMITIVE',
+  'Mime':                   'THE SILENT TYPE',
+  'Raver':                  'THE ALL-NIGHTER',
+  'Crusader':               'THE CRUSADER',
+  'Hipster':                'THE EARLY ADOPTER',
+  'Lumberjack':             'THE BUILDER',
+  'Software Engineer':      'THE DEVELOPER',
+  'Doctor':                 'THE DIAGNOSTICIAN',
+  'Nurse':                  'THE HEALER',
+  'Sailor':                 'THE NAVIGATOR',
+  'Pilot':                  'THE PILOT',
+  'Astronaut':              'THE MOONSHOT',
+  'Surfer':                 'THE WAVE RIDER',
+  'Basketball':             'THE COMPETITOR',
+  'Fisherman':              'THE PATIENT ONE',
+  'Butler':                 'THE STEWARD',
+  'Construction Worker':    'THE INFRASTRUCTURE',
+  'Barista':                'THE EARLY RISER',
+  'Fashion Designer':       'THE TRENDSETTER',
+  'Digital Marketer':       'THE AMPLIFIER',
+  'Salesman':               'THE CLOSER',
+  'Student':                'THE LEARNER',
+  'Vacationer':             'THE PASSIVE WHALE',
+  'Stylist':                'THE AESTHETIC',
+  'Bowler':                 'THE PRECISION PLAYER',
+  'Actress':                'THE PERFORMER',
+  'Nice Suit Guy':          'THE PROFESSIONAL',
+  'Caveman':                'THE PRIMITIVE',
+};
+
+const OUTFIT_SUBTITLES = {
+  'King of the Sea':        'RULES THE ENTIRE OCEAN',
+  'Astronaut':              'AIMS PAST THE ATMOSPHERE',
+  'Venture Capitalist':     'BACKS BUILDERS, NOT HYPE',
+  'Tech CEO':               'SHIPS FIRST, EXPLAINS LATER',
+  'NFT Degen':              'BUYS ON VIBES, HOLDS ON PRINCIPLE',
+  'Day Trader':             'READS CANDLES LIKE SCRIPTURE',
+  'Magnate':                'PORTFOLIOS DON\'T SLEEP',
+  'Chocolate Factory Owner':'OWNS THE SWEETEST BAGS',
+  'Sports Card Collector':  'GEM MINT ONLY IN THIS WALLET',
+  'Trust Fund Kid':         'BORN INTO THE BULL',
+  'Rockstar':               'ALWAYS ON STAGE',
+  'Night Club Owner':       'RUNS THE AFTER PARTY',
+  'Philosopher':            'QUESTIONS EVERYTHING EXCEPT HOLDING',
+  'Hip Hop Artist':         'COMMUNITY IS THE ALPHA',
+  'Play Boy':               'WINS WITHOUT TRYING',
+  'Pimp':                   'RUNS THE STREETS AND THE CHAIN',
+  'Bullet Proof':           'FUD BOUNCES RIGHT OFF',
+  'Caveman':                'BUYS GOOD, HOLDS GOOD',
+  'Mime':                   'SPEAKS ONLY IN GAINS',
+  'Raver':                  'NEVER STOPS, NEVER FADES',
+  'Crusader':               'ONBOARDS THE UNBELIEVERS',
+  'Hipster':                'WAS INTO THIS BEFORE IT WAS A THING',
+  'Lumberjack':             'CUTS THROUGH THE NOISE',
+  'Software Engineer':      'WRITES CODE, READS CHARTS',
+  'Doctor':                 'READS ON-CHAIN VITALS',
+  'Nurse':                  'FIXES BROKEN PORTFOLIOS',
+  'Sailor':                 'READS THE MARKET LIKE TIDES',
+  'Pilot':                  'TAKES OFF IN ANY CONDITIONS',
+  'Surfer':                 'CATCHES EVERY TREND EARLY',
+  'Basketball':             'PLAYS FOR THE CHAMPIONSHIP',
+  'Fisherman':              'WAITS FOR THE BIG CATCH',
+  'Butler':                 'SERVES THE POD\'S BEST INTERESTS',
+  'Construction Worker':    'LAYS THE FOUNDATION FIRST',
+  'Barista':                'UP BEFORE THE MARKET OPENS',
+  'Fashion Designer':       'MAKES THE MARKET LOOK GOOD',
+  'Digital Marketer':       'SPREADS THE WORD EFFICIENTLY',
+  'Salesman':               'ALWAYS MAKING THE DEAL',
+  'Student':                'ABSORBS EVERYTHING, QUESTIONS MORE',
+  'Vacationer':             'PROFITS WHILE RELAXING',
+  'Stylist':                'ONLY HOLDS BEAUTIFUL THINGS',
+  'Bowler':                 'ONE SHOT, PERFECT ENTRY',
+  'Actress':                'PLAYS EVERY ROLE PERFECTLY',
+  'Nice Suit Guy':          'TAKES CRYPTO VERY SERIOUSLY',
+};
+
+const OUTFIT_QUOTES = {
+  'King of the Sea':        '"every whale in this collection answers to me. not really. but close."',
+  'Astronaut':              '"everyone said it was too far. they were right. we went farther."',
+  'Venture Capitalist':     '"i\'ve written checks bigger than your max supply."',
+  'Tech CEO':               '"move fast. break chains. rebuild chains better."',
+  'NFT Degen':              '"the floor is 0 or infinity. i\'m comfortable with both outcomes."',
+  'Day Trader':             '"the pattern is clear. it\'s always been clear to me."',
+  'Magnate':                '"diversification is for people who can\'t decide. i decide."',
+  'Chocolate Factory Owner':'"everyone gets a taste. few get the factory."',
+  'Sports Card Collector':  '"PSA 10 or nothing. gem mint only in this wallet."',
+  'Trust Fund Kid':         '"i didn\'t buy the dip. someone very thoughtful bought it for me."',
+  'Rockstar':               '"you don\'t follow the crowd. you become the crowd."',
+  'Night Club Owner':       '"everyone wants in. not everyone gets in. you\'re in."',
+  'Philosopher':            '"what is value? what is floor? what is gas fee? i hold regardless."',
+  'Hip Hop Artist':         '"i put the pod on my back like it weighs nothing."',
+  'Play Boy':               '"i wasn\'t trying to catch the bottom. it just found me."',
+  'Pimp':                   '"i don\'t work for yield. yield works for me."',
+  'Bullet Proof':           '"i\'ve heard every bear case. i\'m still here. always."',
+  'Caveman':                '"number go up. this good. hold. number go up more."',
+  'Mime':                   '"[this space intentionally left blank. my bags are not.]"',
+  'Raver':                  '"the best trades happen when everyone else is exhausted."',
+  'Crusader':               '"i didn\'t convert to crypto. i was always crypto."',
+  'Hipster':                '"i found this collection before it had a floor. you\'re welcome."',
+  'Lumberjack':             '"less talk. more chop. fewer words, more gains."',
+  'Software Engineer':      '"i audited the contract before i bought. twice. then i aped."',
+  'Doctor':                 '"the patient is volatile. the prognosis is bullish."',
+  'Nurse':                  '"the prognosis is always recovery. always."',
+  'Sailor':                 '"rough seas don\'t scare sailors. they create them."',
+  'Pilot':                  '"turbulence is just altitude finding its level."',
+  'Surfer':                 '"you don\'t fight the current. you become it."',
+  'Basketball':             '"there\'s always a shot clock. use your time wisely."',
+  'Fisherman':              '"everyone\'s in a rush. i\'m in a boat. with a rod."',
+  'Butler':                 '"my job is to protect the bag. extremely seriously."',
+  'Construction Worker':    '"before the moon comes the scaffolding. i build scaffolding."',
+  'Barista':                '"i brew patience and serve conviction. daily grind."',
+  'Fashion Designer':       '"i don\'t follow alpha. alpha follows me."',
+  'Digital Marketer':       '"the best marketing is a wallet that prints consistently."',
+  'Salesman':               '"i\'ve never not closed. ask anyone who\'s asked."',
+  'Student':                '"every dip is a lesson. i\'m getting an expensive education."',
+  'Vacationer':             '"i set it, forget it, and check back when it\'s up 10x."',
+  'Stylist':                '"the collection has to feel right before i commit."',
+  'Bowler':                 '"i don\'t rush the approach. every trade is a strike."',
+  'Actress':                '"the market is a stage. i always know my lines."',
+  'Nice Suit Guy':          '"i dress like this for my hardware wallet too."',
+};
+
+// Hat overrides for very specific personalities
+const HAT_OVERRIDES = {
+  'Crown of Neptune': { name: 'THE KING OF THE DEEP',  subtitle: 'RULES ALL BENEATH THE SURFACE', quote: '"the ocean doesn\'t ask for permission. neither do i."' },
+  'Crown oF Neptune': { name: 'THE KING OF THE DEEP',  subtitle: 'RULES ALL BENEATH THE SURFACE', quote: '"the ocean doesn\'t ask for permission. neither do i."' },
+  'Gold Laurel Wreath': { name: 'THE CROWNED ONE',     subtitle: 'VOTED IN BY THE POD',           quote: '"leadership is just conviction with better timing."' },
+  'Fish Bowl':        { name: 'THE CONTAINED LEGEND',  subtitle: 'IMMENSE POWER, CONTAINED',      quote: '"they put me in a bowl. i still dominated."' },
+  'Halo':             { name: 'THE BLESSED',           subtitle: 'THE MARKET FAVORS THE FAITHFUL', quote: '"i didn\'t get lucky. i got patient."' },
+  'SSoW Cap':         { name: 'THE TRUE OG',           subtitle: 'HERE FROM DAY ONE',             quote: '"i was there before it was cool. i was there when it wasn\'t."' },
+};
+
+const BLOWHOLERINGRING_NAMES = {
+  'Diamond':        'DIAMOND',
+  'Round Diamond':  'POLISHED',
+  'Third Eye':      'THIRD EYE',
+  'Chandelier':     'ILLUMINATED',
+};
+
+function skinGroup(skin) {
+  if (['Black','Dark Gray'].includes(skin)) return 'DARK';
+  if (['White','Light Gray','Light Blue'].includes(skin)) return 'LIGHT';
+  if (['Tan','Pink','Red'].includes(skin)) return 'WARM';
+  if (['Blue','Green'].includes(skin)) return 'COOL';
+  return 'NEUTRAL';
+}
+
+function getPersonality(tokenId, traits) {
+  if (!traits) return { name: `WHALE #${tokenId}`, subtitle: 'OG SINCE 2021', quote: '"#TogetherWeWhale"' };
+
+  const fins = (traits.fins || '').trim();
+  const blowholeRing = (traits.blowholeRing || '').trim();
+  const skin = traits.skin || '';
+  const eyes = (traits.eyes || '').trim();
+  const hat = (traits.hat || '').trim();
+  const outfit = (traits.outfit || '').trim();
+  const mouth = (traits.mouth || '').trim();
+
+  // Priority 1: Fins (rarest ~400 total)
+  if (fins && fins !== 'None' && FINS[fins]) return FINS[fins];
+
+  // Priority 2: Special skins (~100-200 each)
+  if (skin && SPECIAL_SKIN[skin]) return SPECIAL_SKIN[skin];
+
+  // Priority 3: Special eyes (~10-50 each)
+  if (eyes && SPECIAL_EYES[eyes]) return SPECIAL_EYES[eyes];
+
+  // Priority 4: Hat overrides (rarest hats)
+  if (hat && HAT_OVERRIDES[hat]) return HAT_OVERRIDES[hat];
+
+  // Priority 5: Eyes × skin matrix (main engine)
+  if (eyes && EYE_SKIN[eyes]) {
+    const group = skinGroup(skin);
+    const p = EYE_SKIN[eyes][group];
+    if (p) {
+      // Enhance with outfit if available
+      if (outfit && OUTFIT_NAMES[outfit]) {
+        return {
+          name: p.name,
+          subtitle: OUTFIT_SUBTITLES[outfit] || p.subtitle,
+          quote: OUTFIT_QUOTES[outfit] || p.quote,
+        };
+      }
+      return p;
+    }
+  }
+
+  // Priority 6: Outfit standalone
+  if (outfit && OUTFIT_NAMES[outfit]) {
+    return {
+      name: OUTFIT_NAMES[outfit],
+      subtitle: OUTFIT_SUBTITLES[outfit] || 'OG WHALE',
+      quote: OUTFIT_QUOTES[outfit] || '"#TogetherWeWhale"',
+    };
+  }
+
+  // Priority 7: Skin fallback
+  const SKIN_FALLBACKS = {
+    'Black':      { name: 'THE SHADOW HOLDER',    subtitle: 'MOVES UNSEEN',               quote: '"you didn\'t see me buy. you won\'t see me sell."' },
+    'White':      { name: 'THE CLEAN SLATE',       subtitle: 'INFINITE POSSIBILITIES',     quote: '"no history means no bad trades. technically."' },
+    'Red':        { name: 'THE BOLD MOVER',        subtitle: 'NEVER FADES TO GREY',        quote: '"i make the candles. both colors. mostly green."' },
+    'Blue':       { name: 'THE DEEP DIVER',        subtitle: 'FINDS VALUE IN THE DEPTHS',  quote: '"while you watched the surface, i was buying the bottom."' },
+    'Pink':       { name: 'THE ETERNAL BULL',      subtitle: 'PERPETUALLY BULLISH',        quote: '"every chart looks like a buy opportunity. they usually are."' },
+    'Tan':        { name: 'THE STEADY HAND',       subtitle: 'CONSISTENT IN ALL MARKETS',  quote: '"boring is profitable. i\'m very boring. intentionally."' },
+    'Light Blue': { name: 'THE CLEAR THINKER',     subtitle: 'UNCLOUDED BY EMOTION',       quote: '"panic is for people who didn\'t plan the exit."' },
+    'Light Gray': { name: 'THE NEUTRAL',           subtitle: 'BALANCED IN ALL CONDITIONS', quote: '"i hold both sides. mentally. physically i just hold."' },
+    'Dark Gray':  { name: 'THE SERIOUS ONE',       subtitle: 'NO JOKES, ONLY RESULTS',     quote: '"i\'m not here for the culture. i\'m here for the compounding."' },
+    'Ligh Blue':  { name: 'THE CLEAR THINKER',     subtitle: 'UNCLOUDED BY EMOTION',       quote: '"panic is for people who didn\'t plan the exit."' },
+    'Lightnig':   { name: 'THE VOLTAGE',           subtitle: 'SHIPS BEFORE SLEEPING',      quote: '"i don\'t ask for permission. i ask for mainnet."' },
+    'Ligthning':  { name: 'THE VOLTAGE',           subtitle: 'SHIPS BEFORE SLEEPING',      quote: '"i don\'t ask for permission. i ask for mainnet."' },
+  };
+  if (skin && SKIN_FALLBACKS[skin]) return SKIN_FALLBACKS[skin];
+
+  return { name: 'THE ORIGINAL', subtitle: 'BEEN HERE FROM THE START', quote: '"#TogetherWeWhale — that\'s the whole thesis."' };
+}
+
+function tierClass(rank) {
+  if (rank <= 100) return 'legendary';
+  if (rank <= 500) return 'epic';
+  if (rank <= 1000) return 'rare';
+  return '';
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+const shortAddr = a => a.slice(0, 6) + '…' + a.slice(-4);
+const CONTRACT = '0x42d2b41c5bb1f73f06d5adaa85e23b44f75c4cd2';
+
+// ─── RENDER ───────────────────────────────────────────────────────────────
+function renderCards(nfts) {
+  const grid = document.getElementById('cardGrid');
+  grid.innerHTML = '';
+
+  nfts.forEach(nft => {
+    const tokenId = nft.identifier || nft.token_id || '???';
+    const name = nft.name || `Whale #${tokenId}`;
+    const imageUrl = nft.display_image_url || nft.image_url || '';
+    const osLink = `https://opensea.io/assets/ethereum/${nft.contract || CONTRACT}/${tokenId}`;
+    const traitData = window.WHALE_TRAITS?.[String(tokenId)];
+    const rank = traitData?.rank ?? 9999;
+    const personality = getPersonality(tokenId, traitData);
+    const tier = tierClass(rank);
+
+    const wrap = document.createElement('div');
+    wrap.className = `whale-card ${tier}`;
+
+    wrap.innerHTML = `
+      <div class="card-inner">
+        <div class="card-header">
+          <div class="card-id">#${esc(String(tokenId))}</div>
+          <div class="card-cert">
+            <div class="card-cert-top">CERTIFIED<br>GEM MINT</div>
+          </div>
+        </div>
+        <div class="card-image-wrap">
+          ${imageUrl
+            ? `<img src="${esc(imageUrl)}" alt="${esc(name)}" loading="lazy" crossorigin="anonymous" />`
+            : `<div class="card-placeholder">🐋</div>`
+          }
+        </div>
+        <div class="card-body">
+          <div class="card-personality">${esc(personality.name)}</div>
+          <div class="card-subtitle">${esc(personality.subtitle)}</div>
+          <div class="card-quote">${esc(personality.quote)}</div>
+          <div class="card-footer">
+            <div class="card-brand">
+              <span class="card-brand-icon">🐋</span>
+              <span class="card-brand-name">SSoW</span>
+            </div>
+            <div class="card-number">${esc(String(tokenId))} / 10,000</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="card-action-btn" onclick="window.open('${esc(osLink)}', '_blank')">OpenSea ↗</button>
+        <button class="card-action-btn share" onclick="shareCard(${JSON.stringify(String(tokenId)).replace(/"/g,'&quot;')}, ${JSON.stringify(personality.name).replace(/"/g,'&quot;')})">Share 𝕏</button>
+      </div>
+    `;
+
+    grid.appendChild(wrap);
+  });
+}
+
+function shareCard(tokenId, personalityName) {
+  const text = `My SSoW Whale #${tokenId} is ${personalityName} 🐋\n\nDiscover your whale's personality:\nssow-vault.vercel.app/cards\n\n#TogetherWeWhale #SecretSocietyOfWhales`;
+  const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank');
+}
+
+// ─── FETCH ────────────────────────────────────────────────────────────────
+function setStatus(msg, err = false) {
+  const el = document.getElementById('status');
+  el.innerHTML = msg;
+  el.className = 'status' + (err ? ' error' : '');
+}
+
+async function fetchAllNFTs(wallet) {
+  const all = []; let next = null;
+  do {
+    const p = new URLSearchParams({ wallet });
+    if (next) p.set('next', next);
+    const res = await fetch(`/api/whales?${p}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+    all.push(...(data.nfts || []));
+    next = data.next || null;
+    setStatus(`<span class="spinner"></span> Loading… ${all.length} whales surfaced`);
+  } while (next);
+  return all;
+}
+
+async function fetchWhales() {
+  const wallet = document.getElementById('walletInput').value.trim();
+  if (!wallet) return;
+  if (!wallet.startsWith('0x') || wallet.length < 10) {
+    setStatus('Please enter a valid Ethereum wallet address.', true);
+    return;
+  }
+
+  document.getElementById('searchBtn').disabled = true;
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('resultsSection').style.display = 'none';
+  document.getElementById('cardGrid').innerHTML = '';
+  setStatus('<span class="spinner"></span> Diving into the blockchain…');
+
+  try {
+    const nfts = await fetchAllNFTs(wallet);
+    if (!nfts.length) {
+      setStatus('No SSoW NFTs found for this wallet.');
+      document.getElementById('emptyState').style.display = 'block';
+      return;
+    }
+
+    // Sort by rarity (rarest first)
+    nfts.sort((a, b) => {
+      const ra = window.WHALE_TRAITS?.[String(a.identifier)]?.rank ?? 99999;
+      const rb = window.WHALE_TRAITS?.[String(b.identifier)]?.rank ?? 99999;
+      return ra - rb;
+    });
+
+    document.getElementById('nftCount').textContent = nfts.length;
+    document.getElementById('walletDisplay').textContent = shortAddr(wallet);
+    setStatus('');
+    document.getElementById('resultsSection').style.display = 'block';
+    renderCards(nfts);
+
+  } catch (err) {
+    console.error(err);
+    setStatus(`Error: ${err.message}`, true);
+    document.getElementById('emptyState').style.display = 'block';
+  } finally {
+    document.getElementById('searchBtn').disabled = false;
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('walletInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') fetchWhales();
+  });
+});
+</script>
+</body>
+</html>
