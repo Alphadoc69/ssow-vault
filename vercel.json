@@ -1,1 +1,6 @@
-{}
+{
+  "rewrites": [
+    { "source": "/api/whales", "destination": "/api/whales.js" },
+    { "source": "/cards", "destination": "/cards.html" }
+  ]
+}
