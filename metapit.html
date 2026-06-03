@@ -18,6 +18,9 @@
       radial-gradient(circle at 85% 100%, rgba(255,77,138,.10), transparent 45%),
       repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,.02) 39px, rgba(255,255,255,.02) 40px);}
   .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+  .backlink{display:inline-block;color:var(--dim);text-decoration:none;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;transition:.15s}
+  .backlink:hover{color:var(--plasma)}
+  a.logo{text-decoration:none;cursor:pointer}
   header{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:26px;flex-wrap:wrap;gap:14px}
   .brand{display:flex;align-items:baseline;gap:14px}
   .logo{font-family:'Anton',sans-serif;font-size:clamp(38px,7vw,72px);line-height:.85;letter-spacing:1px;text-transform:uppercase}
@@ -92,6 +95,7 @@
   .scard img{width:100%;aspect-ratio:1/1;display:block;background:#0a0b12}
   .scard .snm{font-size:8.5px;color:var(--dim);letter-spacing:.3px;padding:3px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
   .scard .sdie{height:30px;display:flex;align-items:center;justify-content:center;font-family:'Anton';font-size:17px;background:var(--bg);border-top:1px solid var(--line);color:var(--dim);transition:.1s}
+  .scard .htag{position:absolute;top:4px;left:4px;font-size:7px;background:rgba(255,255,255,.14);color:var(--ink);padding:1px 5px;letter-spacing:1px;border-radius:2px}
   .scard .sdie.rolling{color:var(--plasma)}
   .scard .sdie.locked{color:var(--ink)}
   .scard .sdie.pop{animation:diepop .35s ease}
@@ -131,9 +135,10 @@
 </head>
 <body>
 <div class="wrap">
+  <a class="backlink" href="/">← SSoW Vault</a>
   <header>
     <div class="brand">
-      <div class="logo"><span class="a">META</span> <span class="b">PIT</span></div>
+      <a href="/" class="logo"><span class="a">META</span> <span class="b">PIT</span></a>
       <div class="tag">Secret Society of Whales · Whale Royale</div>
     </div>
     <div class="head-meta">WALLET <b id="walletLabel">not loaded</b></div>
@@ -150,7 +155,7 @@
       <div class="howstep"><b>1</b> Stack your 5 hottest whales</div>
       <div class="howstep"><b>2</b> Ante into a 30-second round</div>
       <div class="howstep"><b>3</b> Each whale rolls 1–10 — rare whales roll hotter</div>
-      <div class="howstep"><b>4</b> Highest table wins · screenshot your crown</div>
+      <div class="howstep"><b>4</b> Highest table wins · winner takes the crown</div>
     </div>
     <div class="grid">
       <div class="card">
@@ -165,7 +170,7 @@
       </div>
       <div class="card">
         <h2>Your Squad <span id="squadCount" style="color:var(--dim);font-family:'JetBrains Mono';font-size:13px">0/5</span></h2>
-        <div class="sub">Tap whales on the left to add · max 5</div>
+        <div class="sub">Tap whales on the left to add · empty slots are filled by the house</div>
         <div class="squadgrid" id="roster"></div>
         <button class="btn magenta" id="toPitBtn" style="margin-top:14px" disabled>Enter The Pit →</button>
       </div>
@@ -335,6 +340,20 @@ async function fetchWalletNFTs(addr){
   });
 }
 
+/* fill a short squad up to 5 with borrowed house whales, so 1-whale holders can still play.
+   borrowed whales roll weaker — owning more of your own whales is an edge. */
+function padSquad(picks){
+  const out=picks.slice(0,5);
+  const pool=HOUSE_DECK.filter(w=>!out.some(p=>p.id===w.id)).sort(()=>Math.random()-.5);
+  let i=0;
+  while(out.length<5 && i<pool.length){
+    const w=pool[i++];
+    const weak=Math.max(20,Math.round(housePower(w.id)*0.6)); // ~40% weaker borrowed whales
+    out.push({id:w.id,name:`Whale #${w.id}`,img:w.img,traits:[],chain:'ETH',power:weak,house:true});
+  }
+  return out;
+}
+
 /* bots draw a 5-whale squad from the real house deck */
 async function buildBot(name){
   const pool=[...HOUSE_DECK].sort(()=>Math.random()-.5).slice(0,5);
@@ -415,14 +434,14 @@ function renderRoster(){
   }
   host.querySelectorAll('.rm').forEach(b=>b.onclick=()=>{squad.splice(+b.dataset.i,1);renderWallet();renderRoster();});
   $('#squadCount').textContent=`${squad.length}/5`;
-  $('#toPitBtn').disabled=squad.length<5;
+  $('#toPitBtn').disabled=squad.length<1;
 }
 $('#toPitBtn').onclick=()=>document.querySelector('[data-view=live]').click();
 
 /* LIVE PIT */
 $('#joinBtn').onclick=async()=>{
   if(roundActive)return;
-  if(squad.length<5){alert('Load your wallet and draft 5 whales first.');document.querySelector('[data-view=draft]').click();return;}
+  if(squad.length<1){alert('Load your wallet and draft at least 1 whale first.');document.querySelector('[data-view=draft]').click();return;}
   roundActive=true;skipTimer=false;
   try{const ac=audio(); if(ac && ac.state==='suspended') ac.resume();}catch(e){}
   const join=$('#joinBtn');join.disabled=true;join.textContent='IN THE ROUND';
@@ -430,8 +449,9 @@ $('#joinBtn').onclick=async()=>{
   $('#showcase').style.display='none';$('#showtotal').style.display='none';
   const lobby=$('#lobby');lobby.innerHTML='';$('#skipBtn').style.display='block';
 
-  const myPwr=Math.round(squad.reduce((a,n)=>a+n.power,0)/squad.length);
-  const me={name:myLabel(),you:true,pwr:myPwr,av:squad[0].img,squad:squad.slice()};
+  const mySquad=padSquad(squad);
+  const myPwr=Math.round(mySquad.reduce((a,n)=>a+n.power,0)/5);
+  const me={name:myLabel(),you:true,pwr:myPwr,av:mySquad[0].img,squad:mySquad};
   const players=[me];
   renderJoinLobby(players);
 
@@ -491,7 +511,7 @@ async function slowReveal(players, me){
   const sc=$('#showcase');sc.style.display='grid';sc.innerHTML='';
   me.squad.forEach((n,i)=>{
     const d=document.createElement('div');d.className='scard';
-    d.innerHTML=`<img src="${n.img}" alt=""><div class="snm">${n.name}</div><div class="sdie" data-d="${i}">?</div>`;
+    d.innerHTML=`<img src="${n.img}" alt="">${n.house?'<span class="htag">HOUSE</span>':''}<div class="snm">${n.name}</div><div class="sdie" data-d="${i}">?</div>`;
     sc.appendChild(d);
   });
   const st=$('#showtotal');st.style.display='block';st.innerHTML='ROLLING… <small>0/50</small>';
@@ -543,7 +563,7 @@ function renderStandings(standings, me, justIn, final){
   });
 }
 function winnerCard(w, round, youWon, place, field){
-  const tiles=w.squad.map((n,i)=>`<div class="scard"><img src="${n.img}" alt="">
+  const tiles=w.squad.map((n,i)=>`<div class="scard"><img src="${n.img}" alt="">${n.house?'<span class="htag">HOUSE</span>':''}
     <div class="snm">${n.name}</div><div class="sdie locked">${w.rolls[i]}</div></div>`).join('');
   const placeLine = youWon ? '' : `<div class="you-place">you placed <b>#${place}</b> of ${field}</div>`;
   return `<div class="bragcard">
