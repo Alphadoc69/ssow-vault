@@ -203,7 +203,7 @@
   </header>
 
   <div class="tabs">
-    <button class="tab on" data-view="draft">// Draft</button>
+    <button class="tab on" data-view="draft">// Pod</button>
     <button class="tab" data-view="live">// Live Dive <span class="dot"></span></button>
     <button class="tab" data-view="board">// The Depths</button>
   </div>
@@ -224,6 +224,7 @@
       <span class="gk">💎 Diamond <i>+25</i></span>
       <span class="gk dim">deeper dives strike richer · currents can sweep a dive to 0</span>
     </div>
+    <div class="odds"><b>THE ODDS</b> — rare traits make a whale tend to dive deeper, but luck decides every plunge, and deeper dives crack richer chests. <b style="color:var(--acid)">Finish #1</b> and you bank a <b>+12 XP win bonus</b>, climb the Wins board, and heat your streak — every win in a row pays more. That's the gamble.</div>
     <div class="grid">
       <div class="card">
         <h2>Load Your Wallet</h2>
@@ -233,7 +234,6 @@
         <button class="btn" id="loadBtn">⊳ Load My Whales</button>
         <div class="walletmeta" id="walletMeta" style="display:none"></div>
         <div class="squadgrid pickgrid" id="walletGrid"></div>
-        <div class="odds"><b>THE ODDS</b> — rare traits (Fin, rare skins, Blowhole Ring) make a whale tend to dive deeper, but luck decides every plunge. Deeper dives crack richer chests. That's the gamble.</div>
       </div>
       <div class="card">
         <h2>Your Squad <span id="squadCount" style="color:var(--dim);font-family:'JetBrains Mono';font-size:13px">0/5</span></h2>
@@ -272,7 +272,7 @@
           <ol class="leglist">
             <li>Your 5 whales each plunge into the Trench.</li>
             <li>Deeper dive = more miles. All 5 add up.</li>
-            <li>Deepest total pod beats the table.</li>
+            <li>Deepest total pod wins the round.</li>
             <li>Currents can sweep a dive to <b>0 mi</b> — the risk of the deep.</li>
           </ol>
           <div class="legtitle">What's In The Chest</div>
@@ -614,7 +614,7 @@ $('#joinBtn').onclick=async()=>{
   for(const t of ['3','2','1']){cd.textContent=t;sfxCount();await wait(650);}
   cd.textContent='DIVE!';cd.classList.add('go');sfxRoll();await wait(550);cd.style.display='none';
 
-  const CURRENT=0.13; // chance a dive gets swept by a current
+  const CURRENT=0.20; // chance a dive gets swept by a current
   players.forEach(p=>{p.rolls=[];p.swept=[];p.total=0;for(let i=0;i<5;i++){
     if(Math.random()<CURRENT){p.rolls.push(0);p.swept.push(true);}
     else{const r=diveDepth(p.pwr);p.rolls.push(r);p.swept.push(false);p.total+=r;}
@@ -678,7 +678,7 @@ async function slowReveal(players, me){
     else await diveAnimate(diver, label, me.rolls[i], me.loot[i], chest);
     run=+(run+me.rolls[i]).toFixed(2);
     st.innerHTML=`${run.toFixed(2)} <small>mi</small>`;
-    await wait(300);
+    await wait(240);
   }
   st.innerHTML=`YOU DOVE ${me.total.toFixed(2)} <small>mi</small>`;
   $('#placetrack').innerHTML='THE POD SURFACES…';
@@ -702,7 +702,7 @@ function diveAnimate(diver, label, depth, gem, chest){
     const tube=diver.parentElement;
     const maxY=Math.max(0, tube.clientHeight - diver.clientHeight - 56); // leave the seabed for the chest
     const endY=Math.min(1, depth/1.9)*maxY;
-    const T=1600, start=performance.now();
+    const T=1300, start=performance.now();
     sfxDive();
     function frame(now){
       let p=(now-start)/T; if(p>1)p=1;
