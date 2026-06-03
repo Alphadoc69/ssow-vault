@@ -138,12 +138,24 @@
   .gk{font-size:12.5px;color:var(--ink);display:inline-flex;align-items:center;gap:5px}
   .gk i{color:var(--acid);font-style:normal;font-family:'JetBrains Mono'}
   .gk.dim{color:var(--dim);font-size:11px}
+  .podstrip{margin-bottom:12px}
+  .podstrip-t{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+  .podrow{display:flex;gap:8px;flex-wrap:wrap}
+  .podw{flex:1;min-width:72px;max-width:120px;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:8px 7px;text-align:center;cursor:pointer;transition:.15s}
+  .podw:hover{border-color:var(--plasma)}
+  .podw img{width:34px;height:34px;border-radius:50%;object-fit:cover;border:1px solid var(--line)}
+  .podw .po2{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;margin:6px 0 4px}
+  .podw .po2f{height:100%;background:linear-gradient(90deg,var(--plasma),var(--acid));transition:width .4s}
+  .podw .postate{font-size:9px;color:var(--dim);letter-spacing:.5px}
+  .podw.low .po2f{background:var(--lose)}
+  .podw.resting{opacity:.6;border-color:var(--gold)}
+  .podw.resting .postate{color:var(--gold)}
   @media(max-width:760px){.livebody{flex-direction:column}.legend{flex:auto;width:100%}}
   .scard .sdie.rolling{color:var(--plasma)}
   .scard .sdie.locked{color:var(--ink)}
   .scard .sdie.pop{animation:diepop .35s ease}
   @keyframes diepop{0%{transform:scale(1.6);color:var(--acid)}100%{transform:scale(1)}}
-  .showtotal{text-align:center;font-family:'Anton';font-size:34px;letter-spacing:2px;color:var(--acid);margin:2px 0 8px}
+  .showtotal{text-align:center;font-family:'Anton';font-size:34px;letter-spacing:2px;color:var(--acid);margin:10px 0 28px}
   .showtotal small{font-size:14px;color:var(--dim)}
   .lobby{display:flex;flex-direction:column;gap:6px;margin-top:10px}
   .winreward{text-align:center;background:rgba(200,255,77,.1);border:1px solid var(--acid);color:var(--acid);font-family:'Anton';font-size:17px;letter-spacing:1px;padding:12px;margin-bottom:12px;border-radius:4px}
@@ -252,6 +264,7 @@
       </div>
       <div class="livebody">
         <div class="arena">
+          <div class="podstrip" id="podstrip"></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn magenta" id="joinBtn" style="flex:1;min-width:160px">🌊 Dive In</button>
             <button class="btn ghost sm" id="skipBtn" style="display:none">⏩ Skip timer (demo)</button>
@@ -282,6 +295,8 @@
           <div class="legrow"><span>🟢</span> Emerald <b>+14</b></div>
           <div class="legrow"><span>💎</span> Diamond <b>+25</b></div>
           <div class="legnote">Deeper dives strike richer gems. <b>Win a round</b> for bonus XP, a Wins-board climb, and a hotter streak.</div>
+          <div class="legtitle" style="margin-top:14px">Oxygen</div>
+          <div class="legnote" style="border-top:none;margin-top:0;padding-top:0">A deep dive burns a whale's air. <b>Rest a tired diver</b> a round to recover — dive it winded and it goes shallow and risks the bends (a swept dive). Resting subs in a weaker house whale.</div>
         </aside>
       </div>
     </div>
@@ -423,6 +438,23 @@ function sfxTreasure(){ const ac=audio(); if(!ac) return; const b=ac.currentTime
 function sfxDiamond(){ const ac=audio(); if(!ac) return; const b=ac.currentTime; [988,1319,1568,2093].forEach((f,i)=>tone(f,0.20,'triangle',0.07,b+i*0.08)); }
 const sfxBubble=()=>tone(300,0.09,'sine',0.03);
 const sfxSwept=()=>sweepTone(150,560,0.42,0.05);
+function sfxWhale(){
+  const ac=audio(); if(!ac) return;
+  const t=ac.currentTime;
+  const o=ac.createOscillator(), g=ac.createGain(), lfo=ac.createOscillator(), lg=ac.createGain();
+  o.type='sine';
+  o.frequency.setValueAtTime(150,t);
+  o.frequency.exponentialRampToValueAtTime(92,t+0.7);
+  o.frequency.exponentialRampToValueAtTime(168,t+1.5);
+  o.frequency.exponentialRampToValueAtTime(108,t+2.2);
+  lfo.type='sine'; lfo.frequency.value=6; lg.gain.value=6; lfo.connect(lg); lg.connect(o.frequency);
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(0.05,t+0.35);
+  g.gain.setValueAtTime(0.05,t+1.6);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+2.4);
+  o.connect(g); g.connect(ac.destination);
+  o.start(t); lfo.start(t); o.stop(t+2.5); lfo.stop(t+2.5);
+}
 
 function weightedRoll(power){
   const base=Math.random()*10;const tilt=(power/100)*4-2;
@@ -490,6 +522,7 @@ async function buildBot(name){
 }
 
 let walletNFTs=[],squad=[],myStats={w:0,l:0,streak:0},round=1,lastResult=null,roundActive=false,skipTimer=false,nickname='',walletAddr='';
+const resting=new Set();
 const myLabel=()=>nickname||'YOU';
 /* house-status ladder (casino + whale puns) — XP climbs it */
 const TIERS=[
@@ -516,6 +549,7 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
   t.classList.add('on');$('#'+t.dataset.view).classList.add('on');
   if(t.dataset.view==='board')renderBoard(currentBoard);
+  if(t.dataset.view==='live')renderPodStrip();
 });
 document.querySelectorAll('.btab').forEach(b=>b.onclick=()=>renderBoard(b.dataset.board));
 
@@ -553,9 +587,27 @@ function renderWallet(){
 }
 function toggle(n){
   const i=squad.findIndex(s=>s.id===n.id);
-  if(i>=0)squad.splice(i,1);
-  else{if(squad.length>=5){alert('Squad is full — 5 max. Tap one to drop it.');return;}squad.push(n);}
+  if(i>=0){squad.splice(i,1);resting.delete(n.id);}
+  else{if(squad.length>=5){alert('Your pod is full — 5 max. Tap one to drop it.');return;}n.o2=n.o2??100;squad.push(n);}
   renderWallet();renderRoster();
+}
+function renderPodStrip(){
+  const host=$('#podstrip'); if(!host) return;
+  if(!squad.length){ host.innerHTML=''; return; }
+  const chips=squad.map(w=>{
+    const o2=w.o2??100, rest=resting.has(w.id), low=o2<35;
+    return `<div class="podw ${rest?'resting':''} ${low&&!rest?'low':''}" data-id="${w.id}">
+      <img src="${w.img}" alt="">
+      <div class="po2"><div class="po2f" style="width:${o2}%"></div></div>
+      <div class="postate">${rest?'RESTING':o2+'% O₂'}</div></div>`;
+  }).join('');
+  host.innerHTML=`<div class="podstrip-t">Your Pod · tap a tired diver to rest it this round</div><div class="podrow">${chips}</div>`;
+  host.querySelectorAll('.podw').forEach(el=>el.onclick=()=>{
+    if(roundActive) return;
+    const id=el.dataset.id;
+    if(resting.has(id)) resting.delete(id); else resting.add(id);
+    renderPodStrip();
+  });
 }
 function renderRoster(){
   const host=$('#roster');host.innerHTML='';
@@ -579,13 +631,14 @@ $('#joinBtn').onclick=async()=>{
   if(roundActive)return;
   if(squad.length<1){alert('Load your wallet and draft at least 1 whale first.');document.querySelector('[data-view=draft]').click();return;}
   roundActive=true;skipTimer=false;
+  const ps=$('#podstrip'); if(ps) ps.style.display='none';
   try{const ac=audio(); if(ac && ac.state==='suspended') ac.resume();}catch(e){}
   const join=$('#joinBtn');join.disabled=true;join.textContent='DIVING…';
   $('#resultHost').innerHTML='';$('#placetrack').textContent='';
   $('#showcase').style.display='none';$('#showtotal').style.display='none';
   const lobby=$('#lobby');lobby.innerHTML='';$('#skipBtn').style.display='block';
 
-  const mySquad=padSquad(squad);
+  const mySquad=padSquad(squad.filter(w=>!resting.has(w.id)));
   const myPwr=Math.round(mySquad.reduce((a,n)=>a+n.power,0)/5);
   const me={name:myLabel(),you:true,pwr:myPwr,av:mySquad[0].img,squad:mySquad};
   const players=[me];
@@ -614,12 +667,19 @@ $('#joinBtn').onclick=async()=>{
   for(const t of ['3','2','1']){cd.textContent=t;sfxCount();await wait(650);}
   cd.textContent='DIVE!';cd.classList.add('go');sfxRoll();await wait(550);cd.style.display='none';
 
-  const CURRENT=0.20; // chance a dive gets swept by a current
+  const CURRENT=0.20; // base chance a dive gets swept by a current
   players.forEach(p=>{p.rolls=[];p.swept=[];p.total=0;for(let i=0;i<5;i++){
-    if(Math.random()<CURRENT){p.rolls.push(0);p.swept.push(true);}
-    else{const r=diveDepth(p.pwr);p.rolls.push(r);p.swept.push(false);p.total+=r;}
+    const o2=(p.you && p.squad[i] && p.squad[i].o2!=null)?p.squad[i].o2:100;
+    const sweepCh=CURRENT+(1-o2/100)*0.22; // a winded whale risks the bends
+    if(Math.random()<sweepCh){p.rolls.push(0);p.swept.push(true);}
+    else{let r=diveDepth(p.pwr)*(0.55+0.45*o2/100); r=Math.max(0.15,+r.toFixed(2)); p.rolls.push(r);p.swept.push(false);p.total+=r;}
   }p.total=+p.total.toFixed(2);});
   me.loot=me.rolls.map((d,i)=>me.swept[i]?null:gemFor(d));
+  // oxygen: divers tire (deeper = more), rested whales recover
+  me.squad.forEach((w,i)=>{ if(w.house||w.o2==null) return;
+    if(me.swept[i]) w.o2=Math.max(0,w.o2-8);
+    else w.o2=Math.max(0,Math.min(100,w.o2-Math.round(me.rolls[i]*26)+8)); });
+  squad.forEach(w=>{ if(resting.has(w.id)) w.o2=Math.min(100,(w.o2??100)+45); });
 
   const standings=await slowReveal(players, me);
   const winner=standings[0],youWon=winner.you,youPlace=standings.findIndex(p=>p.you)+1;
@@ -646,6 +706,8 @@ $('#joinBtn').onclick=async()=>{
   $('#resultHost').insertAdjacentHTML('beforeend',`<div class="xpgain">+${xpGain} XP · ${(me.loot||[]).map(g=>g?g.i:'🌀').join(' ')}${upset?' · UPSET':''}</div>`);
   round++;$('#roundNo').textContent='#'+round;
   join.disabled=false;join.textContent='🌊 Dive Again';roundActive=false;
+  const ps2=$('#podstrip'); if(ps2) ps2.style.display='';
+  renderPodStrip();
 };
 $('#skipBtn').onclick=()=>{skipTimer=true;};
 
@@ -671,6 +733,7 @@ async function slowReveal(players, me){
   });
   const st=$('#showtotal');st.style.display='block';st.innerHTML='DIVING… <small>0.00 mi</small>';
   $('#placetrack').innerHTML='THE POD DESCENDS';
+  sfxWhale();
   let run=0;
   for(let i=0;i<5;i++){
     const diver=sc.querySelector(`.diver[data-d="${i}"]`), label=sc.querySelector(`.depthlabel[data-l="${i}"]`), chest=sc.querySelector(`.chest[data-c="${i}"]`);
