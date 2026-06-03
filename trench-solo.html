@@ -134,6 +134,17 @@
   .hint{font-size:0.55rem; letter-spacing:0.16em; color:var(--dim); text-transform:uppercase; text-align:center; margin:0.3rem 0 1.5rem;}
 
   footer{font-size:0.5rem; letter-spacing:0.18em; color:rgba(255,255,255,0.18); text-transform:uppercase; padding:0.5rem 0 2rem; text-align:center;}
+
+  @media (max-width:560px){
+    header{padding:0.9rem 0 0.3rem;}
+    .title{font-size:2.3rem;}
+    .eyebrow{font-size:0.5rem;} .sub{margin-top:0.2rem; font-size:0.5rem;}
+    .back-link{margin-bottom:0.5rem;}
+    .hud{margin:0.55rem 0 0.35rem;}
+    .pad{margin:0.6rem auto 0.25rem;}
+    .hint{margin:0.2rem 0 0.9rem;}
+    footer{padding:0.3rem 0 1.2rem;}
+  }
 </style>
 </head>
 <body>
@@ -235,7 +246,7 @@ const CONFIG = {
   levelRefill: 38,    // oxygen regained on clearing a level
   hitRadius: 0.60,    // how close a current must be to sweep you (cells)
   laneJitter: 0.35,   // per-lane speed variation
-  holdRepeat: 150,    // ms between hops when a pad button is held
+  holdRepeat: 90,     // ms between hops when a pad button is held (lower = faster)
 };
 
 const cv = document.getElementById('game');
@@ -550,16 +561,25 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 
-// ── sizing ──
+// ── sizing ──  board fits available width AND height (so the d-pad stays visible)
 function resize(){
-  const w=cv.clientWidth;
-  CW=w/CONFIG.COLS; CH=CW; // square cells
-  const cssH=CH*CONFIG.ROWS;
-  cv.style.height=cssH+'px';
+  const stage=cv.parentElement;
+  const availW=Math.min(stage.clientWidth, 440);
+  const header=document.querySelector('header');
+  const hud=document.querySelector('.hud');
+  const reserved=(header?header.offsetHeight:90)+(hud?hud.offsetHeight:48)+232; // pad+hint+margins
+  const availH=Math.max(240, window.innerHeight - reserved);
+  let cell=Math.min(availW/CONFIG.COLS, availH/CONFIG.ROWS);
+  cell=Math.max(30, cell);
+  const cssW=Math.floor(cell*CONFIG.COLS), cssH=Math.floor(cell*CONFIG.ROWS);
+  cv.style.width=cssW+'px'; cv.style.height=cssH+'px';
   const dpr=window.devicePixelRatio||1;
-  cv.width=Math.round(w*dpr); cv.height=Math.round(cssH*dpr);
+  const w=cv.clientWidth||cssW, h=cv.clientHeight||cssH;
+  CW=w/CONFIG.COLS; CH=h/CONFIG.ROWS;
+  cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
   ctx.setTransform(dpr,0,0,dpr,0,0);
 }
+window.addEventListener('orientationchange',()=>setTimeout(resize,200));
 
 // ── input ──
 const DIRS={up:[-1,0],down:[1,0],left:[0,-1],right:[0,1]};
@@ -570,13 +590,17 @@ window.addEventListener('keydown',e=>{
   if(d){ e.preventDefault(); move(...DIRS[d]); }
   if((k===' '||k==='enter') && (state.phase==='idle'||state.phase==='over')) startRun();
 });
-// swipe
-let tsx=0,tsy=0,tst=0;
-cv.addEventListener('touchstart',e=>{ const t=e.changedTouches[0]; tsx=t.clientX; tsy=t.clientY; tst=Date.now(); },{passive:true});
-cv.addEventListener('touchend',e=>{
+// touch: drag to steer — each cell-length of drag hops one cell (chains without lifting)
+let tsx=0,tsy=0;
+cv.addEventListener('touchstart',e=>{ const t=e.changedTouches[0]; tsx=t.clientX; tsy=t.clientY; },{passive:true});
+cv.addEventListener('touchmove',e=>{
   const t=e.changedTouches[0]; const dx=t.clientX-tsx, dy=t.clientY-tsy;
-  if(Math.max(Math.abs(dx),Math.abs(dy))<22) return;
-  if(Math.abs(dx)>Math.abs(dy)) move(...DIRS[dx>0?'right':'left']); else move(...DIRS[dy>0?'down':'up']);
+  const TH=Math.max(20, CW*0.55);
+  if(Math.abs(dx)>=TH || Math.abs(dy)>=TH){
+    if(Math.abs(dx)>Math.abs(dy)) move(...DIRS[dx>0?'right':'left']);
+    else move(...DIRS[dy>0?'down':'up']);
+    tsx=t.clientX; tsy=t.clientY; // reset origin so a continuous drag keeps moving
+  }
 },{passive:true});
 // pad with hold-repeat
 let holdTimer=null;
