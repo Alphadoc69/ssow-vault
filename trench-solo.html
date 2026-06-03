@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>The Trench · Solo Dive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<!-- Real SSoW rarity ranks (same files your WhaleDex loads). If not present, perks fall back to a trait estimate. -->
+<script src="rarity-data.js"></script>
+<style>
+  :root{
+    --black:#020d1a; --card-bg:#051422; --card-border:#0d3348;
+    --cyan:#5bc8e8; --cyan-lt:#90e0f5; --text:rgba(180,230,250,0.92);
+    --dim:rgba(100,180,210,0.55);
+    --font-display:'Bebas Neue',sans-serif; --font-mono:'DM Mono',monospace;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:linear-gradient(180deg,#020d1a 0%,#030f1c 50%,#020b18 100%);
+    color:var(--text); font-family:var(--font-mono);
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    overflow-x:hidden; -webkit-tap-highlight-color:transparent; user-select:none;
+  }
+  body::before{
+    content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(ellipse 90% 40% at 50% -5%, rgba(0,90,160,0.40) 0%, transparent 55%),
+      radial-gradient(ellipse 60% 40% at 0% 80%, rgba(0,60,120,0.22) 0%, transparent 50%);
+  }
+  .wrap{position:relative; z-index:1; width:100%; max-width:520px; padding:0 16px; display:flex; flex-direction:column; align-items:center;}
+
+  header{text-align:center; padding:1.6rem 0 0.6rem;}
+  .back-link{display:inline-flex; gap:7px; font-size:0.55rem; letter-spacing:0.2em; color:var(--dim);
+    text-decoration:none; text-transform:uppercase; margin-bottom:0.8rem;}
+  .back-link:hover{color:var(--cyan);}
+  .eyebrow{font-size:0.55rem; letter-spacing:0.4em; color:var(--dim); text-transform:uppercase;}
+  .title{font-family:var(--font-display); font-size:clamp(2.4rem,9vw,3.6rem); letter-spacing:0.14em; color:#fff; line-height:1;}
+  .title span{background:linear-gradient(135deg,var(--cyan),var(--cyan-lt),var(--cyan));
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;}
+  .sub{font-size:0.55rem; letter-spacing:0.22em; color:var(--dim); text-transform:uppercase; margin-top:0.4rem;}
+
+  /* HUD */
+  .hud{display:flex; justify-content:space-between; align-items:center; gap:10px;
+    width:100%; margin:1rem 0 0.5rem; font-size:0.6rem; letter-spacing:0.12em; text-transform:uppercase;}
+  .hud .stat{display:flex; flex-direction:column; gap:3px;}
+  .hud .label{color:var(--dim); font-size:0.5rem;}
+  .hud .val{font-family:var(--font-display); font-size:1.3rem; letter-spacing:0.06em; color:#fff; line-height:1;}
+  .hud .val.cyan{color:var(--cyan-lt);}
+  .o2wrap{flex:1; max-width:150px;}
+  .o2bar{height:10px; border:1px solid rgba(91,200,232,0.3); border-radius:6px; overflow:hidden; background:rgba(0,0,0,0.3); margin-top:4px;}
+  .o2fill{height:100%; width:100%; background:linear-gradient(90deg,#1a9abf,#5bc8e8); transition:width 0.15s linear, background 0.3s;}
+
+  /* STAGE */
+  .stage{position:relative; width:100%; display:flex; justify-content:center;}
+  canvas{display:block; width:100%; max-width:420px; border:1px solid var(--card-border); border-radius:10px;
+    box-shadow:0 10px 50px rgba(0,0,0,0.7), 0 0 0 1px rgba(91,200,232,0.06), inset 0 0 60px rgba(0,0,0,0.4);
+    touch-action:none; background:#03101e;}
+  .vignette{position:absolute; inset:0; border-radius:10px; pointer-events:none; opacity:0; transition:opacity 0.12s;}
+  .vignette.sweep{opacity:1; box-shadow:inset 0 0 70px 14px rgba(220,70,70,0.55); }
+  .vignette.shield{opacity:1; box-shadow:inset 0 0 70px 14px rgba(91,200,232,0.6); }
+
+  /* OVERLAY */
+  .overlay{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:20px; background:rgba(2,10,22,0.90); backdrop-filter:blur(6px); border-radius:10px; z-index:5;
+    overflow-y:auto;}
+  .overlay.hidden{display:none;}
+  .overlay h2{font-family:var(--font-display); font-size:2.2rem; letter-spacing:0.1em; color:#fff; line-height:1; margin-bottom:0.5rem;}
+  .overlay h2.cyan{color:var(--cyan-lt);}
+  .overlay p{font-size:0.7rem; letter-spacing:0.08em; line-height:1.7; color:var(--text); max-width:300px; margin-bottom:0.4rem;}
+  .overlay .small{font-size:0.6rem; color:var(--dim); letter-spacing:0.1em;}
+  .btn{margin-top:1.3rem; font-family:var(--font-display); font-size:1.4rem; letter-spacing:0.12em;
+    color:#e8f8ff; background:linear-gradient(135deg,#0a5a80,#1a9abf); border:none; padding:12px 34px;
+    border-radius:6px; cursor:pointer; transition:transform 0.12s, opacity 0.2s;}
+  .btn:hover{opacity:0.9;} .btn:active{transform:scale(0.96);}
+  .runline{margin-top:0.9rem; font-size:0.85rem; letter-spacing:0.1em; color:var(--cyan-lt);}
+  .gemtrail{font-size:1.1rem; letter-spacing:2px; margin-top:0.5rem; min-height:1.4em;}
+
+  /* WALLET / WHALE PICKER */
+  .wallet-box{width:100%; max-width:320px; margin:1rem auto 0; padding:12px; border:1px solid rgba(91,200,232,0.18);
+    border-radius:8px; background:rgba(91,200,232,0.03);}
+  .wallet-title{font-size:0.55rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); margin-bottom:8px;}
+  .wallet-row{display:flex; gap:6px; border:1px solid rgba(91,200,232,0.2); border-radius:5px; overflow:hidden; background:rgba(0,0,0,0.25);}
+  .wallet-row input{flex:1; min-width:0; background:transparent; border:none; outline:none; color:#fff;
+    font-family:var(--font-mono); font-size:0.7rem; padding:9px 10px;}
+  .wallet-row input::placeholder{color:rgba(255,255,255,0.25);}
+  .wallet-row button{background:linear-gradient(135deg,#0a5a80,#1a9abf); color:#e8f8ff; border:none;
+    font-family:var(--font-display); font-size:0.95rem; letter-spacing:0.1em; padding:0 16px; cursor:pointer;}
+  .wallet-row button:disabled{opacity:0.4; cursor:default;}
+  .wallet-status{font-size:0.55rem; letter-spacing:0.08em; color:var(--dim); min-height:1.2em; margin-top:7px;}
+  .wallet-status.err{color:#e08080;}
+  .thumbs{display:flex; gap:8px; overflow-x:auto; padding:4px 2px 6px; margin-top:6px; scrollbar-width:thin;}
+  .thumbs:empty{display:none;}
+  .thumb{flex:0 0 auto; width:54px; height:54px; border-radius:8px; overflow:hidden; cursor:pointer;
+    border:2px solid transparent; background:#03101e; position:relative; transition:border-color 0.15s, transform 0.1s;}
+  .thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+  .thumb:active{transform:scale(0.93);}
+  .thumb.sel{border-color:var(--cyan-lt); box-shadow:0 0 12px rgba(91,200,232,0.5);}
+  .thumb .tag{position:absolute; bottom:0; left:0; right:0; font-size:0.42rem; letter-spacing:0.04em;
+    background:rgba(2,10,22,0.75); color:var(--cyan-lt); text-align:center; padding:1px 0;}
+
+  /* CONTROLS */
+  .pad{display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr);
+    gap:8px; width:200px; margin:1.1rem auto 0.4rem; touch-action:none;}
+  .pad button{aspect-ratio:1; border:1px solid rgba(91,200,232,0.22); background:rgba(91,200,232,0.05);
+    color:var(--cyan-lt); font-size:1.3rem; border-radius:9px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:background 0.1s, transform 0.06s;}
+  .pad button:active{background:rgba(91,200,232,0.22); transform:scale(0.93);}
+  .pad .up{grid-column:2; grid-row:1;} .pad .left{grid-column:1; grid-row:2;}
+  .pad .right{grid-column:3; grid-row:2;} .pad .down{grid-column:2; grid-row:3;}
+  .pad .mid{grid-column:2; grid-row:2; border:none; background:transparent; color:var(--dim); font-size:0.75rem;}
+  .hint{font-size:0.55rem; letter-spacing:0.16em; color:var(--dim); text-transform:uppercase; text-align:center; margin:0.3rem 0 1.5rem;}
+
+  footer{font-size:0.5rem; letter-spacing:0.18em; color:rgba(255,255,255,0.18); text-transform:uppercase; padding:0.5rem 0 2rem; text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="back-link" href="/thetrench">← The Trench</a>
+    <p class="eyebrow">Secret Society of Whales</p>
+    <h1 class="title">SOLO <span>DIVE</span></h1>
+    <p class="sub">one whale · dodge the currents · go deeper</p>
+  </header>
+
+  <div class="hud">
+    <div class="stat"><span class="label">Level</span><span class="val" id="hudLevel">1</span></div>
+    <div class="o2wrap"><span class="label">Oxygen</span><div class="o2bar"><div class="o2fill" id="o2fill"></div></div></div>
+    <div class="stat" style="text-align:right"><span class="label">Score</span><span class="val cyan" id="hudScore">0</span></div>
+  </div>
+
+  <div class="stage">
+    <canvas id="game"></canvas>
+    <div class="vignette" id="vignette"></div>
+
+    <div class="overlay" id="overlayStart">
+      <h2 class="cyan">SOLO DIVE</h2>
+      <p class="small">Slip through the currents, reach the chest, dive deeper. 100 levels down.</p>
+
+      <div class="wallet-box">
+        <p class="wallet-title">Dive as your own whale</p>
+        <div class="wallet-row">
+          <input id="walletInput" type="text" placeholder="0x… your wallet" autocomplete="off" spellcheck="false" />
+          <button id="loadBtn">Load</button>
+        </div>
+        <p class="wallet-status" id="walletStatus"></p>
+        <div class="thumbs" id="thumbs"></div>
+      </div>
+
+      <button class="btn" id="startBtn">▼ Dive In</button>
+      <p class="small" style="margin-top:0.9rem">Best dive: Lv.<span id="bestStart">1</span></p>
+    </div>
+
+    <div class="overlay hidden" id="overlayOver">
+      <h2>YOU SURFACED</h2>
+      <div class="runline" id="overRun">Reached Level 1</div>
+      <div class="gemtrail" id="overGems"></div>
+      <p class="small" id="overBest" style="margin-top:0.6rem">Best dive: Lv.1</p>
+      <button class="btn" id="againBtn">Dive Again</button>
+    </div>
+  </div>
+
+  <div class="pad" id="pad">
+    <button class="up"    data-dir="up">▲</button>
+    <button class="left"  data-dir="left">◄</button>
+    <span class="mid">DIVE</span>
+    <button class="right" data-dir="right">►</button>
+    <button class="down"  data-dir="down">▼</button>
+  </div>
+  <p class="hint">Swipe the board · arrow keys / WASD · or tap the pad</p>
+
+  <footer>The Trench · Solo Dive · Fan-made · #TogetherWeWhale</footer>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  THE TRENCH · SOLO DIVE  —  Frogger-style vertical dive
+//  Standalone prototype. Tune the CONFIG block to dial the feel.
+// ════════════════════════════════════════════════════════════
+const CONFIG = {
+  COLS: 7,            // grid width
+  ROWS: 8,            // grid height (row 0 = surface, last row = seabed/chest)
+  baseSpeed: 0.70,    // current speed at lvl 1 (cells/sec)
+  speedRamp: 0.055,   // + per level
+  maxSpeed: 3.10,
+  baseBlocks: 1,      // currents per active lane at lvl 1
+  blockEvery: 9,      // +1 current per lane every N levels
+  maxBlocks: 4,
+  baseActive: 2,      // active (dangerous) lanes at lvl 1
+  activeEvery: 7,     // +1 active lane every N levels
+  maxActive: 6,
+  baseDrain: 2.6,     // oxygen lost per second
+  drainRamp: 0.045,   // + per level
+  maxDrain: 5.8,
+  sweepPenalty: 24,   // oxygen lost when swept
+  levelRefill: 38,    // oxygen regained on clearing a level
+  hitRadius: 0.60,    // how close a current must be to sweep you (cells)
+  laneJitter: 0.35,   // per-lane speed variation
+  holdRepeat: 150,    // ms between hops when a pad button is held
+};
+
+const cv = document.getElementById('game');
+const ctx = cv.getContext('2d');
+let CW = 60, CH = 60; // cell pixel size (set on resize)
+
+const state = {
+  phase: 'idle',     // idle | play | clear | over
+  level: 1, score: 0, o2: 100, best: 1,
+  lanes: [], chest: {row:0,col:0}, whale: {row:0,col:3,facing:1,hop:0},
+  gems: [], cfg: null, last: 0, clearAnim: 0, clearGem: null,
+  skinImg: null, skinId: null,
+};
+
+// ── persistence (works on the real site; harmless if blocked) ──
+function loadBest(){ try{ const v=parseInt(localStorage.getItem('trench_solo_best')); if(v>0) state.best=v; }catch(e){} }
+function saveBest(){ try{ localStorage.setItem('trench_solo_best', String(state.best)); }catch(e){} }
+
+// ── audio (synth, no files) ──
+let AC=null;
+function resumeAudio(){ try{ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended')AC.resume(); }catch(e){} }
+function tone(f,t,dur,type='sine',vol=0.18){ if(!AC)return; const o=AC.createOscillator(),g=AC.createGain();
+  o.type=type; o.frequency.setValueAtTime(f,t); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+dur+0.02); }
+function sfxMove(){ if(!AC)return; const t=AC.currentTime; tone(520,t,0.07,'triangle',0.10); }
+function sfxSwept(){ if(!AC)return; const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
+  o.type='sawtooth'; o.frequency.setValueAtTime(440,t); o.frequency.exponentialRampToValueAtTime(90,t+0.4);
+  g.gain.setValueAtTime(0.2,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.45); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+0.47);
+  // noise whoosh
+  const buf=AC.createBuffer(1,AC.sampleRate*0.35,AC.sampleRate); const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length); const n=AC.createBufferSource(); n.buffer=buf;
+  const ng=AC.createGain(); ng.gain.setValueAtTime(0.18,t); ng.gain.exponentialRampToValueAtTime(0.001,t+0.35); n.connect(ng); ng.connect(AC.destination); n.start(t); }
+function sfxGem(rich){ if(!AC)return; const t=AC.currentTime; const base=rich?660:520;
+  [0,0.08,0.16].forEach((d,i)=> tone(base*Math.pow(1.26,i),t+d,0.16,'sine',0.16)); }
+function sfxLevel(){ if(!AC)return; const t=AC.currentTime; [392,523,659,784].forEach((f,i)=>tone(f,t+i*0.07,0.18,'triangle',0.15)); }
+function sfxShield(){ if(!AC)return; const t=AC.currentTime; tone(880,t,0.12,'sine',0.18); tone(1320,t+0.06,0.18,'sine',0.14); }
+function sfxOver(){ if(!AC)return; const t=AC.currentTime; [330,247,165].forEach((f,i)=>tone(f,t+i*0.13,0.3,'sine',0.16)); }
+
+// ── difficulty ──
+const clampf=(v,a,b)=>Math.max(a,Math.min(b,v));
+const clampi=(v,a,b)=>Math.max(a,Math.min(b,v|0));
+
+// ── RARITY PERKS ─────────────────────────────────────────────
+// drain  = oxygen-drain multiplier (lower = holds breath longer)
+// sweepMul = sweep oxygen-penalty multiplier (lower = sweeps hurt less)
+// hit    = added to hit radius (negative = more nimble / forgiving)
+// shield = ignore the FIRST sweep each level (no oxygen cost)
+const TIERS={
+  legendary:{key:'legendary',name:'APEX',     color:'#90e0f5',drain:0.74,sweepMul:0.58,hit:-0.10,shield:true,
+             perk:'Longest breath · nimble · first sweep each level shrugged off'},
+  epic:     {key:'epic',     name:'LEVIATHAN', color:'#b48cff',drain:0.82,sweepMul:0.70,hit:-0.06,shield:false,
+             perk:'Long breath · nimble · sweeps hurt less'},
+  rare:     {key:'rare',     name:'DEEP DIVER',color:'#5bc8e8',drain:0.88,sweepMul:0.80,hit:-0.03,shield:false,
+             perk:'Better lungs · tougher against currents'},
+  uncommon: {key:'uncommon', name:'DIVER',     color:'#6fe0a0',drain:0.93,sweepMul:0.90,hit:0,    shield:false,
+             perk:'Slightly longer breath'},
+  common:   {key:'common',   name:'PUP',       color:'#8aa6b5',drain:1.00,sweepMul:1.00,hit:0,    shield:false,
+             perk:'No perks — pure skill'},
+};
+function tierFromRank(r){ if(r<=100)return TIERS.legendary; if(r<=500)return TIERS.epic; if(r<=1000)return TIERS.rare; if(r<=3000)return TIERS.uncommon; return TIERS.common; }
+function tierFromPower(p){ if(p>=83)return TIERS.legendary; if(p>=70)return TIERS.epic; if(p>=58)return TIERS.rare; if(p>=46)return TIERS.uncommon; return TIERS.common; }
+function whalePower(traits){
+  if(!Array.isArray(traits)||!traits.length) return 33;
+  const m={}; traits.forEach(t=>{ if(t&&t.trait_type) m[t.trait_type.toLowerCase()]=String(t.value||''); });
+  let p=33;
+  const ok=v=>v&&v!=='None';
+  if(ok(m['fin'])) p+=14;
+  if(ok(m['blowhole ring'])) p+=8;
+  if(ok(m['hat'])) p+=3;
+  if(m['skin'] && /(Gold|Ice|Trippy|Light?ni?ng|Mega Bot|Diamond|Rainbow)/i.test(m['skin'])) p+=18;
+  if(m['eyes'] && /(Laser|Green Lasers|Ego Death|Cyborg|VR)/i.test(m['eyes'])) p+=10;
+  p += Object.keys(m).length*2;
+  return Math.max(1,Math.min(100,Math.round(p)));
+}
+function tierForNft(nft){
+  const id=String(nft.identifier||nft.token_id||'');
+  const rank = (window.WHALE_TRAITS && window.WHALE_TRAITS[id] && window.WHALE_TRAITS[id].rank)|0;
+  if(rank>0) return tierFromRank(rank);
+  return tierFromPower(whalePower(nft.traits));
+}
+state.tier = TIERS.common;
+state.shieldReady = false;
+
+function levelCfg(L){
+  return {
+    active: Math.min(CONFIG.maxActive, CONFIG.baseActive + Math.floor((L-1)/CONFIG.activeEvery)),
+    speed:  clampf(CONFIG.baseSpeed + (L-1)*CONFIG.speedRamp, CONFIG.baseSpeed, CONFIG.maxSpeed),
+    blocks: Math.min(CONFIG.maxBlocks, CONFIG.baseBlocks + Math.floor((L-1)/CONFIG.blockEvery)),
+    drain:  clampf(CONFIG.baseDrain + (L-1)*CONFIG.drainRamp, CONFIG.baseDrain, CONFIG.maxDrain),
+  };
+}
+
+function setupLevel(L){
+  const cfg = levelCfg(L); state.cfg = cfg; state.lanes = [];
+  for(let r=1;r<=CONFIG.ROWS-2;r++){
+    const idx = r-1;
+    if(idx >= cfg.active){ state.lanes.push({row:r,active:false,blocks:[],dir:1,speed:0}); continue; }
+    const dir = (r%2===0)?1:-1;
+    const speed = cfg.speed * (1 - CONFIG.laneJitter/2 + Math.random()*CONFIG.laneJitter);
+    const k = cfg.blocks, spacing = CONFIG.COLS/k, start = Math.random()*spacing, blocks=[];
+    for(let i=0;i<k;i++) blocks.push((start + i*spacing) % CONFIG.COLS);
+    state.lanes.push({row:r,active:true,blocks,dir,speed});
+  }
+  state.chest = {row:CONFIG.ROWS-1, col:Math.floor(Math.random()*CONFIG.COLS)};
+  state.whale = {row:0, col:Math.floor(CONFIG.COLS/2), facing:1, hop:0};
+  state.shieldReady = state.tier.shield;   // perk resets each level
+}
+
+function rollGem(L){
+  const r=Math.random(), t=Math.min(1,(L-1)/40);
+  if(r < 0.04 + t*0.17) return {e:'💎',xp:25,rich:true};
+  if(r < 0.14 + t*0.22) return {e:'🟢',xp:14,rich:true};
+  if(r < 0.34 + t*0.20) return {e:'🔵',xp:9};
+  if(r < 0.72)          return {e:'🔴',xp:5};
+  return {e:'🐚',xp:0};
+}
+
+// ── core actions ──
+function move(dr,dc){
+  if(state.phase!=='play') return;
+  const nr=clampi(state.whale.row+dr,0,CONFIG.ROWS-1);
+  const nc=clampi(state.whale.col+dc,0,CONFIG.COLS-1);
+  if(nr===state.whale.row && nc===state.whale.col) return;
+  state.whale.row=nr; state.whale.col=nc; state.whale.hop=1;
+  if(dc<0) state.whale.facing=-1; else if(dc>0) state.whale.facing=1;
+  sfxMove();
+  if(nr===state.chest.row && nc===state.chest.col){ levelComplete(); }
+}
+function sweep(){
+  if(state.phase!=='play') return;
+  const v=document.getElementById('vignette');
+  if(state.shieldReady){            // perk: absorb the first sweep this level
+    state.shieldReady=false; sfxShield();
+    v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),200);
+    state.whale.row=0; return;
+  }
+  state.o2 -= CONFIG.sweepPenalty*state.tier.sweepMul; sfxSwept();
+  v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
+  state.whale.row=0;
+  if(state.o2<=0){ state.o2=0; gameOver(); }
+}
+function levelComplete(){
+  state.phase='clear'; state.clearAnim=0; sfxLevel();
+  const gem=rollGem(state.level); state.clearGem=gem; state.gems.push(gem);
+  state.score += gem.xp + 10; if(gem.xp) sfxGem(gem.rich);
+  setTimeout(()=>{
+    state.o2=Math.min(100, state.o2+CONFIG.levelRefill);
+    state.level++; if(state.level>state.best){ state.best=state.level; saveBest(); }
+    setupLevel(state.level); state.phase='play'; state.last=performance.now();
+  }, 1150);
+}
+function gameOver(){
+  state.phase='over'; sfxOver();
+  if(state.level>state.best){ state.best=state.level; saveBest(); }
+  const richTrail = state.gems.slice(-14).map(g=>g.e).join(' ');
+  const diver = state.skinId ? `${state.tier.name} #${state.skinId}` : state.tier.name;
+  document.getElementById('overRun').textContent = `${diver} · reached Level ${state.level} · Score ${state.score}`;
+  document.getElementById('overGems').textContent = richTrail || '🐚';
+  document.getElementById('overBest').textContent = `Best dive: Lv.${state.best}`;
+  document.getElementById('overlayOver').classList.remove('hidden');
+}
+function startRun(){
+  resumeAudio();
+  state.level=1; state.score=0; state.o2=100; state.gems=[];
+  if(state.best<1) state.best=1;
+  setupLevel(1); state.phase='play'; state.last=performance.now();
+  document.getElementById('overlayStart').classList.add('hidden');
+  document.getElementById('overlayOver').classList.add('hidden');
+}
+
+// ── update ──
+function update(dt){
+  if(state.phase!=='play') return;
+  state.o2 -= state.cfg.drain*state.tier.drain*dt;
+  for(const lane of state.lanes){ if(!lane.active) continue;
+    for(let i=0;i<lane.blocks.length;i++){
+      lane.blocks[i]=((lane.blocks[i]+lane.dir*lane.speed*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
+    }
+  }
+  const hitR=Math.max(0.45, CONFIG.hitRadius+state.tier.hit);
+  const lane=state.lanes.find(l=>l.row===state.whale.row);
+  if(lane && lane.active){
+    for(const b of lane.blocks){
+      let d=Math.abs(b-state.whale.col); d=Math.min(d,CONFIG.COLS-d);
+      if(d<hitR){ sweep(); break; }
+    }
+  }
+  if(state.o2<=0){ state.o2=0; gameOver(); }
+  if(state.whale.hop>0) state.whale.hop=Math.max(0,state.whale.hop-dt*7);
+}
+
+// ── render ──
+function rowY(r){ return r*CH; }
+function colX(c){ return c*CW; }
+
+function drawCurrent(x,cy){
+  const px=x*CW+CW/2;
+  for(const off of [-CONFIG.COLS,0,CONFIG.COLS]){
+    const X=px+off*CW;
+    if(X<-CW||X>cv.clientWidth+CW) continue;
+    const w=CW*0.92, h=CH*0.46;
+    const g=ctx.createLinearGradient(X-w/2,0,X+w/2,0);
+    g.addColorStop(0,'rgba(91,200,232,0.05)'); g.addColorStop(0.5,'rgba(120,220,250,0.55)'); g.addColorStop(1,'rgba(91,200,232,0.05)');
+    ctx.fillStyle=g;
+    ctx.beginPath();
+    const rr=h/2;
+    ctx.roundRect(X-w/2,cy+CH/2-h/2,w,h,rr); ctx.fill();
+    ctx.strokeStyle='rgba(200,245,255,0.5)'; ctx.lineWidth=1; ctx.stroke();
+  }
+}
+function drawChest(open){
+  const x=colX(state.chest.col), y=rowY(state.chest.row);
+  const cx=x+CW/2, cy=y+CH/2;
+  // glow
+  const gl=ctx.createRadialGradient(cx,cy,2,cx,cy,CW*0.9);
+  gl.addColorStop(0,'rgba(255,210,90,0.35)'); gl.addColorStop(1,'rgba(255,210,90,0)');
+  ctx.fillStyle=gl; ctx.fillRect(x-CW*0.4,y-CH*0.4,CW*1.8,CH*1.8);
+  const bw=CW*0.62, bh=CH*0.42, bx=cx-bw/2, by=cy-bh*0.15;
+  // body
+  ctx.fillStyle='#7a4a1e'; ctx.strokeStyle='#3a2410'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,4); ctx.fill(); ctx.stroke();
+  // bands
+  ctx.fillStyle='#e8b94a'; ctx.fillRect(cx-bw/2,by+bh*0.4,bw,bh*0.16); ctx.fillRect(cx-3,by,6,bh);
+  // lid
+  ctx.save(); ctx.translate(bx,by);
+  const lidH=bh*0.5;
+  if(open) ctx.transform(1,0,-0.55,1,0,-lidH*0.4);
+  ctx.fillStyle='#8a5524'; ctx.strokeStyle='#3a2410';
+  ctx.beginPath(); ctx.roundRect(0,-lidH,bw,lidH+3,4); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#e8b94a'; ctx.fillRect(0,-lidH*0.5,bw,3);
+  ctx.restore();
+}
+function drawWhale(){
+  const hop=state.whale.hop;
+  const cx=colX(state.whale.col)+CW/2;
+  const cy=rowY(state.whale.row)+CH/2 - hop*CH*0.18;
+  ctx.save();
+  ctx.translate(cx,cy);
+  if(state.skinImg && state.skinImg.complete && state.skinImg.naturalWidth){
+    const R=CW*0.40;
+    // glow ring in the tier's colour
+    ctx.shadowColor=state.tier.color; ctx.shadowBlur=14;
+    ctx.fillStyle='#06212f'; ctx.beginPath(); ctx.arc(0,0,R+2,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.save(); ctx.beginPath(); ctx.arc(0,0,R,0,Math.PI*2); ctx.clip();
+    ctx.drawImage(state.skinImg,-R,-R,R*2,R*2); ctx.restore();
+    ctx.lineWidth=2.5; ctx.strokeStyle=state.tier.color;
+    ctx.beginPath(); ctx.arc(0,0,R,0,Math.PI*2); ctx.stroke();
+    if(state.shieldReady){ ctx.font=`${Math.floor(CW*0.34)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🛡',R*0.7,-R*0.7); }
+  } else {
+    if(state.whale.facing<0) ctx.scale(-1,1);
+    ctx.font=`${Math.floor(CW*0.74)}px serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.shadowColor='rgba(91,200,232,0.8)'; ctx.shadowBlur=14;
+    ctx.fillText('🐋',0,2);
+  }
+  ctx.restore();
+}
+function render(){
+  const w=cv.clientWidth, h=cv.clientHeight;
+  ctx.clearRect(0,0,w,h);
+  // depth gradient
+  for(let r=0;r<CONFIG.ROWS;r++){
+    const t=r/(CONFIG.ROWS-1);
+    const top=`rgb(${10-6*t},${30-14*t},${52-26*t})`;
+    ctx.fillStyle=top; ctx.fillRect(0,rowY(r),w,CH+1);
+  }
+  // surface shimmer
+  ctx.fillStyle='rgba(150,224,245,0.10)'; ctx.fillRect(0,0,w,CH*0.18);
+  // seabed
+  ctx.fillStyle='rgba(40,30,18,0.55)'; ctx.fillRect(0,rowY(CONFIG.ROWS-1)+CH*0.55,w,CH*0.6);
+  // lane separators
+  ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+  for(let r=1;r<CONFIG.ROWS;r++){ ctx.beginPath(); ctx.moveTo(0,rowY(r)); ctx.lineTo(w,rowY(r)); ctx.stroke(); }
+  // currents
+  for(const lane of state.lanes){ if(!lane.active) continue;
+    for(const b of lane.blocks) drawCurrent(b,rowY(lane.row));
+  }
+  // chest
+  drawChest(state.phase==='clear');
+  // clearing gem rise
+  if(state.phase==='clear' && state.clearGem){
+    state.clearAnim=Math.min(1,state.clearAnim+0.03);
+    const cx=colX(state.chest.col)+CW/2, cy=rowY(state.chest.row)+CH/2;
+    ctx.save(); ctx.globalAlpha=1-state.clearAnim*0.3;
+    ctx.font=`${Math.floor(CW*0.7)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(state.clearGem.e, cx, cy - state.clearAnim*CH*1.1);
+    ctx.restore();
+  }
+  // whale
+  if(state.phase!=='idle') drawWhale();
+  // diver tier tag (top-left)
+  if(state.phase==='play' && state.tier.key!=='common'){
+    ctx.font=`600 ${Math.max(9,Math.floor(CW*0.20))}px 'DM Mono',monospace`;
+    ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle=state.tier.color;
+    ctx.fillText(state.tier.name + (state.shieldReady?'  🛡':''), 8, 7);
+  }
+  // HUD sync
+  document.getElementById('hudLevel').textContent=state.level;
+  document.getElementById('hudScore').textContent=state.score;
+  const o2=document.getElementById('o2fill'); o2.style.width=Math.max(0,state.o2)+'%';
+  o2.style.background = state.o2<25 ? 'linear-gradient(90deg,#c0392b,#e74c3c)' :
+                        state.o2<55 ? 'linear-gradient(90deg,#c98a1a,#e8b94a)' :
+                                      'linear-gradient(90deg,#1a9abf,#5bc8e8)';
+}
+
+// ── loop ──
+function loop(now){
+  const dt=Math.min(0.05,(now-state.last)/1000); state.last=now;
+  if(state.phase==='play') update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+
+// ── sizing ──
+function resize(){
+  const w=cv.clientWidth;
+  CW=w/CONFIG.COLS; CH=CW; // square cells
+  const cssH=CH*CONFIG.ROWS;
+  cv.style.height=cssH+'px';
+  const dpr=window.devicePixelRatio||1;
+  cv.width=Math.round(w*dpr); cv.height=Math.round(cssH*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+// ── input ──
+const DIRS={up:[-1,0],down:[1,0],left:[0,-1],right:[0,1]};
+window.addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase(); let d=null;
+  if(k==='arrowup'||k==='w')d='up'; else if(k==='arrowdown'||k==='s')d='down';
+  else if(k==='arrowleft'||k==='a')d='left'; else if(k==='arrowright'||k==='d')d='right';
+  if(d){ e.preventDefault(); move(...DIRS[d]); }
+  if((k===' '||k==='enter') && (state.phase==='idle'||state.phase==='over')) startRun();
+});
+// swipe
+let tsx=0,tsy=0,tst=0;
+cv.addEventListener('touchstart',e=>{ const t=e.changedTouches[0]; tsx=t.clientX; tsy=t.clientY; tst=Date.now(); },{passive:true});
+cv.addEventListener('touchend',e=>{
+  const t=e.changedTouches[0]; const dx=t.clientX-tsx, dy=t.clientY-tsy;
+  if(Math.max(Math.abs(dx),Math.abs(dy))<22) return;
+  if(Math.abs(dx)>Math.abs(dy)) move(...DIRS[dx>0?'right':'left']); else move(...DIRS[dy>0?'down':'up']);
+},{passive:true});
+// pad with hold-repeat
+let holdTimer=null;
+function startHold(dir){ move(...DIRS[dir]); clearInterval(holdTimer); holdTimer=setInterval(()=>move(...DIRS[dir]),CONFIG.holdRepeat); }
+function stopHold(){ clearInterval(holdTimer); holdTimer=null; }
+document.querySelectorAll('.pad button[data-dir]').forEach(b=>{
+  const dir=b.dataset.dir;
+  b.addEventListener('pointerdown',e=>{e.preventDefault(); startHold(dir);});
+  b.addEventListener('pointerup',stopHold); b.addEventListener('pointerleave',stopHold); b.addEventListener('pointercancel',stopHold);
+});
+
+document.getElementById('startBtn').addEventListener('click',startRun);
+document.getElementById('againBtn').addEventListener('click',startRun);
+
+// ── wallet → whale picker ──
+const wInput=document.getElementById('walletInput');
+const wStatus=document.getElementById('walletStatus');
+const wBtn=document.getElementById('loadBtn');
+const thumbs=document.getElementById('thumbs');
+function setW(msg,err){ wStatus.textContent=msg||''; wStatus.className='wallet-status'+(err?' err':''); }
+
+async function fetchAllNFTs(wallet){
+  const all=[]; let next=null, guard=0;
+  do{
+    const p=new URLSearchParams({wallet}); if(next)p.set('next',next);
+    const res=await fetch(`/api/whales?${p}`);
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error||`Error ${res.status}`);
+    all.push(...(data.nfts||[]));
+    next=data.next||null;
+    setW(`Surfacing… ${all.length} whales`);
+  } while(next && ++guard<25);
+  return all;
+}
+function selectWhale(url,id,tier,el){
+  thumbs.querySelectorAll('.thumb').forEach(t=>t.classList.remove('sel'));
+  if(el) el.classList.add('sel');
+  const img=new Image(); img.crossOrigin='anonymous'; img.src=url;
+  state.skinImg=img; state.skinId=id; state.tier=tier;
+  try{ localStorage.setItem('trench_solo_skin', JSON.stringify({url,id,tier:tier.key})); }catch(e){}
+  setW(`${tier.name} #${id} — ${tier.perk}`);
+}
+function renderThumbs(nfts){
+  thumbs.innerHTML='';
+  nfts.forEach(n=>{
+    const id=n.identifier||n.token_id||'?';
+    const url=n.display_image_url||n.image_url||'';
+    if(!url) return;
+    const tier=tierForNft(n);
+    const d=document.createElement('div'); d.className='thumb'; d.title=`${tier.name} · #${id}`;
+    d.innerHTML=`<img src="${url}" crossorigin="anonymous" alt="#${id}" />`+
+      `<span class="tag" style="color:${tier.color}">${tier.name.split(' ')[0]} #${id}</span>`;
+    d.style.boxShadow=`inset 0 0 0 2px ${tier.color}33`;
+    d.addEventListener('click',()=>selectWhale(url,id,tier,d));
+    thumbs.appendChild(d);
+  });
+}
+async function loadWallet(){
+  const wallet=wInput.value.trim();
+  if(!wallet.startsWith('0x')||wallet.length<10){ setW('Enter a valid 0x wallet address.',true); return; }
+  wBtn.disabled=true; setW('Diving into the blockchain…'); thumbs.innerHTML='';
+  try{
+    const nfts=await fetchAllNFTs(wallet);
+    if(!nfts.length){ setW('No SSoW whales found for that wallet.',true); return; }
+    nfts.sort((a,b)=>(a.identifier|0)-(b.identifier|0));
+    renderThumbs(nfts);
+    setW(`Pick your diver — ${nfts.length} whales`);
+    try{ localStorage.setItem('trench_solo_wallet', wallet); }catch(e){}
+  }catch(err){ setW(err.message||'Could not load whales.',true); }
+  finally{ wBtn.disabled=false; }
+}
+wBtn.addEventListener('click',loadWallet);
+wInput.addEventListener('keydown',e=>{ if(e.key==='Enter') loadWallet(); });
+
+// restore last wallet + chosen whale
+try{
+  const lw=localStorage.getItem('trench_solo_wallet'); if(lw) wInput.value=lw;
+  const sk=JSON.parse(localStorage.getItem('trench_solo_skin')||'null');
+  if(sk&&sk.url){ const img=new Image(); img.crossOrigin='anonymous'; img.src=sk.url; state.skinImg=img; state.skinId=sk.id; state.tier=TIERS[sk.tier]||TIERS.common; }
+}catch(e){}
+
+window.addEventListener('resize',resize);
+// boot
+loadBest();
+document.getElementById('bestStart').textContent=state.best;
+resize();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
