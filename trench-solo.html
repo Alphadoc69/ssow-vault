@@ -75,6 +75,9 @@
     color:#e8f8ff; background:linear-gradient(135deg,#0a5a80,#1a9abf); border:none; padding:12px 34px;
     border-radius:6px; cursor:pointer; transition:transform 0.12s, opacity 0.2s;}
   .btn:hover{opacity:0.9;} .btn:active{transform:scale(0.96);}
+  .btn2{margin-top:0.7rem; font-family:var(--font-mono); font-size:0.6rem; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--cyan-lt); background:transparent; border:1px solid rgba(91,200,232,0.3); padding:9px 18px; border-radius:5px; cursor:pointer;}
+  .btn2:active{transform:scale(0.96);}
   .runline{margin-top:0.9rem; font-size:0.85rem; letter-spacing:0.1em; color:var(--cyan-lt);}
   .gemtrail{font-size:1.1rem; letter-spacing:2px; margin-top:0.5rem; min-height:1.4em;}
 
@@ -102,22 +105,20 @@
 
   /* FULL-SCREEN PICKER */
   .picker{position:fixed; inset:0; z-index:60; background:rgba(2,9,18,0.98); backdrop-filter:blur(8px);
-    display:none; flex-direction:column;}
-  .picker.open{display:flex;}
-  .picker-head{display:flex; align-items:center; justify-content:space-between; padding:18px 20px 12px;
-    border-bottom:1px solid rgba(91,200,232,0.12); max-width:760px; width:100%; margin:0 auto;}
+    display:none; overflow-y:auto; -webkit-overflow-scrolling:touch;}
+  .picker.open{display:block;}
+  .picker-head{position:sticky; top:0; z-index:2; display:flex; align-items:center; justify-content:space-between;
+    padding:18px 20px 12px; border-bottom:1px solid rgba(91,200,232,0.12); background:rgba(2,9,18,0.98); max-width:860px; margin:0 auto;}
   .picker-title{font-family:var(--font-display); font-size:1.6rem; letter-spacing:0.08em; color:#fff; line-height:1;}
   .picker-sub{font-size:0.55rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); margin-top:4px;}
   .picker-close{background:rgba(91,200,232,0.1); border:1px solid rgba(91,200,232,0.3); color:var(--cyan-lt);
     width:38px; height:38px; border-radius:50%; font-size:1rem; cursor:pointer;}
-  .picker-grid{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; display:grid;
-    grid-template-columns:repeat(auto-fill,120px); justify-content:center; gap:14px; padding:16px; align-content:start;
-    max-width:840px; width:100%; margin:0 auto;}
+  .picker-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(116px,1fr)); gap:14px; padding:16px;
+    max-width:860px; margin:0 auto;}
   .pcard{cursor:pointer; border-radius:10px; overflow:hidden; background:#061a28; border:2px solid transparent;
-    transition:transform 0.1s, border-color 0.15s; line-height:0;}
+    transition:transform 0.1s, border-color 0.15s;}
   .pcard:active{transform:scale(0.95);}
   .pcard.sel{border-color:#fff;}
-  .pcard canvas{display:block; width:120px; height:150px;}
 
   /* CONTROLS */
   .pad{display:grid; grid-template-columns:repeat(3,58px); grid-template-rows:repeat(3,58px);
@@ -182,6 +183,7 @@
       <div class="gemtrail" id="overGems"></div>
       <p class="small" id="overBest" style="margin-top:0.6rem">Best dive: Lv.1</p>
       <button class="btn" id="againBtn">Dive Again</button>
+      <button class="btn2" id="menuBtn">Menu / Change Whale</button>
     </div>
   </div>
 
@@ -588,6 +590,11 @@ document.querySelectorAll('.pad button[data-dir]').forEach(b=>{
 
 document.getElementById('startBtn').addEventListener('click',startRun);
 document.getElementById('againBtn').addEventListener('click',startRun);
+document.getElementById('menuBtn').addEventListener('click',()=>{
+  state.phase='idle';
+  document.getElementById('overlayOver').classList.add('hidden');
+  document.getElementById('overlayStart').classList.remove('hidden');
+});
 
 // ── wallet → whale picker ──
 const wInput=document.getElementById('walletInput');
@@ -632,41 +639,27 @@ function selectWhale(url,id,tier){
   setW('');
   closePicker();
 }
-function drawCardCanvas(cvs, img, tier, id, rank){
-  const x=cvs.getContext('2d'); const W=cvs.width, IMG=120, LBL=cvs.height-IMG;
-  x.clearRect(0,0,W,cvs.height);
-  if(img && img.naturalWidth){
-    // cover-crop the (square) whale into the top square region
-    let sw,sh,sx,sy; const ir=img.naturalWidth/img.naturalHeight;
-    if(ir>1){ sh=img.naturalHeight; sw=sh; sx=(img.naturalWidth-sw)/2; sy=0; }
-    else     { sw=img.naturalWidth;  sh=sw; sx=0; sy=(img.naturalHeight-sh)/2; }
-    try{ x.drawImage(img, sx,sy,sw,sh, 0,0,IMG,IMG); }catch(e){ x.fillStyle='#061a28'; x.fillRect(0,0,IMG,IMG); }
-  } else { x.fillStyle='#0a2233'; x.fillRect(0,0,IMG,IMG); x.fillStyle='#2b4a5e'; x.font='40px serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText('🐋',IMG/2,IMG/2); }
-  // label band
-  x.fillStyle='rgba(2,10,22,0.94)'; x.fillRect(0,IMG,W,LBL);
-  x.textAlign='left'; x.textBaseline='alphabetic';
-  x.fillStyle=tier.color; x.font="600 15px 'Bebas Neue', Arial, sans-serif";
-  x.fillText(tier.name, 8, IMG+15);
-  x.fillStyle='rgba(120,170,200,0.75)'; x.font="9px 'DM Mono', monospace";
-  x.fillText('#'+id+(rank?'  ·  R'+rank:''), 8, IMG+27);
-}
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v4`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v5`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
     if(!url) return;
     const tier=tierForNft(n);
     const rank=(window.WHALE_TRAITS && window.WHALE_TRAITS[String(id)] && window.WHALE_TRAITS[String(id)].rank)|0;
-    const c=document.createElement('div'); c.className='pcard'; if(state.skinId==id) c.classList.add('sel');
-    const cvs=document.createElement('canvas'); cvs.width=120; cvs.height=150; c.appendChild(cvs);
-    drawCardCanvas(cvs, null, tier, id, rank);          // placeholder until image arrives
-    const im=new Image(); im.crossOrigin='anonymous';
-    im.onload=()=>drawCardCanvas(cvs, im, tier, id, rank);
-    im.onerror=()=>drawCardCanvas(cvs, null, tier, id, rank);
-    im.src=url;
+    const c=document.createElement('div'); c.className='pcard'+(state.skinId==id?' sel':'');
+    // inline styles win over any stylesheet — image size cannot be collapsed
+    const img=document.createElement('img');
+    img.width=116; img.height=116; img.loading='lazy'; img.crossOrigin='anonymous';
+    img.style.cssText='display:block;width:100%;height:116px;object-fit:cover;background:#061a28;';
+    img.src=url;
+    const meta=document.createElement('div');
+    meta.style.cssText='padding:6px 8px 8px;line-height:1.25;';
+    meta.innerHTML=`<div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:0.04em;color:${tier.color};">${tier.name}</div>`+
+                   `<div style="font-size:9px;letter-spacing:0.05em;color:#7aa6c8;">#${id}${rank?` · R${rank}`:''}</div>`;
+    c.appendChild(img); c.appendChild(meta);
     c.addEventListener('click',()=>{
       pickerGrid.querySelectorAll('.pcard').forEach(x=>x.classList.remove('sel')); c.classList.add('sel');
       selectWhale(url,id,tier);
