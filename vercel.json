@@ -2,6 +2,7 @@
   "rewrites": [
     { "source": "/api/whales", "destination": "/api/whales.js" },
     { "source": "/cards", "destination": "/cards.html" },
-    { "source": "/metapit", "destination": "/metapit.html" }
+    { "source": "/metapit", "destination": "/metapit.html" },
+    { "source": "/api/leaderboard", "destination": "/api/leaderboard.js" }
   ]
 }
