@@ -23,7 +23,7 @@ async function pipeline(cmds) {
 }
 
 const wkKey = () => "metapit:weekly:" + Math.floor(Date.now() / 6048e5); // 7-day bucket
-const ZSET  = { wins: "metapit:wins", streak: "metapit:beststreak", total: "metapit:besttotal" };
+const ZSET  = { wins: "metapit:wins", streak: "metapit:beststreak", dive: "metapit:bestdive" };
 
 export default async function handler(req, res) {
   if (!URL || !TOKEN) return res.status(200).json({ rows: null, note: "db not connected" });
@@ -39,7 +39,7 @@ export default async function handler(req, res) {
         ["ZINCRBY", "metapit:plays", "1", wallet],
         ["ZINCRBY", "metapit:xp", String(xp || 0), wallet],
         ["ZADD", "metapit:wins", "NX", "0", wallet],          // ensure player shows on board
-        ["ZADD", "metapit:besttotal", "GT", String(total || 0), wallet],
+        ["ZADD", "metapit:bestdive", "GT", String(total || 0), wallet],
       ];
       if (won) {
         cmds.push(["ZINCRBY", "metapit:wins", "1", wallet]);
@@ -78,7 +78,7 @@ export default async function handler(req, res) {
       const r = await pipeline([
         ["ZSCORE", "metapit:xp", me], ["ZSCORE", "metapit:wins", me],
         ["ZSCORE", "metapit:plays", me], ["HGET", "metapit:streak", me],
-        ["ZSCORE", "metapit:beststreak", me], ["ZSCORE", "metapit:besttotal", me],
+        ["ZSCORE", "metapit:beststreak", me], ["ZSCORE", "metapit:bestdive", me],
       ]);
       meObj = { xp:+(r[0]||0), wins:+(r[1]||0), plays:+(r[2]||0),
                 streak:+(r[3]||0), beststreak:+(r[4]||0), besttotal:+(r[5]||0) };
