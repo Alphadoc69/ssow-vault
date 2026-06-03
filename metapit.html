@@ -131,6 +131,18 @@
   .rank{font-family:'Anton';font-size:16px;color:var(--dim);width:30px}
   .rank.g1{color:var(--gold)} .rank.g2{color:#cdd6e8} .rank.g3{color:#cd7f32}
   .wl{color:var(--dim)} .wl b{color:var(--acid)}
+  .seat{background:var(--panel-2);border:1px solid var(--line);padding:14px 16px;margin-bottom:16px}
+  .seathead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+  .seathead .tier{font-family:'Anton';font-size:21px;letter-spacing:1px;color:var(--gold);text-transform:uppercase}
+  .seathead .seatxp{font-size:11px;color:var(--dim);letter-spacing:1px}
+  .xpbar{height:8px;background:var(--bg);border:1px solid var(--line);overflow:hidden}
+  .xpfill{height:100%;background:linear-gradient(90deg,var(--plasma),var(--acid));transition:width .5s ease}
+  .seatmeta{font-size:10px;color:var(--dim);letter-spacing:1px;margin-top:8px;text-transform:uppercase}
+  .seatmeta b{color:var(--plasma)}
+  .boardtabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .btab{background:var(--panel-2);border:1px solid var(--line);color:var(--dim);padding:8px 14px;font-family:'JetBrains Mono';font-weight:700;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer}
+  .btab:hover{color:var(--ink)} .btab.on{background:var(--gold);color:#1a1a1a;border-color:var(--gold)}
+  .xpgain{text-align:center;font-family:'Anton';font-size:18px;letter-spacing:2px;color:var(--acid);margin-top:12px}
 </style>
 </head>
 <body>
@@ -138,7 +150,7 @@
   <a class="backlink" href="/">← SSoW Vault</a>
   <header>
     <div class="brand">
-      <a href="/" class="logo"><span class="a">META</span> <span class="b">PIT</span></a>
+      <a href="/metapit" class="logo"><span class="a">META</span> <span class="b">PIT</span></a>
       <div class="tag">Secret Society of Whales · Whale Royale</div>
     </div>
     <div class="head-meta">WALLET <b id="walletLabel">not loaded</b></div>
@@ -147,7 +159,7 @@
   <div class="tabs">
     <button class="tab on" data-view="draft">// Draft</button>
     <button class="tab" data-view="live">// Live Pit <span class="dot"></span></button>
-    <button class="tab" data-view="board">// Leaderboard</button>
+    <button class="tab" data-view="board">// The Floor</button>
   </div>
 
   <section class="view on" id="draft">
@@ -180,11 +192,11 @@
   <section class="view" id="live">
     <div class="card">
       <div class="livehead">
-        <div><h2>The Live Pit</h2><div class="sub" style="margin:0">30-second open round · your whales roll one by one · highest total wins</div></div>
+        <div><h2>The Live Pit</h2><div class="sub" style="margin:0">30-second table · roll the bones · highest pot takes it</div></div>
         <div class="livestat">ROUND <b id="roundNo">#1</b></div>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-        <button class="btn magenta" id="joinBtn" style="flex:1;min-width:160px">⚔ Join Live Round</button>
+        <button class="btn magenta" id="joinBtn" style="flex:1;min-width:160px">🎲 Ante Up</button>
         <button class="btn ghost sm" id="skipBtn" style="display:none">⏩ Skip timer (demo)</button>
       </div>
       <div id="timerHost" style="display:none">
@@ -202,9 +214,16 @@
 
   <section class="view" id="board">
     <div class="card">
-      <h2>The Standings</h2>
-      <div class="sub">Top champions · shared across everyone · updates every round</div>
-      <table><thead><tr><th>#</th><th>Degen</th><th>Wins</th><th>Rounds</th><th>Win %</th></tr></thead><tbody id="boardBody"></tbody></table>
+      <h2>The Floor</h2>
+      <div class="sub">Who's running the table · shared across everyone</div>
+      <div class="seat" id="seat" style="display:none"></div>
+      <div class="boardtabs">
+        <button class="btab on" data-board="wins">Most Wins</button>
+        <button class="btab" data-board="streak">Hot Streak</button>
+        <button class="btab" data-board="total">Biggest Roll</button>
+        <button class="btab" data-board="weekly">This Week</button>
+      </div>
+      <table><thead><tr><th>#</th><th>Degen</th><th id="metricCol">Wins</th></tr></thead><tbody id="boardBody"></tbody></table>
     </div>
   </section>
 </div>
@@ -364,6 +383,14 @@ async function buildBot(name){
 
 let walletNFTs=[],squad=[],myStats={w:0,l:0,streak:0},round=1,lastResult=null,roundActive=false,skipTimer=false,nickname='',walletAddr='';
 const myLabel=()=>nickname||'YOU';
+/* house-status ladder (casino + whale puns) — XP climbs it */
+const TIERS=[
+  {n:'Minnow',x:0},{n:'Small Fry',x:60},{n:'Grinder',x:180},{n:'Card Counter',x:400},
+  {n:'Roller',x:800},{n:'High Roller',x:1500},{n:'Shark',x:2600},{n:'Whale',x:4200},{n:'Leviathan',x:7000}
+];
+function tierFor(xp){let t=TIERS[0],next=null;for(let i=0;i<TIERS.length;i++){if(xp>=TIERS[i].x){t=TIERS[i];next=TIERS[i+1]||null;}}return {tier:t,next};}
+const METRIC={wins:'Wins',streak:'Best Streak',total:'Top Roll',weekly:'Wins · Week'};
+let currentBoard='wins';
 const board=[
   {name:'0xfrostbite.eth',pwr:71,w:14,l:3,streak:'W5'},
   {name:'whalemaxi',pwr:68,w:11,l:6,streak:'W2'},
@@ -380,8 +407,9 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
   t.classList.add('on');$('#'+t.dataset.view).classList.add('on');
-  if(t.dataset.view==='board')renderBoard();
+  if(t.dataset.view==='board')renderBoard(currentBoard);
 });
+document.querySelectorAll('.btab').forEach(b=>b.onclick=()=>renderBoard(b.dataset.board));
 
 /* WALLET */
 $('#loadBtn').onclick=async()=>{
@@ -444,7 +472,7 @@ $('#joinBtn').onclick=async()=>{
   if(squad.length<1){alert('Load your wallet and draft at least 1 whale first.');document.querySelector('[data-view=draft]').click();return;}
   roundActive=true;skipTimer=false;
   try{const ac=audio(); if(ac && ac.state==='suspended') ac.resume();}catch(e){}
-  const join=$('#joinBtn');join.disabled=true;join.textContent='IN THE ROUND';
+  const join=$('#joinBtn');join.disabled=true;join.textContent='AT THE TABLE';
   $('#resultHost').innerHTML='';$('#placetrack').textContent='';
   $('#showcase').style.display='none';$('#showtotal').style.display='none';
   const lobby=$('#lobby');lobby.innerHTML='';$('#skipBtn').style.display='block';
@@ -476,7 +504,7 @@ $('#joinBtn').onclick=async()=>{
 
   const cd=$('#countdown');cd.style.display='block';cd.classList.remove('go');
   for(const t of ['3','2','1']){cd.textContent=t;sfxCount();await wait(650);}
-  cd.textContent='ROLL';cd.classList.add('go');sfxRoll();await wait(550);cd.style.display='none';
+  cd.textContent="ROLL 'EM";cd.classList.add('go');sfxRoll();await wait(550);cd.style.display='none';
 
   players.forEach(p=>{p.rolls=[];p.total=0;for(let i=0;i<5;i++){const r=weightedRoll(p.pwr);p.rolls.push(r);p.total+=r;}});
 
@@ -486,13 +514,17 @@ $('#joinBtn').onclick=async()=>{
   myStats[youWon?'w':'l']++;
   myStats.streak=youWon?(myStats.streak>0?myStats.streak+1:1):(myStats.streak<0?myStats.streak-1:-1);
   lastResult={winner:winner.name,winTotal:winner.total,youWon,youPlace,field:players.length,round};
+  const topOpp=Math.max(0,...players.filter(p=>!p.you).map(p=>p.pwr));
+  const upset=youWon && topOpp>me.pwr;
+  const xpGain=10+(youWon?40:0)+Math.round(me.total/3)+(upset?20:0);
   try{ fetch('/api/leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({wallet:walletAddr||myLabel(),name:myLabel(),won:youWon})}); }catch(e){}
+    body:JSON.stringify({wallet:walletAddr||myLabel(),name:myLabel(),won:youWon,xp:xpGain,total:me.total})}); }catch(e){}
 
   $('#placetrack').textContent='';
   $('#resultHost').innerHTML=winnerCard(winner, round, youWon, youPlace, players.length);
+  $('#resultHost').insertAdjacentHTML('beforeend',`<div class="xpgain">+${xpGain} XP${upset?' · UPSET BONUS':''}</div>`);
   round++;$('#roundNo').textContent='#'+round;
-  join.disabled=false;join.textContent='⚔ Join Next Round';roundActive=false;
+  join.disabled=false;join.textContent='🎲 Ante Up Again';roundActive=false;
 };
 $('#skipBtn').onclick=()=>{skipTimer=true;};
 
@@ -515,7 +547,7 @@ async function slowReveal(players, me){
     sc.appendChild(d);
   });
   const st=$('#showtotal');st.style.display='block';st.innerHTML='ROLLING… <small>0/50</small>';
-  $('#placetrack').innerHTML='YOUR SQUAD ROLLS';
+  $('#placetrack').innerHTML='ROLLING THE BONES';
   const dice=sc.querySelectorAll('.sdie');
   for(let i=0;i<5;i++){
     await tumbleDie(dice[i], me.rolls[i]);
@@ -523,8 +555,8 @@ async function slowReveal(players, me){
     st.innerHTML=`${run} <small>/50</small>`;
     await wait(200);
   }
-  st.innerHTML=`YOU ROLLED ${me.total} <small>/50</small>`;
-  $('#placetrack').innerHTML='WAITING ON THE FIELD…';
+  st.innerHTML=`YOUR POT ${me.total} <small>/50</small>`;
+  $('#placetrack').innerHTML='THE TABLE PLAYS…';
   await wait(700);
   const others=players.filter(p=>!p.you).sort((a,b)=>a.total-b.total);
   let standings=[me];
@@ -567,40 +599,47 @@ function winnerCard(w, round, youWon, place, field){
     <div class="snm">${n.name}</div><div class="sdie locked">${w.rolls[i]}</div></div>`).join('');
   const placeLine = youWon ? '' : `<div class="you-place">you placed <b>#${place}</b> of ${field}</div>`;
   return `<div class="bragcard">
-    <div class="braghdr">👑 META PIT CHAMPION · ROUND ${round}</div>
+    <div class="braghdr">👑 TOOK THE TABLE · ROUND ${round}</div>
     <div class="bragname">${w.name}</div>
     <div class="showcase">${tiles}</div>
-    <div class="bragtotal">SQUAD TOTAL ${w.total} / 50</div>
+    <div class="bragtotal">POT ${w.total} / 50</div>
     <div class="bragfoot">Whale Royale · thewhaleclub.xyz/metapit</div>
     ${placeLine}
   </div>`;
 }
 
-async function renderBoard(){
+async function renderBoard(board){
+  board=board||currentBoard;currentBoard=board;
+  document.querySelectorAll('.btab').forEach(b=>b.classList.toggle('on',b.dataset.board===board));
+  const mc=$('#metricCol'); if(mc) mc.textContent=METRIC[board]||'Wins';
   const body=$('#boardBody');
-  body.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--dim);padding:22px">loading standings…</td></tr>';
-  let rows=null;
-  try{ const r=await fetch('/api/leaderboard'); const j=await r.json(); if(j && Array.isArray(j.rows)) rows=j.rows; }catch(e){}
+  body.innerHTML='<tr><td colspan="3" style="text-align:center;color:var(--dim);padding:22px">loading the floor…</td></tr>';
+  let data=null;
+  try{ const r=await fetch(`/api/leaderboard?board=${board}&me=${encodeURIComponent(walletAddr||'')}`); data=await r.json(); }catch(e){}
+  renderSeat(data&&data.me);
   body.innerHTML='';
-  if(!rows){
-    body.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--dim);padding:22px">Shared standings switch on once the leaderboard database is connected.</td></tr>';
-    return;
-  }
-  if(!rows.length){
-    body.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--dim);padding:22px">No champions yet — win a round to claim #1.</td></tr>';
-    return;
-  }
+  const rows=data&&Array.isArray(data.rows)?data.rows:null;
+  if(!rows){ body.innerHTML='<tr><td colspan="3" style="text-align:center;color:var(--dim);padding:22px">The floor opens once the leaderboard database is connected.</td></tr>'; return; }
+  if(!rows.length){ body.innerHTML='<tr><td colspan="3" style="text-align:center;color:var(--dim);padding:22px">Empty table — ante up to claim the #1 seat.</td></tr>'; return; }
   rows.forEach((r,i)=>{
-    const name = r.name || (r.wallet ? shorten(r.wallet) : 'anon');
-    const me = walletAddr && r.wallet===walletAddr;
-    const rounds = r.plays || r.wins;
-    const pct = rounds ? Math.round((r.wins/rounds)*100) : 0;
-    const tr=document.createElement('tr'); if(me) tr.className='me';
+    const name=r.name||(r.wallet?shorten(r.wallet):'anon');
+    const me=walletAddr&&r.wallet===walletAddr;
+    const tr=document.createElement('tr');if(me)tr.className='me';
     tr.innerHTML=`<td class="rank ${i<3?'g'+(i+1):''}">${i+1}</td>
       <td>${me?'<b style="color:var(--plasma)">'+name+'</b>':name}</td>
-      <td class="wl"><b>${r.wins}</b></td><td>${rounds}</td><td>${pct}%</td>`;
+      <td class="wl"><b>${r.value}</b></td>`;
     body.appendChild(tr);
   });
+}
+function renderSeat(me){
+  const seat=$('#seat'); if(!seat) return;
+  if(!me){ seat.style.display='none'; return; }
+  seat.style.display='block';
+  const xp=me.xp||0; const {tier,next}=tierFor(xp);
+  const pct=next?Math.min(100,Math.max(4,Math.round((xp-tier.x)/(next.x-tier.x)*100))):100;
+  seat.innerHTML=`<div class="seathead"><span class="tier">${tier.n}</span><span class="seatxp">${xp} XP</span></div>
+    <div class="xpbar"><div class="xpfill" style="width:${pct}%"></div></div>
+    <div class="seatmeta">${next?'<b>'+(next.x-xp)+'</b> XP to '+next.n:'MAX STATUS'} · ${me.wins} W · streak <b>${me.streak}</b> 🔥 · best ${me.beststreak} · top roll ${me.besttotal}</div>`;
 }
 
 renderRoster();
