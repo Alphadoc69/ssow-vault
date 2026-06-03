@@ -91,26 +91,48 @@
   .wallet-row button:disabled{opacity:0.4; cursor:default;}
   .wallet-status{font-size:0.55rem; letter-spacing:0.08em; color:var(--dim); min-height:1.2em; margin-top:7px;}
   .wallet-status.err{color:#e08080;}
-  .thumbs{display:flex; gap:8px; overflow-x:auto; padding:4px 2px 6px; margin-top:6px; scrollbar-width:thin;}
-  .thumbs:empty{display:none;}
-  .thumb{flex:0 0 auto; width:54px; height:54px; border-radius:8px; overflow:hidden; cursor:pointer;
-    border:2px solid transparent; background:#03101e; position:relative; transition:border-color 0.15s, transform 0.1s;}
-  .thumb img{width:100%; height:100%; object-fit:cover; display:block;}
-  .thumb:active{transform:scale(0.93);}
-  .thumb.sel{border-color:var(--cyan-lt); box-shadow:0 0 12px rgba(91,200,232,0.5);}
-  .thumb .tag{position:absolute; bottom:0; left:0; right:0; font-size:0.42rem; letter-spacing:0.04em;
-    background:rgba(2,10,22,0.75); color:var(--cyan-lt); text-align:center; padding:1px 0;}
+  .chosen{display:flex; align-items:center; gap:10px; margin-top:10px; padding:8px; border:1px solid rgba(91,200,232,0.2);
+    border-radius:7px; background:rgba(91,200,232,0.04); text-align:left;}
+  .chosen img{width:46px; height:46px; border-radius:7px; object-fit:cover; flex:0 0 auto;}
+  .chosen-info{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;}
+  #chosenName{font-family:var(--font-display); font-size:1rem; letter-spacing:0.05em; color:#fff;}
+  .chosen-perk{font-size:0.5rem; letter-spacing:0.04em; color:var(--dim); line-height:1.4;}
+  #changeBtn{flex:0 0 auto; background:transparent; border:1px solid rgba(91,200,232,0.3); color:var(--cyan-lt);
+    font-family:var(--font-mono); font-size:0.55rem; letter-spacing:0.1em; text-transform:uppercase; padding:7px 10px; border-radius:5px; cursor:pointer;}
+
+  /* FULL-SCREEN PICKER */
+  .picker{position:fixed; inset:0; z-index:60; background:rgba(2,9,18,0.98); backdrop-filter:blur(8px);
+    display:none; flex-direction:column;}
+  .picker.open{display:flex;}
+  .picker-head{display:flex; align-items:center; justify-content:space-between; padding:18px 20px 12px;
+    border-bottom:1px solid rgba(91,200,232,0.12); max-width:760px; width:100%; margin:0 auto;}
+  .picker-title{font-family:var(--font-display); font-size:1.6rem; letter-spacing:0.08em; color:#fff; line-height:1;}
+  .picker-sub{font-size:0.55rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); margin-top:4px;}
+  .picker-close{background:rgba(91,200,232,0.1); border:1px solid rgba(91,200,232,0.3); color:var(--cyan-lt);
+    width:38px; height:38px; border-radius:50%; font-size:1rem; cursor:pointer;}
+  .picker-grid{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:12px; padding:16px; align-content:start;
+    max-width:760px; width:100%; margin:0 auto;}
+  .pcard{cursor:pointer; border-radius:10px; overflow:hidden; background:#03101e; border:2px solid transparent;
+    transition:transform 0.1s, border-color 0.15s;}
+  .pcard:active{transform:scale(0.95);}
+  .pcard.sel{border-color:#fff;}
+  .pcard .pimg{width:100%; aspect-ratio:1; object-fit:cover; display:block; background:#03101e;}
+  .pcard .pmeta{padding:5px 6px 6px;}
+  .pcard .ptier{font-family:var(--font-display); font-size:0.85rem; letter-spacing:0.05em; line-height:1;}
+  .pcard .pid{font-size:0.5rem; letter-spacing:0.06em; color:var(--dim); margin-top:2px;}
 
   /* CONTROLS */
-  .pad{display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr);
-    gap:8px; width:200px; margin:1.1rem auto 0.4rem; touch-action:none;}
-  .pad button{aspect-ratio:1; border:1px solid rgba(91,200,232,0.22); background:rgba(91,200,232,0.05);
-    color:var(--cyan-lt); font-size:1.3rem; border-radius:9px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  .pad{display:grid; grid-template-columns:repeat(3,58px); grid-template-rows:repeat(3,58px);
+    gap:8px; margin:1.1rem auto 0.4rem; justify-content:center; touch-action:none;}
+  .pad button{width:58px; height:58px; border:1px solid rgba(91,200,232,0.22); background:rgba(91,200,232,0.05);
+    color:var(--cyan-lt); font-size:1.3rem; border-radius:11px; cursor:pointer; display:flex; align-items:center; justify-content:center;
     transition:background 0.1s, transform 0.06s;}
   .pad button:active{background:rgba(91,200,232,0.22); transform:scale(0.93);}
   .pad .up{grid-column:2; grid-row:1;} .pad .left{grid-column:1; grid-row:2;}
   .pad .right{grid-column:3; grid-row:2;} .pad .down{grid-column:2; grid-row:3;}
-  .pad .mid{grid-column:2; grid-row:2; border:none; background:transparent; color:var(--dim); font-size:0.75rem;}
+  .pad .mid{grid-column:2; grid-row:2; width:58px; height:58px; display:flex; align-items:center; justify-content:center;
+    color:var(--dim); font-size:0.6rem; letter-spacing:0.12em;}
   .hint{font-size:0.55rem; letter-spacing:0.16em; color:var(--dim); text-transform:uppercase; text-align:center; margin:0.3rem 0 1.5rem;}
 
   footer{font-size:0.5rem; letter-spacing:0.18em; color:rgba(255,255,255,0.18); text-transform:uppercase; padding:0.5rem 0 2rem; text-align:center;}
@@ -146,7 +168,11 @@
           <button id="loadBtn">Load</button>
         </div>
         <p class="wallet-status" id="walletStatus"></p>
-        <div class="thumbs" id="thumbs"></div>
+        <div class="chosen" id="chosen" style="display:none">
+          <img id="chosenImg" alt="" />
+          <div class="chosen-info"><span id="chosenName"></span><span id="chosenPerk" class="chosen-perk"></span></div>
+          <button id="changeBtn">Change</button>
+        </div>
       </div>
 
       <button class="btn" id="startBtn">▼ Dive In</button>
@@ -172,6 +198,18 @@
   <p class="hint">Swipe the board · arrow keys / WASD · or tap the pad</p>
 
   <footer>The Trench · Solo Dive · Fan-made · #TogetherWeWhale</footer>
+</div>
+
+<!-- FULL-SCREEN WHALE PICKER -->
+<div class="picker" id="picker">
+  <div class="picker-head">
+    <div>
+      <div class="picker-title">Choose your diver</div>
+      <div class="picker-sub" id="pickerSub">sorted rarest first</div>
+    </div>
+    <button class="picker-close" id="pickerClose">✕</button>
+  </div>
+  <div class="picker-grid" id="pickerGrid"></div>
 </div>
 
 <script>
@@ -558,7 +596,10 @@ document.getElementById('againBtn').addEventListener('click',startRun);
 const wInput=document.getElementById('walletInput');
 const wStatus=document.getElementById('walletStatus');
 const wBtn=document.getElementById('loadBtn');
-const thumbs=document.getElementById('thumbs');
+const picker=document.getElementById('picker');
+const pickerGrid=document.getElementById('pickerGrid');
+const pickerSub=document.getElementById('pickerSub');
+let loadedNfts=[];
 function setW(msg,err){ wStatus.textContent=msg||''; wStatus.className='wallet-status'+(err?' err':''); }
 
 async function fetchAllNFTs(wallet){
@@ -574,40 +615,59 @@ async function fetchAllNFTs(wallet){
   } while(next && ++guard<25);
   return all;
 }
-function selectWhale(url,id,tier,el){
-  thumbs.querySelectorAll('.thumb').forEach(t=>t.classList.remove('sel'));
-  if(el) el.classList.add('sel');
+function rankOf(nft){
+  const id=String(nft.identifier||nft.token_id||'');
+  const r=(window.WHALE_TRAITS && window.WHALE_TRAITS[id] && window.WHALE_TRAITS[id].rank)|0;
+  return r>0 ? r : (9000 + (100 - whalePower(nft.traits)));  // estimated whales sort after ranked ones
+}
+function showChosen(url,id,tier){
+  document.getElementById('chosen').style.display='flex';
+  document.getElementById('chosenImg').src=url;
+  document.getElementById('chosenName').textContent=`${tier.name} #${id}`;
+  document.getElementById('chosenName').style.color=tier.color;
+  document.getElementById('chosenPerk').textContent=tier.perk;
+}
+function selectWhale(url,id,tier){
   const img=new Image(); img.crossOrigin='anonymous'; img.src=url;
   state.skinImg=img; state.skinId=id; state.tier=tier;
   try{ localStorage.setItem('trench_solo_skin', JSON.stringify({url,id,tier:tier.key})); }catch(e){}
-  setW(`${tier.name} #${id} — ${tier.perk}`);
+  showChosen(url,id,tier);
+  setW('');
+  closePicker();
 }
-function renderThumbs(nfts){
-  thumbs.innerHTML='';
-  nfts.forEach(n=>{
+function openPicker(){
+  pickerGrid.innerHTML='';
+  const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
+  pickerSub.textContent=`${sorted.length} whales · rarest first`;
+  sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
     if(!url) return;
     const tier=tierForNft(n);
-    const d=document.createElement('div'); d.className='thumb'; d.title=`${tier.name} · #${id}`;
-    d.innerHTML=`<img src="${url}" crossorigin="anonymous" alt="#${id}" />`+
-      `<span class="tag" style="color:${tier.color}">${tier.name.split(' ')[0]} #${id}</span>`;
-    d.style.boxShadow=`inset 0 0 0 2px ${tier.color}33`;
-    d.addEventListener('click',()=>selectWhale(url,id,tier,d));
-    thumbs.appendChild(d);
+    const rank=(window.WHALE_TRAITS && window.WHALE_TRAITS[String(id)] && window.WHALE_TRAITS[String(id)].rank)|0;
+    const c=document.createElement('div'); c.className='pcard'; if(state.skinId==id) c.classList.add('sel');
+    c.innerHTML=`<img class="pimg" src="${url}" crossorigin="anonymous" alt="#${id}" loading="lazy" />`+
+      `<div class="pmeta"><div class="ptier" style="color:${tier.color}">${tier.name}</div>`+
+      `<div class="pid">#${id}${rank?` · rank ${rank}`:''}</div></div>`;
+    c.addEventListener('click',()=>selectWhale(url,id,tier));
+    pickerGrid.appendChild(c);
   });
+  picker.classList.add('open');
 }
+function closePicker(){ picker.classList.remove('open'); }
+document.getElementById('pickerClose').addEventListener('click',closePicker);
+document.getElementById('changeBtn').addEventListener('click',openPicker);
+
 async function loadWallet(){
   const wallet=wInput.value.trim();
   if(!wallet.startsWith('0x')||wallet.length<10){ setW('Enter a valid 0x wallet address.',true); return; }
-  wBtn.disabled=true; setW('Diving into the blockchain…'); thumbs.innerHTML='';
+  wBtn.disabled=true; setW('Diving into the blockchain…');
   try{
-    const nfts=await fetchAllNFTs(wallet);
-    if(!nfts.length){ setW('No SSoW whales found for that wallet.',true); return; }
-    nfts.sort((a,b)=>(a.identifier|0)-(b.identifier|0));
-    renderThumbs(nfts);
-    setW(`Pick your diver — ${nfts.length} whales`);
+    loadedNfts=await fetchAllNFTs(wallet);
+    if(!loadedNfts.length){ setW('No SSoW whales found for that wallet.',true); return; }
+    setW(`Loaded ${loadedNfts.length} whales — pick your diver`);
     try{ localStorage.setItem('trench_solo_wallet', wallet); }catch(e){}
+    openPicker();
   }catch(err){ setW(err.message||'Could not load whales.',true); }
   finally{ wBtn.disabled=false; }
 }
@@ -618,7 +678,7 @@ wInput.addEventListener('keydown',e=>{ if(e.key==='Enter') loadWallet(); });
 try{
   const lw=localStorage.getItem('trench_solo_wallet'); if(lw) wInput.value=lw;
   const sk=JSON.parse(localStorage.getItem('trench_solo_skin')||'null');
-  if(sk&&sk.url){ const img=new Image(); img.crossOrigin='anonymous'; img.src=sk.url; state.skinImg=img; state.skinId=sk.id; state.tier=TIERS[sk.tier]||TIERS.common; }
+  if(sk&&sk.url){ const img=new Image(); img.crossOrigin='anonymous'; img.src=sk.url; state.skinImg=img; state.skinId=sk.id; state.tier=TIERS[sk.tier]||TIERS.common; showChosen(sk.url,sk.id,state.tier); }
 }catch(e){}
 
 window.addEventListener('resize',resize);
