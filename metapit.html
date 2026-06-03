@@ -134,6 +134,11 @@
   .legrow b{margin-left:auto;color:var(--acid);font-family:'JetBrains Mono'}
   .legnote{font-size:10px;color:var(--dim);line-height:1.6;margin-top:10px;border-top:1px dashed var(--line);padding-top:10px}
   .gemkey{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;background:var(--panel);border:1px solid var(--line);padding:12px 16px;margin-bottom:18px;border-radius:4px}
+  .podintro{margin-bottom:14px}
+  .introh{font-family:'Anton';font-size:24px;letter-spacing:.5px;margin:0 0 8px}
+  .podintro p{font-size:13.5px;line-height:1.6;color:var(--dim);margin:0 0 6px;max-width:760px}
+  .podintro p b{color:var(--ink)}
+  .introreward b{color:var(--acid)}
   .gemkey-t{font-family:'Anton';font-size:12px;letter-spacing:1.5px;color:var(--gold);text-transform:uppercase}
   .gk{font-size:12.5px;color:var(--ink);display:inline-flex;align-items:center;gap:5px}
   .gk i{color:var(--acid);font-style:normal;font-family:'JetBrains Mono'}
@@ -231,22 +236,18 @@
   </div>
 
   <section class="view on" id="draft">
-    <div class="howto">
-      <div class="howstep"><b>1</b> Pick 5 whales you own (or let the house fill empty slots)</div>
-      <div class="howstep"><b>2</b> All 5 dive the Trench — deeper dive = more miles</div>
-      <div class="howstep"><b>3</b> Deepest total pod wins · currents can sweep a dive to 0</div>
-      <div class="howstep"><b>4</b> Every dive cracks a chest for gems — bigger gems = more XP</div>
+    <div class="podintro">
+      <h2 class="introh">Build your pod</h2>
+      <p>Load your wallet and pick up to <b>5 whales</b>. They dive the Trench — <b>deepest total wins</b>. Rare whales dive deeper, but luck rules every plunge and a current can sweep a dive to 0.</p>
+      <p class="introreward">🏆 Finish <b>#1</b> for a <b>+12 XP bonus</b> and a Wins-board climb. Every dive also cracks a chest:</p>
     </div>
     <div class="gemkey">
-      <span class="gemkey-t">What You Can Win</span>
       <span class="gk">🐚 Sand Dollar <i>+0</i></span>
       <span class="gk">🔴 Ruby <i>+5</i></span>
       <span class="gk">🔵 Sapphire <i>+9</i></span>
       <span class="gk">🟢 Emerald <i>+14</i></span>
       <span class="gk">💎 Diamond <i>+25</i></span>
-      <span class="gk dim">deeper dives strike richer · currents can sweep a dive to 0</span>
     </div>
-    <div class="odds"><b>THE ODDS</b> — rare traits make a whale tend to dive deeper, but luck decides every plunge, and deeper dives crack richer chests. <b style="color:var(--acid)">Finish #1</b> and you bank a <b>+12 XP win bonus</b>, climb the Wins board, and heat your streak — every win in a row pays more. That's the gamble.</div>
     <div class="grid">
       <div class="card">
         <h2>Load Your Wallet</h2>
@@ -288,6 +289,7 @@
           <div class="showcase" id="showcase" style="display:none"></div>
           <div class="showtotal" id="showtotal" style="display:none"></div>
           <div class="lobby" id="lobby"></div>
+          <button class="btn ghost sm" id="standingsToggle" style="display:none;margin:10px auto 0">▾ Round standings</button>
           <div id="resultHost"></div>
         </div>
         <aside class="legend">
@@ -645,6 +647,8 @@ $('#joinBtn').onclick=async()=>{
   if(squad.length<1){alert('Load your wallet and draft at least 1 whale first.');document.querySelector('[data-view=draft]').click();return;}
   roundActive=true;skipTimer=false;
   const ps=$('#podstrip'); if(ps) ps.style.display='none';
+  $('#lobby').style.display='';
+  const stgR=$('#standingsToggle'); if(stgR) stgR.style.display='none';
   try{const ac=audio(); if(ac && ac.state==='suspended') ac.resume();}catch(e){}
   const join=$('#joinBtn');join.disabled=true;join.textContent='DIVING…';
   $('#resultHost').innerHTML='';$('#placetrack').textContent='';
@@ -718,12 +722,19 @@ $('#joinBtn').onclick=async()=>{
       `<div class="winreward">+${winBonus} XP WIN BONUS<span>${streakBonus?`+${streakBonus} streak (${streakN}🔥) · `:''}climbs the Wins board</span></div>`);
   }
   $('#resultHost').insertAdjacentHTML('beforeend',`<div class="xpgain">+${xpGain} XP · ${(me.loot||[]).map(g=>g?g.i:'🌀').join(' ')}${upset?' · UPSET':''}</div>`);
+  $('#lobby').style.display='none';
+  const stg=$('#standingsToggle'); if(stg){ stg.style.display='block'; stg.textContent=`▾ Round standings (${players.length})`; }
   round++;$('#roundNo').textContent='#'+round;
   join.disabled=false;join.textContent='🌊 Dive Again';roundActive=false;
   const ps2=$('#podstrip'); if(ps2) ps2.style.display='';
   renderPodStrip();
 };
 $('#skipBtn').onclick=()=>{skipTimer=true;};
+$('#standingsToggle').onclick=()=>{
+  const lb=$('#lobby'), open=lb.style.display!=='none';
+  lb.style.display=open?'none':'flex';
+  $('#standingsToggle').textContent=(open?'▾ Round standings':'▴ Hide standings');
+};
 
 function renderJoinLobby(players){
   const lobby=$('#lobby');lobby.innerHTML='';
