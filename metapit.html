@@ -178,6 +178,13 @@
   .player .total.ahead{color:var(--win)} .player .total.beat{color:var(--gold)}
   .crown{font-size:15px}
   .winbanner,.bragcard{border:1px solid var(--gold);background:linear-gradient(180deg,rgba(255,200,61,.09),rgba(255,200,61,.03));padding:18px;margin-top:8px;text-align:center;animation:fade .4s ease;box-shadow:0 0 40px rgba(255,200,61,.12)}
+  .bragcard.lose{border-color:var(--line);background:var(--panel-2);box-shadow:none}
+  .placebadge{font-family:'Anton';font-size:21px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink);margin-bottom:8px}
+  .placebadge.win{color:var(--gold);text-shadow:0 0 14px rgba(255,206,90,.4)}
+  .gembadge{position:absolute;top:5px;right:5px;font-size:17px;filter:drop-shadow(0 0 4px rgba(0,0,0,.7))}
+  .swepttxt{color:var(--lose);font-size:13px}
+  .winnerline{font-size:12px;color:var(--dim);margin-top:10px;letter-spacing:.5px}
+  .winnerline b{color:var(--ink)}
   .braghdr{font-family:'Anton';font-size:13px;letter-spacing:3px;color:var(--gold);text-transform:uppercase}
   .bragname{font-family:'Anton';font-size:30px;letter-spacing:2px;color:var(--ink);margin:4px 0 12px;text-transform:uppercase}
   .bragcard .scard{border-color:var(--gold)}
@@ -689,6 +696,7 @@ $('#joinBtn').onclick=async()=>{
 
   const standings=await slowReveal(players, me);
   const winner=standings[0],youWon=winner.you,youPlace=standings.findIndex(p=>p.you)+1;
+  $('#showtotal').innerHTML=`YOU DOVE ${me.total.toFixed(2)} <small>mi · ${youWon?'🏆 1st':'#'+youPlace} of ${players.length}</small>`;
 
   myStats[youWon?'w':'l']++;
   myStats.streak=youWon?(myStats.streak>0?myStats.streak+1:1):(myStats.streak<0?myStats.streak-1:-1);
@@ -704,10 +712,10 @@ $('#joinBtn').onclick=async()=>{
     body:JSON.stringify({wallet:walletAddr||myLabel(),name:myLabel(),won:youWon,xp:xpGain,total:me.total})}); }catch(e){}
 
   $('#placetrack').textContent='';
-  $('#resultHost').innerHTML=winnerCard(winner, round, youWon, youPlace, players.length);
+  $('#resultHost').innerHTML=resultCard(me, winner, round, youPlace, players.length, youWon);
   if(youWon){
     $('#resultHost').insertAdjacentHTML('afterbegin',
-      `<div class="winreward">🏆 YOU TOOK THE ROUND<span>+${winBonus} win bonus${streakBonus?` · +${streakBonus} streak (${streakN}🔥)`:''} · climbs the Wins board</span></div>`);
+      `<div class="winreward">+${winBonus} XP WIN BONUS<span>${streakBonus?`+${streakBonus} streak (${streakN}🔥) · `:''}climbs the Wins board</span></div>`);
   }
   $('#resultHost').insertAdjacentHTML('beforeend',`<div class="xpgain">+${xpGain} XP · ${(me.loot||[]).map(g=>g?g.i:'🌀').join(' ')}${upset?' · UPSET':''}</div>`);
   round++;$('#roundNo').textContent='#'+round;
@@ -840,17 +848,22 @@ function renderStandings(standings, me, justIn, final){
     lobby.appendChild(d);
   });
 }
-function winnerCard(w, round, youWon, place, field){
-  const tiles=w.squad.map((n,i)=>`<div class="scard"><img src="${n.img}" alt="">${n.house?'<span class="htag">HOUSE</span>':''}
-    <div class="snm">${n.name}</div><div class="sdie locked">${w.rolls[i].toFixed(2)}</div></div>`).join('');
-  const placeLine = youWon ? '' : `<div class="you-place">you placed <b>#${place}</b> of ${field}</div>`;
-  return `<div class="bragcard">
-    <div class="braghdr">🐋 DEEPEST POD · ROUND ${round}</div>
-    <div class="bragname">${w.name}</div>
+function resultCard(me, winner, round, place, field, youWon){
+  const tiles=me.squad.map((n,i)=>{
+    const gem=me.loot[i];
+    const val=me.swept[i]?'<span class="swepttxt">SWEPT</span>':me.rolls[i].toFixed(2);
+    return `<div class="scard"><img src="${n.img}" alt="">${n.house?'<span class="htag">HOUSE</span>':''}${gem?'<span class="gembadge">'+gem.i+'</span>':''}
+      <div class="snm">${n.name}</div><div class="sdie locked">${val}</div></div>`;
+  }).join('');
+  const badge=youWon?'🏆 1ST PLACE · DEEPEST POD':`YOU PLACED #${place} OF ${field}`;
+  const winnerLine=youWon?'':`<div class="winnerline">🐋 Deepest pod: <b>${winner.name}</b> · ${winner.total.toFixed(2)} mi</div>`;
+  return `<div class="bragcard ${youWon?'':'lose'}">
+    <div class="placebadge ${youWon?'win':''}">${badge}</div>
+    <div class="bragname">${myLabel()} · ROUND ${round}</div>
     <div class="showcase">${tiles}</div>
-    <div class="bragtotal">DOVE ${w.total.toFixed(2)} mi</div>
+    <div class="bragtotal">YOU DOVE ${me.total.toFixed(2)} mi</div>
+    ${winnerLine}
     <div class="bragfoot">THE TRENCH · thewhaleclub.xyz/metapit</div>
-    ${placeLine}
   </div>`;
 }
 
