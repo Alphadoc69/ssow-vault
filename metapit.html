@@ -8,15 +8,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#07080d;--panel:#0d0f17;--panel-2:#11141f;--line:#1d2233;
-    --ink:#e8ecf7;--dim:#7b8398;--acid:#c4ff3d;--plasma:#00e0ff;
-    --magenta:#ff2d78;--gold:#ffc83d;--win:#c4ff3d;--lose:#ff2d78;}
+  :root{--bg:#161b29;--panel:#1f2638;--panel-2:#283046;--line:#3a4259;
+    --ink:#f3f6fc;--dim:#aab4cc;--acid:#c8ff4d;--plasma:#3ae3ff;
+    --magenta:#ff4d8a;--gold:#ffce5a;--win:#c8ff4d;--lose:#ff4d8a;}
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg);color:var(--ink);font-family:'JetBrains Mono',monospace}
   body{min-height:100vh;background-image:
-      radial-gradient(circle at 15% 0%, rgba(0,224,255,.08), transparent 40%),
-      radial-gradient(circle at 85% 100%, rgba(255,45,120,.08), transparent 45%),
-      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,.012) 39px, rgba(255,255,255,.012) 40px);}
+      radial-gradient(circle at 15% 0%, rgba(58,227,255,.10), transparent 40%),
+      radial-gradient(circle at 85% 100%, rgba(255,77,138,.10), transparent 45%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,.02) 39px, rgba(255,255,255,.02) 40px);}
   .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
   header{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:26px;flex-wrap:wrap;gap:14px}
   .brand{display:flex;align-items:baseline;gap:14px}
@@ -36,12 +36,12 @@
   .grid{display:grid;grid-template-columns:1fr 400px;gap:22px}
   .howto{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px}
   @media(max-width:760px){.howto{grid-template-columns:1fr 1fr}}
-  .howstep{background:var(--panel);border:1px solid var(--line);padding:13px 14px;font-size:11px;color:var(--dim);letter-spacing:.4px;line-height:1.5;display:flex;gap:9px;align-items:flex-start}
+  .howstep{background:var(--panel);border:1px solid var(--line);padding:13px 14px;font-size:12px;color:var(--dim);letter-spacing:.4px;line-height:1.5;display:flex;gap:9px;align-items:flex-start}
   .howstep b{font-family:'Anton';font-size:15px;color:var(--acid);flex:0 0 auto;line-height:1}
   @media(max-width:920px){.grid{grid-template-columns:1fr}}
   .card{background:var(--panel);border:1px solid var(--line);padding:20px}
   .card h2{font-family:'Anton';font-size:20px;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
-  .card .sub{color:var(--dim);font-size:11px;letter-spacing:1px;margin-bottom:18px}
+  .card .sub{color:var(--dim);font-size:12px;letter-spacing:1px;margin-bottom:18px}
   .field{margin-bottom:12px}
   .field label{display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
   .field input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--ink);padding:11px 12px;font-family:'JetBrains Mono';font-size:13px}
@@ -65,8 +65,8 @@
   .nftcard .check{position:absolute;top:6px;right:6px;width:22px;height:22px;background:var(--acid);color:#07080d;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;z-index:2}
   .nftcard .art{width:100%;aspect-ratio:1/1;display:block;background:#0a0b12}
   .nftcard .meta{padding:7px 8px}
-  .nftcard .nm{font-size:10px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .nftcard .st{font-size:8px;color:var(--dim);letter-spacing:.5px;margin-top:3px}
+  .nftcard .nm{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nftcard .st{font-size:9.5px;color:var(--dim);letter-spacing:.5px;margin-top:3px}
   .nftcard .pwrtag{position:absolute;top:6px;left:6px;background:rgba(7,8,13,.85);border:1px solid var(--line);font-family:'Anton';font-size:13px;color:var(--plasma);padding:2px 7px;z-index:2}
   .nftcard .rm{position:absolute;top:6px;right:6px;background:rgba(7,8,13,.85);border:1px solid var(--line);color:var(--dim);cursor:pointer;width:22px;height:22px;font-size:12px;line-height:1;z-index:2}
   .nftcard .rm:hover{color:var(--magenta);border-color:var(--magenta)}
@@ -88,7 +88,7 @@
   .showcase{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:6px 0 4px}
   .scard{background:var(--panel-2);border:1px solid var(--line);overflow:hidden;position:relative}
   .scard img{width:100%;aspect-ratio:1/1;display:block;background:#0a0b12}
-  .scard .snm{font-size:7px;color:var(--dim);letter-spacing:.3px;padding:3px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+  .scard .snm{font-size:8.5px;color:var(--dim);letter-spacing:.3px;padding:3px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
   .scard .sdie{height:30px;display:flex;align-items:center;justify-content:center;font-family:'Anton';font-size:17px;background:var(--bg);border-top:1px solid var(--line);color:var(--dim);transition:.1s}
   .scard .sdie.rolling{color:var(--plasma)}
   .scard .sdie.locked{color:var(--ink)}
@@ -134,7 +134,7 @@
       <div class="logo"><span class="a">META</span> <span class="b">PIT</span></div>
       <div class="tag">Secret Society of Whales · Whale Royale</div>
     </div>
-    <div class="head-meta">WALLET <b id="walletLabel">not loaded</b><br>ENGINE <b>weighted d10</b> · DATA <b>opensea</b></div>
+    <div class="head-meta">WALLET <b id="walletLabel">not loaded</b></div>
   </header>
 
   <div class="tabs">
@@ -146,7 +146,7 @@
   <section class="view on" id="draft">
     <div class="howto">
       <div class="howstep"><b>1</b> Load your wallet &amp; pick 5 of your whales</div>
-      <div class="howstep"><b>2</b> Join a 60-second live round in The Pit</div>
+      <div class="howstep"><b>2</b> Join a 30-second live round in The Pit</div>
       <div class="howstep"><b>3</b> Each whale rolls a weighted d10 — rare traits = better odds</div>
       <div class="howstep"><b>4</b> Highest squad total wins · screenshot your champion</div>
     </div>
@@ -173,7 +173,7 @@
   <section class="view" id="live">
     <div class="card">
       <div class="livehead">
-        <div><h2>The Live Pit</h2><div class="sub" style="margin:0">60-second open round · your whales roll one by one · highest total wins</div></div>
+        <div><h2>The Live Pit</h2><div class="sub" style="margin:0">30-second open round · your whales roll one by one · highest total wins</div></div>
         <div class="livestat">ROUND <b id="roundNo">#1</b></div>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
@@ -190,7 +190,6 @@
       <div class="showtotal" id="showtotal" style="display:none"></div>
       <div class="lobby" id="lobby"></div>
       <div id="resultHost"></div>
-      <button class="btn ghost" id="shareBtn" style="margin-top:12px;display:none">⤴ Copy Result Card for X</button>
     </div>
   </section>
 
@@ -208,8 +207,46 @@
    META PIT — wired to your live /api/whales endpoint.
    Power is scored from real whale traits. Live rounds roll locally.
 ============================================================ */
-const JOIN_SECONDS=60;
+const JOIN_SECONDS=30;
 const WHALES_ENDPOINT='/api/whales'; // your Vercel function, called as ?wallet=ADDRESS
+
+/* ---- HOUSE DECK: real SSoW whales bots draw from (so the field looks legit) ---- */
+const _E='https://i2c.seadn.io/ethereum/0x88091012eedf8dba59d08e27ed7b22008f5d6fe5/';
+const HOUSE_DECK=[
+  {id:'5288',img:_E+'626a105faf8f53190a7373bd055824/fa626a105faf8f53190a7373bd055824.png'},
+  {id:'9944',img:_E+'c81311a361e3c0f8cb541b3686127d/50c81311a361e3c0f8cb541b3686127d.png'},
+  {id:'1981',img:_E+'5cc176b8848570fcd5d9f55c383d15/f75cc176b8848570fcd5d9f55c383d15.png'},
+  {id:'1824',img:_E+'28ec1aad3affbbf14150a166a19f7c/3f28ec1aad3affbbf14150a166a19f7c.png'},
+  {id:'4927',img:_E+'0663da85e8915717885c3bdf2f4e05/640663da85e8915717885c3bdf2f4e05.png'},
+  {id:'5011',img:_E+'228a673173b490e9ee27a79b086d5a/ce228a673173b490e9ee27a79b086d5a.png'},
+  {id:'1598',img:_E+'a8ddde298f7ba0992b8dedae231ab0/9fa8ddde298f7ba0992b8dedae231ab0.png'},
+  {id:'7736',img:_E+'ae6c6231e1b767422e403983afc04a/89ae6c6231e1b767422e403983afc04a.png'},
+  {id:'5068',img:_E+'e2501c1619f4a4f6853a56068f7363/11e2501c1619f4a4f6853a56068f7363.png'},
+  {id:'6623',img:_E+'42c1f04b25395183b15c1b12567047/c242c1f04b25395183b15c1b12567047.png'},
+  {id:'5009',img:_E+'fa297756b7b25ddc8a1a488e61f250/86fa297756b7b25ddc8a1a488e61f250.png'},
+  {id:'6570',img:_E+'092bd33c413ee8152b1605eaf39fe6/b7092bd33c413ee8152b1605eaf39fe6.png'},
+  {id:'4294',img:_E+'79529d853ba28386299b922d74dc6d/2579529d853ba28386299b922d74dc6d.png'},
+  {id:'8617',img:_E+'445b868ab3aa82c85cfc1e2b509f83/f2445b868ab3aa82c85cfc1e2b509f83.png'},
+  {id:'760',img:_E+'05039032e0748d8b936d56532f7348/6005039032e0748d8b936d56532f7348.png'},
+  {id:'2001',img:_E+'89cbf1b70007663ad8eb07e1164684/4389cbf1b70007663ad8eb07e1164684.png'},
+  {id:'7941',img:_E+'39c9ebbf5cf3c5f58d4cd27179623c/a039c9ebbf5cf3c5f58d4cd27179623c.png'},
+  {id:'4608',img:_E+'09eb6388f7545546c4d3af7789be31/d009eb6388f7545546c4d3af7789be31.png'},
+  {id:'5530',img:_E+'4d6bfd27bf3c30589044791107fae0/9f4d6bfd27bf3c30589044791107fae0.png'},
+  {id:'4220',img:_E+'e0b18c53a2d9a76e40fdde18ac0826/9ee0b18c53a2d9a76e40fdde18ac0826.png'},
+  {id:'8589',img:_E+'c8ac50ffb6076ac5653de57227a5d6/5cc8ac50ffb6076ac5653de57227a5d6.png'},
+  {id:'5327',img:_E+'ce2bf832139a93f0aff9e2f9ba6740/ffce2bf832139a93f0aff9e2f9ba6740.png'},
+  {id:'1687',img:_E+'f9b7ca5072b8366c728c7242df6777/5af9b7ca5072b8366c728c7242df6777.png'},
+  {id:'6840',img:_E+'210dab243e8da00a0fd0ff2e9b5afb/c3210dab243e8da00a0fd0ff2e9b5afb.png'},
+  {id:'4934',img:_E+'7de177802670620c23b3a8c26b0861/d97de177802670620c23b3a8c26b0861.png'},
+  {id:'5752',img:_E+'46f61758c822c59e4cd6270eff4b62/b646f61758c822c59e4cd6270eff4b62.png'},
+  {id:'4418',img:_E+'9897d03ccbdd3006bc304b27781bef/a99897d03ccbdd3006bc304b27781bef.png'},
+  {id:'2251',img:_E+'de68c05dde9e414797877509764878/f6de68c05dde9e414797877509764878.png'},
+  {id:'3077',img:'https://i2c.seadn.io/ape_chain/0x3c3e92b627a817832ded520da5640246c9aaaf65/18680dd8e3da17ac963c11d7835447/f318680dd8e3da17ac963c11d7835447.png'},
+  {id:'857',img:'https://i2c.seadn.io/ape_chain/0x3c3e92b627a817832ded520da5640246c9aaaf65/6336a591bf9f1db3cecb286eb6e708/4a6336a591bf9f1db3cecb286eb6e708.png'},
+  {id:'1264',img:'https://i2c.seadn.io/abstract/0x7f283cb49724c3f592af1db8de400091acb9cf6f/3446818948c04c29f322f9b83f7470/583446818948c04c29f322f9b83f7470.png'},
+  {id:'5901',img:'https://i2c.seadn.io/abstract/0x7f283cb49724c3f592af1db8de400091acb9cf6f/1f5c583277b74ffb788a5a85d27cb2/831f5c583277b74ffb788a5a85d27cb2.png'},
+];
+function housePower(id){const s=[...String(id)].reduce((a,c)=>a+c.charCodeAt(0),0);return 46+(s*7)%37;}
 
 /* trait values the community recognizes as rare → bigger odds */
 const RARE_SKINS=['Gold','Ice','Trippy','Lightning','Mega Bot','Diamond','Rainbow'];
@@ -255,6 +292,26 @@ function artFor(seedStr){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 
+/* ---- sound (synthesized, no files) ---- */
+let _ac=null;
+function audio(){ if(_ac) return _ac; try{_ac=new (window.AudioContext||window.webkitAudioContext)();}catch(e){_ac=null;} return _ac; }
+function tone(freq,dur,type,vol,when){
+  const ac=audio(); if(!ac) return;
+  const t=when||ac.currentTime;
+  const o=ac.createOscillator(), g=ac.createGain();
+  o.type=type||'square'; o.frequency.value=freq;
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(vol||0.05,t+0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+(dur||0.08));
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t+(dur||0.1));
+}
+const sfxTick =()=>tone(700+Math.random()*140,0.03,'square',0.022);
+const sfxClack=()=>{ tone(190,0.10,'triangle',0.06); tone(95,0.12,'sine',0.045); };
+const sfxCount=()=>tone(440,0.12,'square',0.05);
+const sfxRoll =()=>tone(230,0.28,'sawtooth',0.045);
+const sfxDrop =()=>tone(330,0.06,'triangle',0.035);
+function sfxWin(){ const ac=audio(); if(!ac) return; const b=ac.currentTime; [523,659,784,1047].forEach((f,i)=>tone(f,0.20,'triangle',0.055,b+i*0.10)); }
+
 function weightedRoll(power){
   const base=Math.random()*10;const tilt=(power/100)*4-2;
   return Math.max(1,Math.min(10,Math.round(base+tilt)||1));
@@ -276,13 +333,10 @@ async function fetchWalletNFTs(addr){
   });
 }
 
-/* bots carry a synthetic 5-whale squad so the winner always has whales to show */
+/* bots draw a 5-whale squad from the real house deck */
 async function buildBot(name){
-  const sq=[];
-  for(let i=0;i<5;i++){
-    const id=100+Math.floor(Math.random()*9800);
-    sq.push({id:String(id),name:`Whale #${id}`,img:artFor('bot'+name+i+id),power:42+Math.floor(Math.random()*40)});
-  }
+  const pool=[...HOUSE_DECK].sort(()=>Math.random()-.5).slice(0,5);
+  const sq=pool.map(w=>({id:w.id,name:`Whale #${w.id}`,img:w.img,power:housePower(w.id)}));
   const pwr=Math.round(sq.reduce((a,n)=>a+n.power,0)/5);
   return {name,pwr,squad:sq,av:sq[0].img};
 }
@@ -369,8 +423,9 @@ $('#joinBtn').onclick=async()=>{
   if(roundActive)return;
   if(squad.length<5){alert('Load your wallet and draft 5 whales first.');document.querySelector('[data-view=draft]').click();return;}
   roundActive=true;skipTimer=false;
+  try{const ac=audio(); if(ac && ac.state==='suspended') ac.resume();}catch(e){}
   const join=$('#joinBtn');join.disabled=true;join.textContent='IN THE ROUND';
-  $('#resultHost').innerHTML='';$('#shareBtn').style.display='none';$('#placetrack').textContent='';
+  $('#resultHost').innerHTML='';$('#placetrack').textContent='';
   $('#showcase').style.display='none';$('#showtotal').style.display='none';
   const lobby=$('#lobby');lobby.innerHTML='';$('#skipBtn').style.display='block';
 
@@ -399,8 +454,8 @@ $('#joinBtn').onclick=async()=>{
   $('#skipBtn').style.display='none';$('#timerHost').style.display='none';
 
   const cd=$('#countdown');cd.style.display='block';cd.classList.remove('go');
-  for(const t of ['3','2','1']){cd.textContent=t;await wait(650);}
-  cd.textContent='ROLL';cd.classList.add('go');await wait(550);cd.style.display='none';
+  for(const t of ['3','2','1']){cd.textContent=t;sfxCount();await wait(650);}
+  cd.textContent='ROLL';cd.classList.add('go');sfxRoll();await wait(550);cd.style.display='none';
 
   players.forEach(p=>{p.rolls=[];p.total=0;for(let i=0;i<5;i++){const r=weightedRoll(p.pwr);p.rolls.push(r);p.total+=r;}});
 
@@ -413,7 +468,6 @@ $('#joinBtn').onclick=async()=>{
 
   $('#placetrack').textContent='';
   $('#resultHost').innerHTML=winnerCard(winner, round, youWon, youPlace, players.length);
-  $('#shareBtn').style.display='block';
   round++;$('#roundNo').textContent='#'+round;
   join.disabled=false;join.textContent='⚔ Join Next Round';roundActive=false;
 };
@@ -454,22 +508,22 @@ async function slowReveal(players, me){
   for(const op of others){
     await wait(950);
     standings.push(op);standings.sort((a,b)=>b.total-a.total);
-    renderStandings(standings, me, op, false);
+    renderStandings(standings, me, op, false);sfxDrop();
     const place=standings.findIndex(p=>p.you)+1;
     $('#placetrack').innerHTML=`${myLabel()}: <b>#${place}</b> of ${standings.length}`;
   }
   await wait(500);
-  renderStandings(standings, me, null, true);
+  renderStandings(standings, me, null, true);sfxWin();
   return standings;
 }
 function tumbleDie(die, final){
   return new Promise(res=>{
     let delay=45;
     function tick(){
-      die.classList.add('rolling');die.textContent=1+Math.floor(Math.random()*10);
+      die.classList.add('rolling');die.textContent=1+Math.floor(Math.random()*10);sfxTick();
       delay*=1.16;
       if(delay<300){setTimeout(tick,delay);}
-      else{die.textContent=final;die.classList.remove('rolling');die.classList.add('locked','pop');res();}
+      else{die.textContent=final;die.classList.remove('rolling');die.classList.add('locked','pop');sfxClack();res();}
     }
     tick();
   });
@@ -498,13 +552,6 @@ function winnerCard(w, round, youWon, place, field){
     ${placeLine}
   </div>`;
 }
-
-$('#shareBtn').onclick=()=>{
-  const r=lastResult;if(!r)return;
-  const txt=`⚔ META PIT · ROUND ${r.round} ⚔\n${r.youWon?'I WON 👑':'Winner: '+r.winner}\nSquad total ${r.winTotal}/50 · field of ${r.field}\n${r.youWon?'':'I placed #'+r.youPlace+'\n'}\nWhale Royale · thewhaleclub.xyz/metapit #MetaPit`;
-  navigator.clipboard?.writeText(txt);
-  $('#shareBtn').textContent='✓ Copied!';setTimeout(()=>$('#shareBtn').textContent='⤴ Copy Result Card for X',1400);
-};
 
 function renderBoard(){
   const pwr=squad.length?Math.round(squad.reduce((a,n)=>a+n.power,0)/squad.length):0;
