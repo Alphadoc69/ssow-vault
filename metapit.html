@@ -71,7 +71,9 @@
   .nftcard .rm{position:absolute;top:6px;right:6px;background:rgba(7,8,13,.85);border:1px solid var(--line);color:var(--dim);cursor:pointer;width:22px;height:22px;font-size:12px;line-height:1;z-index:2}
   .nftcard .rm:hover{color:var(--magenta);border-color:var(--magenta)}
   .nftcard .badge{position:absolute;bottom:38px;left:6px;font-size:8px;padding:1px 6px;letter-spacing:1px;background:rgba(196,255,61,.16);color:var(--acid)}
-  .note{font-size:10px;color:#4a5470;line-height:1.7;margin-top:16px;border-top:1px dashed var(--line);padding-top:14px}
+  .note{font-size:10px;color:#8893ad;line-height:1.7;margin-top:16px;border-top:1px dashed var(--line);padding-top:14px}
+  .odds{font-size:12px;line-height:1.7;color:var(--ink);background:rgba(255,206,90,.06);border:1px solid rgba(255,206,90,.25);padding:14px 16px;margin-top:16px;letter-spacing:.3px}
+  .odds b{color:var(--gold);letter-spacing:2px} .odds i{color:var(--acid);font-style:normal}
   .note code{color:var(--acid);background:rgba(196,255,61,.07);padding:1px 5px;border-radius:3px}
   /* LIVE */
   .livehead{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px}
@@ -145,10 +147,10 @@
 
   <section class="view on" id="draft">
     <div class="howto">
-      <div class="howstep"><b>1</b> Load your wallet &amp; pick 5 of your whales</div>
-      <div class="howstep"><b>2</b> Join a 30-second live round in The Pit</div>
-      <div class="howstep"><b>3</b> Each whale rolls a weighted d10 — rare traits = better odds</div>
-      <div class="howstep"><b>4</b> Highest squad total wins · screenshot your champion</div>
+      <div class="howstep"><b>1</b> Stack your 5 hottest whales</div>
+      <div class="howstep"><b>2</b> Ante into a 30-second round</div>
+      <div class="howstep"><b>3</b> Each whale rolls 1–10 — rare whales roll hotter</div>
+      <div class="howstep"><b>4</b> Highest table wins · screenshot your crown</div>
     </div>
     <div class="grid">
       <div class="card">
@@ -159,7 +161,7 @@
         <button class="btn" id="loadBtn">⊳ Load My Whales</button>
         <div class="walletmeta" id="walletMeta" style="display:none"></div>
         <div class="squadgrid pickgrid" id="walletGrid"></div>
-        <div class="note">Power is scored from each whale's real traits — a Fin, a rare skin (Gold, Lightning, Ice, Trippy, Mega Bot), a Blowhole Ring, and more traits all raise the odds. Same whale always scores the same. Live rounds roll locally, so OpenSea is only hit once when you load.</div>
+        <div class="odds"><b>THE ODDS</b> — every whale carries a Power rating baked from its real traits: a Fin, a rare skin (Gold · Lightning · Ice · Trippy · Mega Bot), a Blowhole Ring, and more traits all tilt the dice your way. But Power only <i>loads</i> the dice — it never guarantees the roll. A floor whale can still spike a 10 and bust a legendary. That's the gamble.</div>
       </div>
       <div class="card">
         <h2>Your Squad <span id="squadCount" style="color:var(--dim);font-family:'JetBrains Mono';font-size:13px">0/5</span></h2>
@@ -196,8 +198,8 @@
   <section class="view" id="board">
     <div class="card">
       <h2>The Standings</h2>
-      <div class="sub">Live ladder · updates every round · this is what travels on X</div>
-      <table><thead><tr><th>#</th><th>Degen</th><th>Squad PWR</th><th>W–L</th><th>Streak</th></tr></thead><tbody id="boardBody"></tbody></table>
+      <div class="sub">Top champions · shared across everyone · updates every round</div>
+      <table><thead><tr><th>#</th><th>Degen</th><th>Wins</th><th>Rounds</th><th>Win %</th></tr></thead><tbody id="boardBody"></tbody></table>
     </div>
   </section>
 </div>
@@ -341,7 +343,7 @@ async function buildBot(name){
   return {name,pwr,squad:sq,av:sq[0].img};
 }
 
-let walletNFTs=[],squad=[],myStats={w:0,l:0,streak:0},round=1,lastResult=null,roundActive=false,skipTimer=false,nickname='';
+let walletNFTs=[],squad=[],myStats={w:0,l:0,streak:0},round=1,lastResult=null,roundActive=false,skipTimer=false,nickname='',walletAddr='';
 const myLabel=()=>nickname||'YOU';
 const board=[
   {name:'0xfrostbite.eth',pwr:71,w:14,l:3,streak:'W5'},
@@ -370,6 +372,7 @@ $('#loadBtn').onclick=async()=>{
   $('#walletMeta').style.display='block';$('#walletMeta').classList.remove('err');$('#walletMeta').textContent='Diving the blockchain…';
   try{
     walletNFTs=await fetchWalletNFTs(addr);
+    walletAddr=addr;
     $('#walletLabel').textContent=shorten(addr);
     $('#walletMeta').innerHTML=`<b>${walletNFTs.length}</b> whales found in ${shorten(addr)} — tap 5 to draft`;
     renderWallet();
@@ -389,7 +392,6 @@ function renderWallet(){
     const d=document.createElement('div');d.className='nftcard pick'+(sel?' sel':'');
     d.innerHTML=`<div class="pwrtag">${n.power}</div>${sel?'<div class="check">✓</div>':''}
       <img class="art" src="${n.img}" alt="" loading="lazy">
-      <span class="badge">${n.badge}</span>
       <div class="meta"><div class="nm">${n.name}</div><div class="st">${n.chain} · ${n.traits.length} traits</div></div>`;
     d.onclick=()=>toggle(n);grid.appendChild(d);
   });
@@ -408,7 +410,6 @@ function renderRoster(){
     const d=document.createElement('div');d.className='nftcard';
     d.innerHTML=`<div class="pwrtag">${n.power}</div><button class="rm" data-i="${i}">✕</button>
       <img class="art" src="${n.img}" alt="" loading="lazy">
-      <span class="badge">${n.badge}</span>
       <div class="meta"><div class="nm">${n.name}</div><div class="st">${n.chain} · ${n.traits.length} traits</div></div>`;
     host.appendChild(d);
   }
@@ -465,6 +466,8 @@ $('#joinBtn').onclick=async()=>{
   myStats[youWon?'w':'l']++;
   myStats.streak=youWon?(myStats.streak>0?myStats.streak+1:1):(myStats.streak<0?myStats.streak-1:-1);
   lastResult={winner:winner.name,winTotal:winner.total,youWon,youPlace,field:players.length,round};
+  try{ fetch('/api/leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({wallet:walletAddr||myLabel(),name:myLabel(),won:youWon})}); }catch(e){}
 
   $('#placetrack').textContent='';
   $('#resultHost').innerHTML=winnerCard(winner, round, youWon, youPlace, players.length);
@@ -553,17 +556,29 @@ function winnerCard(w, round, youWon, place, field){
   </div>`;
 }
 
-function renderBoard(){
-  const pwr=squad.length?Math.round(squad.reduce((a,n)=>a+n.power,0)/squad.length):0;
-  const meRow={name:myLabel(),pwr,w:myStats.w,l:myStats.l,
-    streak:myStats.streak>0?'W'+myStats.streak:(myStats.streak<0?'L'+Math.abs(myStats.streak):'—'),me:true};
-  const all=[...board,meRow].sort((a,b)=>(b.w-b.l)-(a.w-a.l)||b.pwr-a.pwr);
-  const body=$('#boardBody');body.innerHTML='';
-  all.forEach((r,i)=>{
-    const tr=document.createElement('tr');if(r.me)tr.className='me';
+async function renderBoard(){
+  const body=$('#boardBody');
+  body.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--dim);padding:22px">loading standings…</td></tr>';
+  let rows=null;
+  try{ const r=await fetch('/api/leaderboard'); const j=await r.json(); if(j && Array.isArray(j.rows)) rows=j.rows; }catch(e){}
+  body.innerHTML='';
+  if(!rows){
+    body.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--dim);padding:22px">Shared standings switch on once the leaderboard database is connected.</td></tr>';
+    return;
+  }
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--dim);padding:22px">No champions yet — win a round to claim #1.</td></tr>';
+    return;
+  }
+  rows.forEach((r,i)=>{
+    const name = r.name || (r.wallet ? shorten(r.wallet) : 'anon');
+    const me = walletAddr && r.wallet===walletAddr;
+    const rounds = r.plays || r.wins;
+    const pct = rounds ? Math.round((r.wins/rounds)*100) : 0;
+    const tr=document.createElement('tr'); if(me) tr.className='me';
     tr.innerHTML=`<td class="rank ${i<3?'g'+(i+1):''}">${i+1}</td>
-      <td>${r.me?'<b style="color:var(--plasma)">'+r.name+'</b>':r.name}</td>
-      <td>${r.pwr||'—'}</td><td class="wl"><b>${r.w}</b>–${r.l}</td><td>${r.streak}</td>`;
+      <td>${me?'<b style="color:var(--plasma)">'+name+'</b>':name}</td>
+      <td class="wl"><b>${r.wins}</b></td><td>${rounds}</td><td>${pct}%</td>`;
     body.appendChild(tr);
   });
 }
