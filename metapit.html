@@ -101,24 +101,25 @@
   .divetile{display:flex;flex-direction:column;align-items:center;min-width:0}
   .dtname{font-size:8.5px;color:var(--dim);letter-spacing:.3px;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center}
   .dtname .htag{position:static;font-size:6px;padding:0 3px}
-  .divetube{position:relative;width:100%;height:154px;border:1px solid var(--line);overflow:hidden;border-radius:3px;
+  .divetube{position:relative;width:100%;height:200px;border:1px solid var(--line);overflow:hidden;border-radius:4px;
     background:linear-gradient(180deg,#3a86a8 0%,#26688a 16%,#1a4a68 36%,#102f47 58%,#0a1d30 78%,#060f1c 100%);}
-  .diver{position:absolute;top:5px;left:50%;width:34px;height:34px;margin-left:-17px;border-radius:50%;object-fit:cover;
-    border:1px solid rgba(255,255,255,.35);background:#0a0b12;box-shadow:0 3px 10px rgba(0,0,0,.5);will-change:transform}
-  .depthlabel{font-family:'Anton';font-size:14px;color:var(--ink);margin-top:7px;letter-spacing:.5px}
+  .diver{position:absolute;top:6px;left:50%;width:46px;height:46px;margin-left:-23px;border-radius:50%;object-fit:cover;
+    border:2px solid rgba(255,255,255,.45);background:#0a0b12;box-shadow:0 4px 14px rgba(0,0,0,.55);will-change:transform}
+  .depthlabel{font-family:'Anton';font-size:16px;color:var(--ink);margin-top:8px;letter-spacing:.5px}
   .depthlabel.record{color:var(--gold);text-shadow:0 0 10px rgba(255,206,90,.5)}
-  .chest{position:absolute;left:50%;margin-left:-13px;top:5px;width:26px;height:26px;opacity:0;pointer-events:none}
+  .chest{position:absolute;left:50%;transform:translateX(-50%);bottom:9px;width:38px;height:30px;opacity:0;pointer-events:none}
   .chest.show{opacity:1}
-  .chest .base{position:absolute;bottom:0;left:0;width:26px;height:13px;background:linear-gradient(#946031,#5a3614);border:1px solid #3c2410;border-radius:0 0 4px 4px;box-shadow:inset 0 2px 0 rgba(255,255,255,.12)}
-  .chest .lid{position:absolute;bottom:12px;left:0;width:26px;height:9px;background:linear-gradient(#b3793e,#774c20);border:1px solid #3c2410;border-radius:5px 5px 0 0;transform-origin:left bottom;transition:transform .32s ease}
-  .chest.open .lid{transform:rotate(-122deg)}
-  .chest .gem{position:absolute;left:50%;margin-left:-9px;top:4px;font-size:16px;opacity:0;transition:opacity .35s ease, top .35s ease}
-  .chest.open .gem{opacity:1;top:-14px}
+  .chest .base{position:absolute;bottom:0;left:0;width:38px;height:18px;background:linear-gradient(#9a6633,#5a3614);border:1px solid #3c2410;border-radius:0 0 5px 5px;box-shadow:inset 0 2px 0 rgba(255,255,255,.14)}
+  .chest .base::after{content:'';position:absolute;top:4px;left:50%;transform:translateX(-50%);width:6px;height:7px;background:var(--gold);border-radius:1px;box-shadow:0 0 3px rgba(255,206,90,.6)}
+  .chest .lid{position:absolute;bottom:17px;left:0;width:38px;height:11px;background:linear-gradient(#b87c42,#774c20);border:1px solid #3c2410;border-radius:6px 6px 0 0;transform-origin:left bottom;transition:transform .42s ease}
+  .chest.open .lid{transform:rotate(-118deg)}
+  .chest .gem{position:absolute;left:50%;margin-left:-11px;bottom:13px;font-size:20px;opacity:0;transition:opacity .42s ease, bottom .42s ease}
+  .chest.open .gem{opacity:1;bottom:30px}
   .chest.open.sand .gem{opacity:.6}
-  .chest.open.ruby .gem{filter:drop-shadow(0 0 7px rgba(255,77,138,.95))}
-  .chest.open.sapphire .gem{filter:drop-shadow(0 0 7px rgba(58,227,255,.95))}
-  .chest.open.emerald .gem{filter:drop-shadow(0 0 7px rgba(120,255,140,.95))}
-  .chest.open.diamond .gem{filter:drop-shadow(0 0 10px rgba(255,255,255,1))}
+  .chest.open.ruby .gem{filter:drop-shadow(0 0 8px rgba(255,77,138,.95))}
+  .chest.open.sapphire .gem{filter:drop-shadow(0 0 8px rgba(58,227,255,.95))}
+  .chest.open.emerald .gem{filter:drop-shadow(0 0 8px rgba(120,255,140,.95))}
+  .chest.open.diamond .gem{filter:drop-shadow(0 0 12px rgba(255,255,255,1))}
   .depthlabel.swept{color:var(--lose)}
   .divetube.current::after{content:'';position:absolute;inset:0;background:linear-gradient(115deg,transparent 38%,rgba(120,200,255,.4) 50%,transparent 62%);animation:cur .5s linear}
   @keyframes cur{from{transform:translateX(-110%)}to{transform:translateX(110%)}}
@@ -215,7 +216,7 @@
         <button class="btn" id="loadBtn">⊳ Load My Whales</button>
         <div class="walletmeta" id="walletMeta" style="display:none"></div>
         <div class="squadgrid pickgrid" id="walletGrid"></div>
-        <div class="odds"><b>THE ODDS</b> — every whale carries a Power rating baked from its real traits: a Fin, a rare skin (Gold · Lightning · Ice · Trippy · Mega Bot), a Blowhole Ring, and more traits all push it deeper. But Power only sets the <i>tendency</i> — any whale can hit a record dive (1.86 mi!) or surface shallow. That's the gamble. Every dive also cracks a chest — 🐚 Sand Dollar in the shallows, up to 💎 Diamond in the deep. Deeper strikes richer.</div>
+        <div class="odds"><b>THE ODDS</b> — rare traits (Fin, rare skins, Blowhole Ring) make a whale tend to dive deeper, but luck decides every plunge. Deeper dives crack richer chests. That's the gamble.</div>
       </div>
       <div class="card">
         <h2>Your Squad <span id="squadCount" style="color:var(--dim);font-family:'JetBrains Mono';font-size:13px">0/5</span></h2>
@@ -653,7 +654,7 @@ async function slowReveal(players, me){
     else await diveAnimate(diver, label, me.rolls[i], me.loot[i], chest);
     run=+(run+me.rolls[i]).toFixed(2);
     st.innerHTML=`${run.toFixed(2)} <small>mi</small>`;
-    await wait(160);
+    await wait(300);
   }
   st.innerHTML=`YOU DOVE ${me.total.toFixed(2)} <small>mi</small>`;
   $('#placetrack').innerHTML='THE POD SURFACES…';
@@ -675,9 +676,9 @@ async function slowReveal(players, me){
 function diveAnimate(diver, label, depth, gem, chest){
   return new Promise(res=>{
     const tube=diver.parentElement;
-    const maxY=Math.max(0, tube.clientHeight - diver.clientHeight - 6);
+    const maxY=Math.max(0, tube.clientHeight - diver.clientHeight - 56); // leave the seabed for the chest
     const endY=Math.min(1, depth/1.9)*maxY;
-    const T=1050, start=performance.now();
+    const T=1600, start=performance.now();
     sfxDive();
     function frame(now){
       let p=(now-start)/T; if(p>1)p=1;
@@ -692,8 +693,6 @@ function diveAnimate(diver, label, depth, gem, chest){
         if(depth>=1.80){ label.classList.add('record'); label.textContent=depth.toFixed(2)+' mi 🏆'; }
         sfxLand();
         if(chest && gem){
-          const maxTop=tube.clientHeight-30;
-          chest.style.top=Math.min(5+endY+8, maxTop).toFixed(1)+'px';
           chest.querySelector('.gem').textContent=gem.i;
           chest.classList.add('show');
           setTimeout(()=>{
@@ -701,8 +700,8 @@ function diveAnimate(diver, label, depth, gem, chest){
             if(gem.k==='sand') sfxBubble();
             else if(gem.k==='diamond') sfxDiamond();
             else sfxTreasure();
-            res();
-          },260);
+            setTimeout(res, 420);
+          },360);
         } else res();
       }
     }
@@ -713,24 +712,24 @@ function diveAnimate(diver, label, depth, gem, chest){
 function sweptAnimate(diver, label){
   return new Promise(res=>{
     const tube=diver.parentElement;
-    const maxY=Math.max(0, tube.clientHeight - diver.clientHeight - 6);
-    const dip=maxY*0.42, start=performance.now();
+    const maxY=Math.max(0, tube.clientHeight - diver.clientHeight - 56);
+    const dip=maxY*0.45, start=performance.now();
     sfxDive();
     function down(now){
-      let p=(now-start)/460; if(p>1)p=1;
+      let p=(now-start)/700; if(p>1)p=1;
       diver.style.transform=`translateY(${(p*dip).toFixed(1)}px)`;
-      label.textContent=(p*0.4).toFixed(2)+' mi';
+      label.textContent=(p*0.45).toFixed(2)+' mi';
       if(p<1) requestAnimationFrame(down); else up();
     }
     function up(){
       tube.classList.add('current'); sfxSwept();
       const s2=performance.now();
       function rise(now){
-        let p=(now-s2)/440; if(p>1)p=1;
-        const x=Math.sin(p*Math.PI*4)*9*(1-p);
+        let p=(now-s2)/620; if(p>1)p=1;
+        const x=Math.sin(p*Math.PI*4)*10*(1-p);
         diver.style.transform=`translate(${x.toFixed(1)}px, ${((1-p)*dip).toFixed(1)}px)`;
         if(p<1) requestAnimationFrame(rise);
-        else{ diver.style.transform='translateY(0)'; label.textContent='SWEPT'; label.classList.add('swept'); setTimeout(()=>tube.classList.remove('current'),200); res(); }
+        else{ diver.style.transform='translateY(0)'; label.textContent='SWEPT'; label.classList.add('swept'); setTimeout(()=>tube.classList.remove('current'),200); setTimeout(res,250); }
       }
       requestAnimationFrame(rise);
     }
