@@ -117,10 +117,11 @@
     transition:transform 0.1s, border-color 0.15s;}
   .pcard:active{transform:scale(0.95);}
   .pcard.sel{border-color:#fff;}
-  .pcard .pimg{width:100%; aspect-ratio:1; object-fit:cover; display:block; background:#03101e;}
-  .pcard .pmeta{padding:5px 6px 6px;}
-  .pcard .ptier{font-family:var(--font-display); font-size:0.85rem; letter-spacing:0.05em; line-height:1;}
-  .pcard .pid{font-size:0.5rem; letter-spacing:0.06em; color:var(--dim); margin-top:2px;}
+  .pcard .pthumb{position:relative; width:100%; padding-top:100%; background:#03101e;}
+  .pcard .pthumb img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
+  .pcard .pmeta{padding:6px 7px 7px;}
+  .pcard .ptier{font-family:var(--font-display); font-size:0.95rem; letter-spacing:0.05em; line-height:1;}
+  .pcard .pid{font-size:0.5rem; letter-spacing:0.06em; color:var(--dim); margin-top:3px;}
 
   /* CONTROLS */
   .pad{display:grid; grid-template-columns:repeat(3,58px); grid-template-rows:repeat(3,58px);
@@ -646,7 +647,7 @@ function openPicker(){
     const tier=tierForNft(n);
     const rank=(window.WHALE_TRAITS && window.WHALE_TRAITS[String(id)] && window.WHALE_TRAITS[String(id)].rank)|0;
     const c=document.createElement('div'); c.className='pcard'; if(state.skinId==id) c.classList.add('sel');
-    c.innerHTML=`<img class="pimg" src="${url}" crossorigin="anonymous" alt="#${id}" loading="lazy" />`+
+    c.innerHTML=`<div class="pthumb"><img src="${url}" crossorigin="anonymous" alt="#${id}" loading="lazy" /></div>`+
       `<div class="pmeta"><div class="ptier" style="color:${tier.color}">${tier.name}</div>`+
       `<div class="pid">#${id}${rank?` · rank ${rank}`:''}</div></div>`;
     c.addEventListener('click',()=>selectWhale(url,id,tier));
