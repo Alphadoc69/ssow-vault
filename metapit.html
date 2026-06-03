@@ -133,6 +133,11 @@
   .legrow span{font-size:15px;width:18px;text-align:center}
   .legrow b{margin-left:auto;color:var(--acid);font-family:'JetBrains Mono'}
   .legnote{font-size:10px;color:var(--dim);line-height:1.6;margin-top:10px;border-top:1px dashed var(--line);padding-top:10px}
+  .gemkey{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;background:var(--panel);border:1px solid var(--line);padding:12px 16px;margin-bottom:18px;border-radius:4px}
+  .gemkey-t{font-family:'Anton';font-size:12px;letter-spacing:1.5px;color:var(--gold);text-transform:uppercase}
+  .gk{font-size:12.5px;color:var(--ink);display:inline-flex;align-items:center;gap:5px}
+  .gk i{color:var(--acid);font-style:normal;font-family:'JetBrains Mono'}
+  .gk.dim{color:var(--dim);font-size:11px}
   @media(max-width:760px){.livebody{flex-direction:column}.legend{flex:auto;width:100%}}
   .scard .sdie.rolling{color:var(--plasma)}
   .scard .sdie.locked{color:var(--ink)}
@@ -141,6 +146,9 @@
   .showtotal{text-align:center;font-family:'Anton';font-size:34px;letter-spacing:2px;color:var(--acid);margin:2px 0 8px}
   .showtotal small{font-size:14px;color:var(--dim)}
   .lobby{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+  .winreward{text-align:center;background:rgba(200,255,77,.1);border:1px solid var(--acid);color:var(--acid);font-family:'Anton';font-size:17px;letter-spacing:1px;padding:12px;margin-bottom:12px;border-radius:4px}
+  .winreward span{display:block;font-family:'JetBrains Mono';font-size:11px;letter-spacing:.5px;color:var(--ink);margin-top:5px;font-weight:600}
+  #resultHost:not(:empty){margin-top:6px}
   .player{display:flex;align-items:center;gap:10px;background:var(--panel-2);border:1px solid var(--line);padding:9px 12px;animation:slidein .35s ease;transition:.4s}
   @keyframes slidein{from{transform:translateX(-14px);opacity:0}to{transform:none;opacity:1}}
   .player.you{border-color:var(--plasma);background:rgba(0,224,255,.06)}
@@ -154,7 +162,7 @@
   .player .total.dim{color:#2c3450}
   .player .total.ahead{color:var(--win)} .player .total.beat{color:var(--gold)}
   .crown{font-size:15px}
-  .winbanner,.bragcard{border:1px solid var(--gold);background:linear-gradient(180deg,rgba(255,200,61,.09),rgba(255,200,61,.03));padding:18px;margin-top:16px;text-align:center;animation:fade .4s ease;box-shadow:0 0 40px rgba(255,200,61,.12)}
+  .winbanner,.bragcard{border:1px solid var(--gold);background:linear-gradient(180deg,rgba(255,200,61,.09),rgba(255,200,61,.03));padding:18px;margin-top:8px;text-align:center;animation:fade .4s ease;box-shadow:0 0 40px rgba(255,200,61,.12)}
   .braghdr{font-family:'Anton';font-size:13px;letter-spacing:3px;color:var(--gold);text-transform:uppercase}
   .bragname{font-family:'Anton';font-size:30px;letter-spacing:2px;color:var(--ink);margin:4px 0 12px;text-transform:uppercase}
   .bragcard .scard{border-color:var(--gold)}
@@ -206,6 +214,15 @@
       <div class="howstep"><b>2</b> All 5 dive the Trench — deeper dive = more miles</div>
       <div class="howstep"><b>3</b> Deepest total pod wins · currents can sweep a dive to 0</div>
       <div class="howstep"><b>4</b> Every dive cracks a chest for gems — bigger gems = more XP</div>
+    </div>
+    <div class="gemkey">
+      <span class="gemkey-t">What You Can Win</span>
+      <span class="gk">🐚 Sand Dollar <i>+0</i></span>
+      <span class="gk">🔴 Ruby <i>+5</i></span>
+      <span class="gk">🔵 Sapphire <i>+9</i></span>
+      <span class="gk">🟢 Emerald <i>+14</i></span>
+      <span class="gk">💎 Diamond <i>+25</i></span>
+      <span class="gk dim">deeper dives strike richer · currents can sweep a dive to 0</span>
     </div>
     <div class="grid">
       <div class="card">
@@ -264,7 +281,7 @@
           <div class="legrow"><span>🔵</span> Sapphire <b>+9</b></div>
           <div class="legrow"><span>🟢</span> Emerald <b>+14</b></div>
           <div class="legrow"><span>💎</span> Diamond <b>+25</b></div>
-          <div class="legnote">Deeper dives strike richer gems. Gems + wins build your XP and rank.</div>
+          <div class="legnote">Deeper dives strike richer gems. <b>Win a round</b> for bonus XP, a Wins-board climb, and a hotter streak.</div>
         </aside>
       </div>
     </div>
@@ -530,7 +547,7 @@ function renderWallet(){
     const d=document.createElement('div');d.className='nftcard pick'+(sel?' sel':'');
     d.innerHTML=`<div class="pwrtag">${n.power}</div>${sel?'<div class="check">✓</div>':''}
       <img class="art" src="${n.img}" alt="" loading="lazy">
-      <div class="meta"><div class="nm">${n.name}</div><div class="st">${n.chain} · ${n.traits.length} traits</div></div>`;
+      <div class="meta"><div class="nm">${n.name}</div></div>`;
     d.onclick=()=>toggle(n);grid.appendChild(d);
   });
 }
@@ -548,7 +565,7 @@ function renderRoster(){
     const d=document.createElement('div');d.className='nftcard';
     d.innerHTML=`<div class="pwrtag">${n.power}</div><button class="rm" data-i="${i}">✕</button>
       <img class="art" src="${n.img}" alt="" loading="lazy">
-      <div class="meta"><div class="nm">${n.name}</div><div class="st">${n.chain} · ${n.traits.length} traits</div></div>`;
+      <div class="meta"><div class="nm">${n.name}</div></div>`;
     host.appendChild(d);
   }
   host.querySelectorAll('.rm').forEach(b=>b.onclick=()=>{squad.splice(+b.dataset.i,1);renderWallet();renderRoster();});
@@ -613,12 +630,19 @@ $('#joinBtn').onclick=async()=>{
   const topOpp=Math.max(0,...players.filter(p=>!p.you).map(p=>p.pwr));
   const upset=youWon && topOpp>me.pwr;
   const lootXP=(me.loot||[]).reduce((a,g)=>a+(g?g.xp:0),0);
-  const xpGain=4+(youWon?12:0)+Math.round(me.total)+(upset?8:0)+lootXP;
+  const streakN=myStats.streak;
+  const winBonus=youWon?12:0;
+  const streakBonus=(youWon && streakN>1)?streakN*3:0; // deeper win streaks pay more
+  const xpGain=4+winBonus+streakBonus+Math.round(me.total)+(upset?8:0)+lootXP;
   try{ fetch('/api/leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({wallet:walletAddr||myLabel(),name:myLabel(),won:youWon,xp:xpGain,total:me.total})}); }catch(e){}
 
   $('#placetrack').textContent='';
   $('#resultHost').innerHTML=winnerCard(winner, round, youWon, youPlace, players.length);
+  if(youWon){
+    $('#resultHost').insertAdjacentHTML('afterbegin',
+      `<div class="winreward">🏆 YOU TOOK THE ROUND<span>+${winBonus} win bonus${streakBonus?` · +${streakBonus} streak (${streakN}🔥)`:''} · climbs the Wins board</span></div>`);
+  }
   $('#resultHost').insertAdjacentHTML('beforeend',`<div class="xpgain">+${xpGain} XP · ${(me.loot||[]).map(g=>g?g.i:'🌀').join(' ')}${upset?' · UPSET':''}</div>`);
   round++;$('#roundNo').textContent='#'+round;
   join.disabled=false;join.textContent='🌊 Dive Again';roundActive=false;
