@@ -76,6 +76,8 @@
   .nftcard .badge{position:absolute;bottom:38px;left:6px;font-size:8px;padding:1px 6px;letter-spacing:1px;background:rgba(196,255,61,.16);color:var(--acid)}
   .note{font-size:10px;color:#8893ad;line-height:1.7;margin-top:16px;border-top:1px dashed var(--line);padding-top:14px}
   .odds{font-size:12px;line-height:1.7;color:var(--ink);background:rgba(255,206,90,.06);border:1px solid rgba(255,206,90,.25);padding:14px 16px;margin-top:16px;letter-spacing:.3px}
+  .lore{font-size:13px;line-height:1.75;color:var(--dim);margin-bottom:20px;max-width:760px;letter-spacing:.3px;border-left:2px solid var(--plasma);padding-left:14px}
+  .lore b{color:var(--ink);font-weight:600}
   .odds b{color:var(--gold);letter-spacing:2px} .odds i{color:var(--acid);font-style:normal}
   .note code{color:var(--acid);background:rgba(196,255,61,.07);padding:1px 5px;border-radius:3px}
   /* LIVE */
@@ -107,8 +109,11 @@
   .depthlabel.record{color:var(--gold);text-shadow:0 0 10px rgba(255,206,90,.5)}
   .chest{position:absolute;left:50%;margin-left:18px;top:5px;font-size:17px;opacity:0;pointer-events:none}
   .chest.show{opacity:1;animation:chestpop .42s ease}
-  .chest.treasure{filter:drop-shadow(0 0 7px rgba(255,206,90,.9))}
-  .chest.bubble{opacity:.6}
+  .chest.sand{opacity:.5}
+  .chest.ruby{filter:drop-shadow(0 0 7px rgba(255,77,138,.95))}
+  .chest.sapphire{filter:drop-shadow(0 0 7px rgba(58,227,255,.95))}
+  .chest.emerald{filter:drop-shadow(0 0 7px rgba(120,255,140,.95))}
+  .chest.diamond{filter:drop-shadow(0 0 11px rgba(255,255,255,1))}
   @keyframes chestpop{0%{transform:scale(.3)}60%{transform:scale(1.35)}100%{transform:scale(1)}}
   .scard .sdie.rolling{color:var(--plasma)}
   .scard .sdie.locked{color:var(--ink)}
@@ -165,7 +170,7 @@
   <header>
     <div class="brand">
       <a href="/metapit" class="logo"><span class="a">THE</span> <span class="b">TRENCH</span></a>
-      <div class="tag">Secret Society of Whales · Deep Dive Royale</div>
+      <div class="tag">Secret Society of Whales · dive deep, surface rich</div>
     </div>
     <div class="head-meta">WALLET <b id="walletLabel">not loaded</b></div>
   </header>
@@ -177,6 +182,7 @@
   </div>
 
   <section class="view on" id="draft">
+    <div class="lore">Long after the surface forgot them, the Society's whales learned the deep still keeps its treasure. Now they dive the Trench for the gems and relics the dark swallowed — <b>deepest pod surfaces richest.</b></div>
     <div class="howto">
       <div class="howstep"><b>1</b> Stack your 5 deepest-diving whales</div>
       <div class="howstep"><b>2</b> Dive into a 30-second round</div>
@@ -192,7 +198,7 @@
         <button class="btn" id="loadBtn">⊳ Load My Whales</button>
         <div class="walletmeta" id="walletMeta" style="display:none"></div>
         <div class="squadgrid pickgrid" id="walletGrid"></div>
-        <div class="odds"><b>THE ODDS</b> — every whale carries a Power rating baked from its real traits: a Fin, a rare skin (Gold · Lightning · Ice · Trippy · Mega Bot), a Blowhole Ring, and more traits all push it deeper. But Power only sets the <i>tendency</i> — any whale can hit a record dive (1.86 mi!) or surface shallow. That's the gamble.</div>
+        <div class="odds"><b>THE ODDS</b> — every whale carries a Power rating baked from its real traits: a Fin, a rare skin (Gold · Lightning · Ice · Trippy · Mega Bot), a Blowhole Ring, and more traits all push it deeper. But Power only sets the <i>tendency</i> — any whale can hit a record dive (1.86 mi!) or surface shallow. That's the gamble. Every dive also cracks a chest — 🐚 Sand Dollar in the shallows, up to 💎 Diamond in the deep. Deeper strikes richer.</div>
       </div>
       <div class="card">
         <h2>Your Squad <span id="squadCount" style="color:var(--dim);font-family:'JetBrains Mono';font-size:13px">0/5</span></h2>
@@ -359,6 +365,7 @@ function sweepTone(f1,f2,dur,vol){ const ac=audio(); if(!ac) return; const t=ac.
 const sfxDive=()=>sweepTone(680,140,1.05,0.05);
 const sfxLand=()=>{ tone(110,0.16,'sine',0.06); tone(70,0.22,'sine',0.04); };
 function sfxTreasure(){ const ac=audio(); if(!ac) return; const b=ac.currentTime; [784,988,1319].forEach((f,i)=>tone(f,0.16,'triangle',0.06,b+i*0.07)); }
+function sfxDiamond(){ const ac=audio(); if(!ac) return; const b=ac.currentTime; [988,1319,1568,2093].forEach((f,i)=>tone(f,0.20,'triangle',0.07,b+i*0.08)); }
 const sfxBubble=()=>tone(300,0.09,'sine',0.03);
 
 function weightedRoll(power){
@@ -372,8 +379,21 @@ function diveDepth(power){
   const d=luck+tilt+Math.random()*0.15; // a little extra variance
   return Math.min(1.90,Math.max(0.15,+d.toFixed(2)));
 }
-/* deeper dives are likelier to crack open treasure (vs an empty bubble) */
-function treasureChance(depth){ return Math.min(0.7, 0.08 + (depth/1.9)*0.6); }
+/* chest loot — deeper dives shift the odds toward the good gems.
+   sand dollar = the "nothing", then ruby < sapphire < emerald < diamond */
+function gemFor(depth){
+  const r=Math.min(1,depth/1.9);
+  const tbl=[
+    {k:'sand',     n:'Sand Dollar', i:'🐚', xp:0,  w:70-55*r},
+    {k:'ruby',     n:'Ruby',        i:'🔴', xp:5,  w:14+6*r},
+    {k:'sapphire', n:'Sapphire',    i:'🔵', xp:9,  w:8+10*r},
+    {k:'emerald',  n:'Emerald',     i:'🟢', xp:14, w:5+14*r},
+    {k:'diamond',  n:'Diamond',     i:'💎', xp:25, w:1+12*r},
+  ];
+  let total=tbl.reduce((a,x)=>a+x.w,0), roll=Math.random()*total;
+  for(const x of tbl){ if(roll<x.w) return x; roll-=x.w; }
+  return tbl[0];
+}
 const shorten=(a)=>a.length>12?a.slice(0,6)+'…'+a.slice(-4):a;
 
 /* ---- LIVE: fetch the player's real whales ---- */
@@ -539,7 +559,7 @@ $('#joinBtn').onclick=async()=>{
   cd.textContent='DIVE!';cd.classList.add('go');sfxRoll();await wait(550);cd.style.display='none';
 
   players.forEach(p=>{p.rolls=[];p.total=0;for(let i=0;i<5;i++){const r=diveDepth(p.pwr);p.rolls.push(r);p.total+=r;}p.total=+p.total.toFixed(2);});
-  me.treasure=me.rolls.map(d=>Math.random()<treasureChance(d));
+  me.loot=me.rolls.map(d=>gemFor(d));
 
   const standings=await slowReveal(players, me);
   const winner=standings[0],youWon=winner.you,youPlace=standings.findIndex(p=>p.you)+1;
@@ -549,14 +569,14 @@ $('#joinBtn').onclick=async()=>{
   lastResult={winner:winner.name,winTotal:winner.total,youWon,youPlace,field:players.length,round};
   const topOpp=Math.max(0,...players.filter(p=>!p.you).map(p=>p.pwr));
   const upset=youWon && topOpp>me.pwr;
-  const treasures=(me.treasure||[]).filter(Boolean).length;
-  const xpGain=4+(youWon?12:0)+Math.round(me.total)+(upset?8:0)+treasures*6;
+  const lootXP=(me.loot||[]).reduce((a,g)=>a+g.xp,0);
+  const xpGain=4+(youWon?12:0)+Math.round(me.total)+(upset?8:0)+lootXP;
   try{ fetch('/api/leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({wallet:walletAddr||myLabel(),name:myLabel(),won:youWon,xp:xpGain,total:me.total})}); }catch(e){}
 
   $('#placetrack').textContent='';
   $('#resultHost').innerHTML=winnerCard(winner, round, youWon, youPlace, players.length);
-  $('#resultHost').insertAdjacentHTML('beforeend',`<div class="xpgain">+${xpGain} XP${treasures?' · 🪙×'+treasures:''}${upset?' · UPSET':''}</div>`);
+  $('#resultHost').insertAdjacentHTML('beforeend',`<div class="xpgain">+${xpGain} XP · ${(me.loot||[]).map(g=>g.i).join(' ')}${upset?' · UPSET':''}</div>`);
   round++;$('#roundNo').textContent='#'+round;
   join.disabled=false;join.textContent='🌊 Dive Again';roundActive=false;
 };
@@ -586,7 +606,7 @@ async function slowReveal(players, me){
   $('#placetrack').innerHTML='THE POD DESCENDS';
   let run=0;
   for(let i=0;i<5;i++){
-    await diveAnimate(sc.querySelector(`.diver[data-d="${i}"]`), sc.querySelector(`.depthlabel[data-l="${i}"]`), me.rolls[i], me.treasure[i], sc.querySelector(`.chest[data-c="${i}"]`));
+    await diveAnimate(sc.querySelector(`.diver[data-d="${i}"]`), sc.querySelector(`.depthlabel[data-l="${i}"]`), me.rolls[i], me.loot[i], sc.querySelector(`.chest[data-c="${i}"]`));
     run=+(run+me.rolls[i]).toFixed(2);
     st.innerHTML=`${run.toFixed(2)} <small>mi</small>`;
     await wait(160);
@@ -608,7 +628,7 @@ async function slowReveal(players, me){
   return standings;
 }
 /* animate one whale sinking to its depth, then crack open its chest */
-function diveAnimate(diver, label, depth, treasure, chest){
+function diveAnimate(diver, label, depth, gem, chest){
   return new Promise(res=>{
     const tube=diver.parentElement;
     const maxY=Math.max(0, tube.clientHeight - diver.clientHeight - 6);
@@ -627,12 +647,14 @@ function diveAnimate(diver, label, depth, treasure, chest){
         diver.classList.add('landed');
         if(depth>=1.80){ label.classList.add('record'); label.textContent=depth.toFixed(2)+' mi 🏆'; }
         sfxLand();
-        if(chest){
+        if(chest && gem){
           chest.style.top=(5+endY)+'px';
           setTimeout(()=>{
-            chest.textContent = treasure?'💰':'🫧';
-            chest.classList.add('show', treasure?'treasure':'bubble');
-            treasure?sfxTreasure():sfxBubble();
+            chest.textContent=gem.i;
+            chest.classList.add('show', gem.k);
+            if(gem.k==='sand') sfxBubble();
+            else if(gem.k==='diamond') sfxDiamond();
+            else sfxTreasure();
             res();
           },150);
         } else res();
@@ -661,7 +683,7 @@ function winnerCard(w, round, youWon, place, field){
     <div class="bragname">${w.name}</div>
     <div class="showcase">${tiles}</div>
     <div class="bragtotal">DOVE ${w.total.toFixed(2)} mi</div>
-    <div class="bragfoot">Whale Royale · thewhaleclub.xyz/metapit</div>
+    <div class="bragfoot">THE TRENCH · thewhaleclub.xyz/metapit</div>
     ${placeLine}
   </div>`;
 }
