@@ -117,8 +117,8 @@
     transition:transform 0.1s, border-color 0.15s;}
   .pcard:active{transform:scale(0.95);}
   .pcard.sel{border-color:#fff;}
-  .pcard .pthumb{position:relative; width:100%; padding-top:100%; background:#03101e;}
-  .pcard .pthumb img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
+  .pcard .pthumb{position:relative; width:100%; height:118px; background:#061a28; display:block;}
+  .pcard .pthumb img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block;}
   .pcard .pmeta{padding:6px 7px 7px;}
   .pcard .ptier{font-family:var(--font-display); font-size:0.95rem; letter-spacing:0.05em; line-height:1;}
   .pcard .pid{font-size:0.5rem; letter-spacing:0.06em; color:var(--dim); margin-top:3px;}
@@ -639,7 +639,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v2`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v3`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
