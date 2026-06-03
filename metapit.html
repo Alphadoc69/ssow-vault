@@ -96,6 +96,15 @@
   .scard .snm{font-size:8.5px;color:var(--dim);letter-spacing:.3px;padding:3px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
   .scard .sdie{height:30px;display:flex;align-items:center;justify-content:center;font-family:'Anton';font-size:17px;background:var(--bg);border-top:1px solid var(--line);color:var(--dim);transition:.1s}
   .scard .htag{position:absolute;top:4px;left:4px;font-size:7px;background:rgba(255,255,255,.14);color:var(--ink);padding:1px 5px;letter-spacing:1px;border-radius:2px}
+  .divetile{display:flex;flex-direction:column;align-items:center;min-width:0}
+  .dtname{font-size:8.5px;color:var(--dim);letter-spacing:.3px;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center}
+  .dtname .htag{position:static;font-size:6px;padding:0 3px}
+  .divetube{position:relative;width:100%;height:154px;border:1px solid var(--line);overflow:hidden;border-radius:3px;
+    background:linear-gradient(180deg,#3a86a8 0%,#26688a 16%,#1a4a68 36%,#102f47 58%,#0a1d30 78%,#060f1c 100%);}
+  .diver{position:absolute;top:5px;left:50%;width:34px;height:34px;margin-left:-17px;border-radius:50%;object-fit:cover;
+    border:1px solid rgba(255,255,255,.35);background:#0a0b12;box-shadow:0 3px 10px rgba(0,0,0,.5);will-change:transform}
+  .depthlabel{font-family:'Anton';font-size:14px;color:var(--ink);margin-top:7px;letter-spacing:.5px}
+  .depthlabel.record{color:var(--gold);text-shadow:0 0 10px rgba(255,206,90,.5)}
   .scard .sdie.rolling{color:var(--plasma)}
   .scard .sdie.locked{color:var(--ink)}
   .scard .sdie.pop{animation:diepop .35s ease}
@@ -159,15 +168,15 @@
   <div class="tabs">
     <button class="tab on" data-view="draft">// Draft</button>
     <button class="tab" data-view="live">// Live Pit <span class="dot"></span></button>
-    <button class="tab" data-view="board">// The Floor</button>
+    <button class="tab" data-view="board">// The Depths</button>
   </div>
 
   <section class="view on" id="draft">
     <div class="howto">
-      <div class="howstep"><b>1</b> Stack your 5 hottest whales</div>
-      <div class="howstep"><b>2</b> Ante into a 30-second round</div>
-      <div class="howstep"><b>3</b> Each whale rolls 1–10 — rare whales roll hotter</div>
-      <div class="howstep"><b>4</b> Highest table wins · winner takes the crown</div>
+      <div class="howstep"><b>1</b> Stack your 5 deepest-diving whales</div>
+      <div class="howstep"><b>2</b> Dive into a 30-second round</div>
+      <div class="howstep"><b>3</b> Each whale plunges — rare whales dive deeper</div>
+      <div class="howstep"><b>4</b> Deepest pod wins · take the crown</div>
     </div>
     <div class="grid">
       <div class="card">
@@ -178,7 +187,7 @@
         <button class="btn" id="loadBtn">⊳ Load My Whales</button>
         <div class="walletmeta" id="walletMeta" style="display:none"></div>
         <div class="squadgrid pickgrid" id="walletGrid"></div>
-        <div class="odds"><b>THE ODDS</b> — every whale carries a Power rating baked from its real traits: a Fin, a rare skin (Gold · Lightning · Ice · Trippy · Mega Bot), a Blowhole Ring, and more traits all tilt the dice your way. But Power only <i>loads</i> the dice — it never guarantees the roll. A floor whale can still spike a 10 and bust a legendary. That's the gamble.</div>
+        <div class="odds"><b>THE ODDS</b> — every whale carries a Power rating baked from its real traits: a Fin, a rare skin (Gold · Lightning · Ice · Trippy · Mega Bot), a Blowhole Ring, and more traits all push it deeper. But Power only sets the <i>tendency</i> — any whale can hit a record dive (1.86 mi!) or surface shallow. That's the gamble.</div>
       </div>
       <div class="card">
         <h2>Your Squad <span id="squadCount" style="color:var(--dim);font-family:'JetBrains Mono';font-size:13px">0/5</span></h2>
@@ -192,11 +201,11 @@
   <section class="view" id="live">
     <div class="card">
       <div class="livehead">
-        <div><h2>The Live Pit</h2><div class="sub" style="margin:0">30-second table · roll the bones · highest pot takes it</div></div>
+        <div><h2>The Live Pit</h2><div class="sub" style="margin:0">30-second dive · your pod plunges · deepest pod wins</div></div>
         <div class="livestat">ROUND <b id="roundNo">#1</b></div>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-        <button class="btn magenta" id="joinBtn" style="flex:1;min-width:160px">🎲 Ante Up</button>
+        <button class="btn magenta" id="joinBtn" style="flex:1;min-width:160px">🌊 Dive In</button>
         <button class="btn ghost sm" id="skipBtn" style="display:none">⏩ Skip timer (demo)</button>
       </div>
       <div id="timerHost" style="display:none">
@@ -214,13 +223,13 @@
 
   <section class="view" id="board">
     <div class="card">
-      <h2>The Floor</h2>
-      <div class="sub">Who's running the table · shared across everyone</div>
+      <h2>The Depths</h2>
+      <div class="sub">Deepest divers · shared across everyone</div>
       <div class="seat" id="seat" style="display:none"></div>
       <div class="boardtabs">
         <button class="btab on" data-board="wins">Most Wins</button>
         <button class="btab" data-board="streak">Hot Streak</button>
-        <button class="btab" data-board="total">Biggest Roll</button>
+        <button class="btab" data-board="dive">Deepest Dive</button>
         <button class="btab" data-board="weekly">This Week</button>
       </div>
       <table><thead><tr><th>#</th><th>Degen</th><th id="metricCol">Wins</th></tr></thead><tbody id="boardBody"></tbody></table>
@@ -337,10 +346,24 @@ const sfxCount=()=>tone(440,0.12,'square',0.05);
 const sfxRoll =()=>tone(230,0.28,'sawtooth',0.045);
 const sfxDrop =()=>tone(330,0.06,'triangle',0.035);
 function sfxWin(){ const ac=audio(); if(!ac) return; const b=ac.currentTime; [523,659,784,1047].forEach((f,i)=>tone(f,0.20,'triangle',0.055,b+i*0.10)); }
+function sweepTone(f1,f2,dur,vol){ const ac=audio(); if(!ac) return; const t=ac.currentTime;
+  const o=ac.createOscillator(), g=ac.createGain(); o.type='sine';
+  o.frequency.setValueAtTime(f1,t); o.frequency.exponentialRampToValueAtTime(f2,t+dur);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol||0.045,t+0.04); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t+dur+0.05); }
+const sfxDive=()=>sweepTone(680,140,1.05,0.05);
+const sfxLand=()=>{ tone(110,0.16,'sine',0.06); tone(70,0.22,'sine',0.04); };
 
 function weightedRoll(power){
   const base=Math.random()*10;const tilt=(power/100)*4-2;
   return Math.max(1,Math.min(10,Math.round(base+tilt)||1));
+}
+/* dive depth in MILES, weighted by power. record ceiling ≈ 1.86 (Cuvier's beaked whale) */
+function diveDepth(power){
+  const luck=0.2+Math.random()*1.2;     // 0.20 .. 1.40
+  const tilt=(power/100)*0.6;            // 0 .. 0.60 from rarity
+  const d=luck+tilt+Math.random()*0.15; // a little extra variance
+  return Math.min(1.90,Math.max(0.15,+d.toFixed(2)));
 }
 const shorten=(a)=>a.length>12?a.slice(0,6)+'…'+a.slice(-4):a;
 
@@ -389,7 +412,7 @@ const TIERS=[
   {n:'Roller',x:800},{n:'High Roller',x:1500},{n:'Shark',x:2600},{n:'Whale',x:4200},{n:'Leviathan',x:7000}
 ];
 function tierFor(xp){let t=TIERS[0],next=null;for(let i=0;i<TIERS.length;i++){if(xp>=TIERS[i].x){t=TIERS[i];next=TIERS[i+1]||null;}}return {tier:t,next};}
-const METRIC={wins:'Wins',streak:'Best Streak',total:'Top Roll',weekly:'Wins · Week'};
+const METRIC={wins:'Wins',streak:'Best Streak',dive:'Deepest Dive',weekly:'Wins · Week'};
 let currentBoard='wins';
 const board=[
   {name:'0xfrostbite.eth',pwr:71,w:14,l:3,streak:'W5'},
@@ -472,7 +495,7 @@ $('#joinBtn').onclick=async()=>{
   if(squad.length<1){alert('Load your wallet and draft at least 1 whale first.');document.querySelector('[data-view=draft]').click();return;}
   roundActive=true;skipTimer=false;
   try{const ac=audio(); if(ac && ac.state==='suspended') ac.resume();}catch(e){}
-  const join=$('#joinBtn');join.disabled=true;join.textContent='AT THE TABLE';
+  const join=$('#joinBtn');join.disabled=true;join.textContent='DIVING…';
   $('#resultHost').innerHTML='';$('#placetrack').textContent='';
   $('#showcase').style.display='none';$('#showtotal').style.display='none';
   const lobby=$('#lobby');lobby.innerHTML='';$('#skipBtn').style.display='block';
@@ -504,9 +527,9 @@ $('#joinBtn').onclick=async()=>{
 
   const cd=$('#countdown');cd.style.display='block';cd.classList.remove('go');
   for(const t of ['3','2','1']){cd.textContent=t;sfxCount();await wait(650);}
-  cd.textContent="ROLL 'EM";cd.classList.add('go');sfxRoll();await wait(550);cd.style.display='none';
+  cd.textContent='DIVE!';cd.classList.add('go');sfxRoll();await wait(550);cd.style.display='none';
 
-  players.forEach(p=>{p.rolls=[];p.total=0;for(let i=0;i<5;i++){const r=weightedRoll(p.pwr);p.rolls.push(r);p.total+=r;}});
+  players.forEach(p=>{p.rolls=[];p.total=0;for(let i=0;i<5;i++){const r=diveDepth(p.pwr);p.rolls.push(r);p.total+=r;}p.total=+p.total.toFixed(2);});
 
   const standings=await slowReveal(players, me);
   const winner=standings[0],youWon=winner.you,youPlace=standings.findIndex(p=>p.you)+1;
@@ -516,7 +539,7 @@ $('#joinBtn').onclick=async()=>{
   lastResult={winner:winner.name,winTotal:winner.total,youWon,youPlace,field:players.length,round};
   const topOpp=Math.max(0,...players.filter(p=>!p.you).map(p=>p.pwr));
   const upset=youWon && topOpp>me.pwr;
-  const xpGain=10+(youWon?40:0)+Math.round(me.total/3)+(upset?20:0);
+  const xpGain=4+(youWon?12:0)+Math.round(me.total)+(upset?8:0);
   try{ fetch('/api/leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({wallet:walletAddr||myLabel(),name:myLabel(),won:youWon,xp:xpGain,total:me.total})}); }catch(e){}
 
@@ -524,7 +547,7 @@ $('#joinBtn').onclick=async()=>{
   $('#resultHost').innerHTML=winnerCard(winner, round, youWon, youPlace, players.length);
   $('#resultHost').insertAdjacentHTML('beforeend',`<div class="xpgain">+${xpGain} XP${upset?' · UPSET BONUS':''}</div>`);
   round++;$('#roundNo').textContent='#'+round;
-  join.disabled=false;join.textContent='🎲 Ante Up Again';roundActive=false;
+  join.disabled=false;join.textContent='🌊 Dive Again';roundActive=false;
 };
 $('#skipBtn').onclick=()=>{skipTimer=true;};
 
@@ -542,26 +565,28 @@ async function slowReveal(players, me){
   const lobby=$('#lobby');lobby.innerHTML='';
   const sc=$('#showcase');sc.style.display='grid';sc.innerHTML='';
   me.squad.forEach((n,i)=>{
-    const d=document.createElement('div');d.className='scard';
-    d.innerHTML=`<img src="${n.img}" alt="">${n.house?'<span class="htag">HOUSE</span>':''}<div class="snm">${n.name}</div><div class="sdie" data-d="${i}">?</div>`;
+    const d=document.createElement('div');d.className='divetile';
+    d.innerHTML=`<div class="dtname">${n.name}${n.house?' <span class="htag">HOUSE</span>':''}</div>
+      <div class="divetube"><img class="diver" data-d="${i}" src="${n.img}" alt=""></div>
+      <div class="depthlabel" data-l="${i}">— mi</div>`;
     sc.appendChild(d);
   });
-  const st=$('#showtotal');st.style.display='block';st.innerHTML='ROLLING… <small>0/50</small>';
-  $('#placetrack').innerHTML='ROLLING THE BONES';
-  const dice=sc.querySelectorAll('.sdie');
+  const st=$('#showtotal');st.style.display='block';st.innerHTML='DIVING… <small>0.00 mi</small>';
+  $('#placetrack').innerHTML='THE POD DESCENDS';
+  let run=0;
   for(let i=0;i<5;i++){
-    await tumbleDie(dice[i], me.rolls[i]);
-    const run=me.rolls.slice(0,i+1).reduce((a,b)=>a+b,0);
-    st.innerHTML=`${run} <small>/50</small>`;
-    await wait(200);
+    await diveAnimate(sc.querySelector(`.diver[data-d="${i}"]`), sc.querySelector(`.depthlabel[data-l="${i}"]`), me.rolls[i]);
+    run=+(run+me.rolls[i]).toFixed(2);
+    st.innerHTML=`${run.toFixed(2)} <small>mi</small>`;
+    await wait(160);
   }
-  st.innerHTML=`YOUR POT ${me.total} <small>/50</small>`;
-  $('#placetrack').innerHTML='THE TABLE PLAYS…';
+  st.innerHTML=`YOU DOVE ${me.total.toFixed(2)} <small>mi</small>`;
+  $('#placetrack').innerHTML='THE POD SURFACES…';
   await wait(700);
   const others=players.filter(p=>!p.you).sort((a,b)=>a.total-b.total);
   let standings=[me];
   for(const op of others){
-    await wait(950);
+    await wait(900);
     standings.push(op);standings.sort((a,b)=>b.total-a.total);
     renderStandings(standings, me, op, false);sfxDrop();
     const place=standings.findIndex(p=>p.you)+1;
@@ -571,16 +596,30 @@ async function slowReveal(players, me){
   renderStandings(standings, me, null, true);sfxWin();
   return standings;
 }
-function tumbleDie(die, final){
+/* animate one whale sinking down its tube to its depth, miles ticking up */
+function diveAnimate(diver, label, depth){
   return new Promise(res=>{
-    let delay=45;
-    function tick(){
-      die.classList.add('rolling');die.textContent=1+Math.floor(Math.random()*10);sfxTick();
-      delay*=1.16;
-      if(delay<300){setTimeout(tick,delay);}
-      else{die.textContent=final;die.classList.remove('rolling');die.classList.add('locked','pop');sfxClack();res();}
+    const tube=diver.parentElement;
+    const maxY=Math.max(0, tube.clientHeight - diver.clientHeight - 6);
+    const endY=Math.min(1, depth/1.9)*maxY;
+    const T=1050, start=performance.now();
+    sfxDive();
+    function frame(now){
+      let p=(now-start)/T; if(p>1)p=1;
+      const e=p*p; // ease-in: accelerate as it sinks
+      diver.style.transform=`translateY(${(e*endY).toFixed(1)}px)`;
+      label.textContent=(e*depth).toFixed(2)+' mi';
+      if(p<1){ requestAnimationFrame(frame); }
+      else{
+        diver.style.transform=`translateY(${endY.toFixed(1)}px)`;
+        label.textContent=depth.toFixed(2)+' mi';
+        diver.classList.add('landed');
+        if(depth>=1.80){ label.classList.add('record'); label.textContent=depth.toFixed(2)+' mi 🏆'; }
+        sfxLand();
+        res();
+      }
     }
-    tick();
+    requestAnimationFrame(frame);
   });
 }
 function renderStandings(standings, me, justIn, final){
@@ -590,19 +629,19 @@ function renderStandings(standings, me, justIn, final){
     d.className='player'+(p.you?' you':'')+(final&&idx===0?' winner':'')+(p===justIn?' justin':'');
     const rel = p.you ? '' : (p.total>me.total ? 'beat' : 'ahead');
     d.innerHTML=`<img class="av" src="${p.av}"><div class="pn">${p.name} ${final&&idx===0?'<span class="crown">👑</span>':''}</div>
-      <div class="pp">P${p.pwr}</div><div class="total ${rel}">${p.total}</div>`;
+      <div class="pp">P${p.pwr}</div><div class="total ${rel}">${p.total.toFixed(2)}</div>`;
     lobby.appendChild(d);
   });
 }
 function winnerCard(w, round, youWon, place, field){
   const tiles=w.squad.map((n,i)=>`<div class="scard"><img src="${n.img}" alt="">${n.house?'<span class="htag">HOUSE</span>':''}
-    <div class="snm">${n.name}</div><div class="sdie locked">${w.rolls[i]}</div></div>`).join('');
+    <div class="snm">${n.name}</div><div class="sdie locked">${w.rolls[i].toFixed(2)}</div></div>`).join('');
   const placeLine = youWon ? '' : `<div class="you-place">you placed <b>#${place}</b> of ${field}</div>`;
   return `<div class="bragcard">
-    <div class="braghdr">👑 TOOK THE TABLE · ROUND ${round}</div>
+    <div class="braghdr">🐋 DEEPEST POD · ROUND ${round}</div>
     <div class="bragname">${w.name}</div>
     <div class="showcase">${tiles}</div>
-    <div class="bragtotal">POT ${w.total} / 50</div>
+    <div class="bragtotal">DOVE ${w.total.toFixed(2)} mi</div>
     <div class="bragfoot">Whale Royale · thewhaleclub.xyz/metapit</div>
     ${placeLine}
   </div>`;
@@ -624,10 +663,11 @@ async function renderBoard(board){
   rows.forEach((r,i)=>{
     const name=r.name||(r.wallet?shorten(r.wallet):'anon');
     const me=walletAddr&&r.wallet===walletAddr;
+    const val = board==='dive' ? Number(r.value).toFixed(2)+' mi' : r.value;
     const tr=document.createElement('tr');if(me)tr.className='me';
     tr.innerHTML=`<td class="rank ${i<3?'g'+(i+1):''}">${i+1}</td>
       <td>${me?'<b style="color:var(--plasma)">'+name+'</b>':name}</td>
-      <td class="wl"><b>${r.value}</b></td>`;
+      <td class="wl"><b>${val}</b></td>`;
     body.appendChild(tr);
   });
 }
@@ -639,7 +679,7 @@ function renderSeat(me){
   const pct=next?Math.min(100,Math.max(4,Math.round((xp-tier.x)/(next.x-tier.x)*100))):100;
   seat.innerHTML=`<div class="seathead"><span class="tier">${tier.n}</span><span class="seatxp">${xp} XP</span></div>
     <div class="xpbar"><div class="xpfill" style="width:${pct}%"></div></div>
-    <div class="seatmeta">${next?'<b>'+(next.x-xp)+'</b> XP to '+next.n:'MAX STATUS'} · ${me.wins} W · streak <b>${me.streak}</b> 🔥 · best ${me.beststreak} · top roll ${me.besttotal}</div>`;
+    <div class="seatmeta">${next?'<b>'+(next.x-xp)+'</b> XP to '+next.n:'MAX STATUS'} · ${me.wins} W · streak <b>${me.streak}</b> 🔥 · best ${me.beststreak} · deepest ${(me.besttotal||0).toFixed(2)} mi</div>`;
 }
 
 renderRoster();
