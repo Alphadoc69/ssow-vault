@@ -867,13 +867,11 @@ function resultCard(me, winner, round, place, field, youWon){
       <div class="snm">${n.name}</div><div class="sdie locked">${val}</div></div>`;
   }).join('');
   const badge=youWon?'🏆 1ST PLACE · DEEPEST POD':`YOU PLACED #${place} OF ${field}`;
-  const winnerLine=youWon?'':`<div class="winnerline">🐋 Deepest pod: <b>${winner.name}</b> · ${winner.total.toFixed(2)} mi</div>`;
   return `<div class="bragcard ${youWon?'':'lose'}">
     <div class="placebadge ${youWon?'win':''}">${badge}</div>
     <div class="bragname">${myLabel()} · ROUND ${round}</div>
     <div class="showcase">${tiles}</div>
     <div class="bragtotal">YOU DOVE ${me.total.toFixed(2)} mi</div>
-    ${winnerLine}
     <div class="bragfoot">THE TRENCH · thewhaleclub.xyz/metapit</div>
   </div>`;
 }
