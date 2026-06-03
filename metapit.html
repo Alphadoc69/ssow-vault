@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>META PIT · Any NFT. One Roll.</title>
+<title>META PIT · Whale Royale</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -53,6 +53,7 @@
   .btn.ghost:hover{color:var(--ink);border-color:#2c3450}
   .btn.sm{padding:9px;font-size:11px;width:auto;flex:0 0 auto}
   .walletmeta{font-size:11px;color:var(--dim);letter-spacing:1px;margin:14px 0 4px}.walletmeta b{color:var(--plasma);font-family:'Anton';font-size:15px}
+  .walletmeta.err{color:var(--magenta)}
   .squadgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
   .pickgrid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}
   @media(max-width:560px){.squadgrid{grid-template-columns:repeat(3,1fr)}}
@@ -62,16 +63,14 @@
   .nftcard.pick{cursor:pointer} .nftcard.pick:hover{border-color:#2c3450}
   .nftcard.sel{border-color:var(--acid);box-shadow:0 0 0 1px var(--acid),0 0 18px rgba(196,255,61,.18)}
   .nftcard .check{position:absolute;top:6px;right:6px;width:22px;height:22px;background:var(--acid);color:#07080d;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;z-index:2}
-  .nftcard .art{width:100%;aspect-ratio:1/1;display:block}
+  .nftcard .art{width:100%;aspect-ratio:1/1;display:block;background:#0a0b12}
   .nftcard .meta{padding:7px 8px}
   .nftcard .nm{font-size:10px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .nftcard .st{font-size:8px;color:var(--dim);letter-spacing:.5px;margin-top:3px}
   .nftcard .pwrtag{position:absolute;top:6px;left:6px;background:rgba(7,8,13,.85);border:1px solid var(--line);font-family:'Anton';font-size:13px;color:var(--plasma);padding:2px 7px;z-index:2}
   .nftcard .rm{position:absolute;top:6px;right:6px;background:rgba(7,8,13,.85);border:1px solid var(--line);color:var(--dim);cursor:pointer;width:22px;height:22px;font-size:12px;line-height:1;z-index:2}
   .nftcard .rm:hover{color:var(--magenta);border-color:var(--magenta)}
-  .nftcard .badge{position:absolute;bottom:38px;left:6px;font-size:8px;padding:1px 6px;letter-spacing:1px}
-  .badge.held{background:rgba(196,255,61,.16);color:var(--acid)}
-  .badge.listed{background:rgba(255,200,61,.16);color:var(--gold)}
+  .nftcard .badge{position:absolute;bottom:38px;left:6px;font-size:8px;padding:1px 6px;letter-spacing:1px;background:rgba(196,255,61,.16);color:var(--acid)}
   .note{font-size:10px;color:#4a5470;line-height:1.7;margin-top:16px;border-top:1px dashed var(--line);padding-top:14px}
   .note code{color:var(--acid);background:rgba(196,255,61,.07);padding:1px 5px;border-radius:3px}
   /* LIVE */
@@ -86,11 +85,9 @@
   .countdown.go{color:var(--magenta);text-shadow:0 0 30px rgba(255,45,120,.5)}
   .placetrack{text-align:center;font-family:'Anton';font-size:15px;letter-spacing:3px;color:var(--dim);margin:12px 0 4px;text-transform:uppercase;min-height:20px}
   .placetrack b{color:var(--plasma)}
-  /* squad showcase (your roll) */
   .showcase{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:6px 0 4px}
-  @media(max-width:560px){.showcase{grid-template-columns:repeat(5,1fr)}}
   .scard{background:var(--panel-2);border:1px solid var(--line);overflow:hidden;position:relative}
-  .scard img{width:100%;aspect-ratio:1/1;display:block}
+  .scard img{width:100%;aspect-ratio:1/1;display:block;background:#0a0b12}
   .scard .snm{font-size:7px;color:var(--dim);letter-spacing:.3px;padding:3px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
   .scard .sdie{height:30px;display:flex;align-items:center;justify-content:center;font-family:'Anton';font-size:17px;background:var(--bg);border-top:1px solid var(--line);color:var(--dim);transition:.1s}
   .scard .sdie.rolling{color:var(--plasma)}
@@ -99,7 +96,6 @@
   @keyframes diepop{0%{transform:scale(1.6);color:var(--acid)}100%{transform:scale(1)}}
   .showtotal{text-align:center;font-family:'Anton';font-size:34px;letter-spacing:2px;color:var(--acid);margin:2px 0 8px}
   .showtotal small{font-size:14px;color:var(--dim)}
-  /* field standings */
   .lobby{display:flex;flex-direction:column;gap:6px;margin-top:10px}
   .player{display:flex;align-items:center;gap:10px;background:var(--panel-2);border:1px solid var(--line);padding:9px 12px;animation:slidein .35s ease;transition:.4s}
   @keyframes slidein{from{transform:translateX(-14px);opacity:0}to{transform:none;opacity:1}}
@@ -107,15 +103,14 @@
   .player.winner{border-color:var(--gold);background:rgba(255,200,61,.12);box-shadow:0 0 30px rgba(255,200,61,.22)}
   .player.justin{animation:flashrow .6s ease}
   @keyframes flashrow{0%{background:rgba(196,255,61,.25)}100%{}}
-  .player .av{width:30px;height:30px;flex:0 0 30px;border-radius:4px;border:1px solid var(--line);object-fit:cover}
+  .player .av{width:30px;height:30px;flex:0 0 30px;border-radius:4px;border:1px solid var(--line);object-fit:cover;background:#0a0b12}
   .player .pn{flex:1 1 80px;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .player .pp{font-size:9px;color:var(--dim);letter-spacing:1px;flex:0 0 auto}
   .player .total{font-family:'Anton';font-size:23px;width:46px;text-align:right;flex:0 0 auto;transition:.2s}
   .player .total.dim{color:#2c3450}
   .player .total.ahead{color:var(--win)} .player .total.beat{color:var(--gold)}
   .crown{font-size:15px}
-  /* WINNER BRAG CARD */
-  .bragcard{border:1px solid var(--gold);background:linear-gradient(180deg,rgba(255,200,61,.09),rgba(255,200,61,.03));padding:18px;margin-top:16px;text-align:center;animation:fade .5s ease;box-shadow:0 0 40px rgba(255,200,61,.12)}
+  .winbanner,.bragcard{border:1px solid var(--gold);background:linear-gradient(180deg,rgba(255,200,61,.09),rgba(255,200,61,.03));padding:18px;margin-top:16px;text-align:center;animation:fade .4s ease;box-shadow:0 0 40px rgba(255,200,61,.12)}
   .braghdr{font-family:'Anton';font-size:13px;letter-spacing:3px;color:var(--gold);text-transform:uppercase}
   .bragname{font-family:'Anton';font-size:30px;letter-spacing:2px;color:var(--ink);margin:4px 0 12px;text-transform:uppercase}
   .bragcard .scard{border-color:var(--gold)}
@@ -137,7 +132,7 @@
   <header>
     <div class="brand">
       <div class="logo"><span class="a">META</span> <span class="b">PIT</span></div>
-      <div class="tag">Any NFT · Any Collection · One Roll</div>
+      <div class="tag">Secret Society of Whales · Whale Royale</div>
     </div>
     <div class="head-meta">WALLET <b id="walletLabel">not loaded</b><br>ENGINE <b>weighted d10</b> · DATA <b>opensea</b></div>
   </header>
@@ -150,25 +145,25 @@
 
   <section class="view on" id="draft">
     <div class="howto">
-      <div class="howstep"><b>1</b> Load your wallet &amp; pick 5 NFTs across any chain</div>
+      <div class="howstep"><b>1</b> Load your wallet &amp; pick 5 of your whales</div>
       <div class="howstep"><b>2</b> Join a 60-second live round in The Pit</div>
-      <div class="howstep"><b>3</b> Each NFT rolls a weighted d10 — rarer = better odds</div>
+      <div class="howstep"><b>3</b> Each whale rolls a weighted d10 — rare traits = better odds</div>
       <div class="howstep"><b>4</b> Highest squad total wins · screenshot your champion</div>
     </div>
     <div class="grid">
       <div class="card">
         <h2>Load Your Wallet</h2>
-        <div class="sub">Set a nickname, paste your address, then tap any 5 NFTs you own to field your squad.</div>
+        <div class="sub">Set a nickname, paste your address, then tap any 5 whales you own to field your squad.</div>
         <div class="field"><label>Nickname <span style="color:#3a4258">(optional · shown on the leaderboard)</span></label><input id="nickInput" maxlength="18" placeholder="e.g. WhaleKing"></div>
         <div class="field"><label>Wallet address</label><input id="walletInput" placeholder="0x… paste your address"></div>
-        <button class="btn" id="loadBtn">⊳ Load My NFTs</button>
+        <button class="btn" id="loadBtn">⊳ Load My Whales</button>
         <div class="walletmeta" id="walletMeta" style="display:none"></div>
         <div class="squadgrid pickgrid" id="walletGrid"></div>
-        <div class="note">Demo: NFTs are generated from the address so a wallet always shows the same set. Multi-chain works through OpenSea's <code>chain</code> param — swap <code>fetchWalletNFTs()</code> → <code>/api/v2/chain/{chain}/account/{wallet}/nfts</code> and <code>fetchNFTData()</code> → <code>/api/opensea?chain=…&collection=…&token=…</code>. ETH &amp; ApeChain behave the same (EVM); Solana token IDs differ. Nickname is local; store it in KV with the wallet if you want it to persist.</div>
+        <div class="note">Power is scored from each whale's real traits — a Fin, a rare skin (Gold, Lightning, Ice, Trippy, Mega Bot), a Blowhole Ring, and more traits all raise the odds. Same whale always scores the same. Live rounds roll locally, so OpenSea is only hit once when you load.</div>
       </div>
       <div class="card">
         <h2>Your Squad <span id="squadCount" style="color:var(--dim);font-family:'JetBrains Mono';font-size:13px">0/5</span></h2>
-        <div class="sub">Tap NFTs on the left to add · max 5</div>
+        <div class="sub">Tap whales on the left to add · max 5</div>
         <div class="squadgrid" id="roster"></div>
         <button class="btn magenta" id="toPitBtn" style="margin-top:14px" disabled>Enter The Pit →</button>
       </div>
@@ -178,7 +173,7 @@
   <section class="view" id="live">
     <div class="card">
       <div class="livehead">
-        <div><h2>The Live Pit</h2><div class="sub" style="margin:0">60-second open round · your squad rolls one by one · highest total wins</div></div>
+        <div><h2>The Live Pit</h2><div class="sub" style="margin:0">60-second open round · your whales roll one by one · highest total wins</div></div>
         <div class="livestat">ROUND <b id="roundNo">#1</b></div>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
@@ -210,69 +205,87 @@
 
 <script>
 /* ============================================================
-   META PIT — prototype engine (mock data)
-   PRODUCTION SWAP POINTS (only two):
-     fetchWalletNFTs(addr) → /api/opensea/account?wallet=addr
-     fetchNFTData(slug,id) → /api/opensea?collection=slug&token=id
-   OpenSea hit at DRAFT only (cache in KV). Live rounds = local math.
+   META PIT — wired to your live /api/whales endpoint.
+   Power is scored from real whale traits. Live rounds roll locally.
 ============================================================ */
 const JOIN_SECONDS=60;
-const CHAINTAG={ethereum:'ETH',apechain:'APE',solana:'SOL',base:'BASE',polygon:'POLY'};
-const COLLECTIONS=[
-  {slug:'secretsocietyofwhales',name:'Secret Society of Whales',emoji:'🐋',supply:10000,chain:'ethereum'},
-  {slug:'pudgypenguins',name:'Pudgy Penguins',emoji:'🐧',supply:8888,chain:'ethereum'},
-  {slug:'boredapeyachtclub',name:'Bored Ape Yacht Club',emoji:'🦍',supply:10000,chain:'ethereum'},
-  {slug:'azuki',name:'Azuki',emoji:'⛩️',supply:10000,chain:'ethereum'},
-  {slug:'made-by-apes',name:'Made By Apes',emoji:'🦧',supply:10000,chain:'apechain'},
-  {slug:'mad-lads',name:'Mad Lads',emoji:'🧙',supply:10000,chain:'solana'},
-];
-function artFor(slug,id,emoji){
-  const seed=[...(slug+id)].reduce((a,c)=>a+c.charCodeAt(0),0);
+const WHALES_ENDPOINT='/api/whales'; // your Vercel function, called as ?wallet=ADDRESS
+
+/* trait values the community recognizes as rare → bigger odds */
+const RARE_SKINS=['Gold','Ice','Trippy','Lightning','Mega Bot','Diamond','Rainbow'];
+const RARE_EYES=['Green Lasers','Cyborg','Heart Eyes','Battle Scar','Tripping','Laser Eyes'];
+
+function whalePower(traits){
+  if(!traits||!traits.length) return 40;
+  const types=traits.map(t=>t.trait_type);
+  const val=(ty)=>{const t=traits.find(x=>x.trait_type===ty);return t?t.value:null;};
+  let p=33;
+  if(types.includes('Fin')) p+=14;            // Fin = rare add-on
+  if(types.includes('Blowhole Ring')) p+=8;   // Ring = add-on
+  if(types.includes('Hat')) p+=3;
+  if(RARE_SKINS.includes(val('Skin'))) p+=18;
+  if(RARE_EYES.includes(val('Eyes'))) p+=10;
+  p+=traits.length*2;
+  return Math.max(1,Math.min(100,Math.round(p)));
+}
+function chainTag(url){
+  if(!url) return 'ETH';
+  if(url.indexOf('/ape_chain/')>-1) return 'APE';
+  if(url.indexOf('/abstract/')>-1) return 'ABS';
+  return 'ETH';
+}
+function topTrait(traits){
+  const skin=traits.find(t=>t.trait_type==='Skin');
+  if(skin && RARE_SKINS.includes(skin.value)) return skin.value;
+  if(traits.some(t=>t.trait_type==='Fin')) return 'FIN';
+  if(skin) return skin.value;
+  return 'WHALE';
+}
+
+/* generated art (used only for bot opponents) */
+function artFor(seedStr){
+  const seed=[...seedStr].reduce((a,c)=>a+c.charCodeAt(0),0);
   const h1=seed%360,h2=(seed*7)%360;
   const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'>
     <defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
       <stop offset='0' stop-color='hsl(${h1},70%,22%)'/><stop offset='1' stop-color='hsl(${h2},75%,12%)'/></linearGradient></defs>
     <rect width='200' height='200' fill='url(#g)'/>
     <circle cx='${40+seed%120}' cy='${50+seed%90}' r='${30+seed%40}' fill='hsl(${h2},80%,55%)' opacity='.25'/>
-    <rect x='${seed%140}' y='${seed%140}' width='60' height='60' fill='hsl(${h1},80%,60%)' opacity='.18' transform='rotate(${seed%45} 100 100)'/>
-    <text x='100' y='118' font-size='64' text-anchor='middle'>${emoji}</text></svg>`;
+    <text x='100' y='120' font-size='70' text-anchor='middle'>🐋</text></svg>`;
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
-async function fetchNFTData(slug,id){
-  const c=COLLECTIONS.find(x=>x.slug===slug);
-  const seed=[...(slug+id)].reduce((a,ch)=>a+ch.charCodeAt(0),0);
-  const rng=(n)=>{const x=Math.sin(seed*9301+n*49297)*233280;return x-Math.floor(x);};
-  const rank=Math.max(1,Math.floor(rng(1)*c.supply));
-  const holders=2000+Math.floor(rng(2)*6000);
-  const listed=rng(3)>0.55;
-  return {slug,id,name:`${c.name.split(' ')[0]} #${id}`,emoji:c.emoji,collName:c.name,chain:c.chain,
-          supply:c.supply,rank,holders,listed,img:artFor(slug,id,c.emoji)};
-}
-async function fetchWalletNFTs(addr){
-  const seed=[...addr].reduce((a,c)=>a+c.charCodeAt(0),7);
-  const rng=(n)=>{const x=Math.sin(seed*1234.5+n*7777.7)*99999;return x-Math.floor(x);};
-  const count=8+Math.floor(rng(0)*8);
-  const out=[],seen=new Set();let k=1;
-  while(out.length<count && k<400){
-    const c=COLLECTIONS[Math.floor(rng(k)*COLLECTIONS.length)];
-    const id=String(1+Math.floor(rng(k+137)*c.supply));
-    const key=c.slug+':'+id;k++;
-    if(seen.has(key))continue;seen.add(key);
-    const nft=await fetchNFTData(c.slug,id);nft.power=powerOf(nft);out.push(nft);
-  }
-  return out;
-}
-function powerOf(n){
-  const rarityPct=1-(n.rank/n.supply);
-  const holderPct=Math.min(1,n.holders/8000);
-  const diamond=n.listed?0:1;
-  return Math.round(rarityPct*55+holderPct*30+diamond*15);
-}
+
 function weightedRoll(power){
   const base=Math.random()*10;const tilt=(power/100)*4-2;
   return Math.max(1,Math.min(10,Math.round(base+tilt)||1));
 }
 const shorten=(a)=>a.length>12?a.slice(0,6)+'…'+a.slice(-4):a;
+
+/* ---- LIVE: fetch the player's real whales ---- */
+async function fetchWalletNFTs(addr){
+  const r=await fetch(`${WHALES_ENDPOINT}?wallet=${encodeURIComponent(addr)}`);
+  const data=await r.json();
+  if(!data || !data.nfts || !data.nfts.length){
+    throw new Error((data && data.error) ? data.error : 'No whales found in that wallet');
+  }
+  return data.nfts.map(n=>{
+    const img=n.display_image_url||n.image_url;
+    const traits=n.traits||[];
+    return {id:n.identifier,name:`Whale #${n.identifier}`,img,traits,
+            chain:chainTag(img),badge:topTrait(traits),power:whalePower(traits)};
+  });
+}
+
+/* bots carry a synthetic 5-whale squad so the winner always has whales to show */
+async function buildBot(name){
+  const sq=[];
+  for(let i=0;i<5;i++){
+    const id=100+Math.floor(Math.random()*9800);
+    sq.push({id:String(id),name:`Whale #${id}`,img:artFor('bot'+name+i+id),power:42+Math.floor(Math.random()*40)});
+  }
+  const pwr=Math.round(sq.reduce((a,n)=>a+n.power,0)/5);
+  return {name,pwr,squad:sq,av:sq[0].img};
+}
 
 let walletNFTs=[],squad=[],myStats={w:0,l:0,streak:0},round=1,lastResult=null,roundActive=false,skipTimer=false,nickname='';
 const myLabel=()=>nickname||'YOU';
@@ -297,14 +310,20 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
 
 /* WALLET */
 $('#loadBtn').onclick=async()=>{
-  const addr=$('#walletInput').value.trim()||'0xDEMO000000000000000000000000000000000001';
+  const addr=$('#walletInput').value.trim();
+  if(!addr){$('#walletInput').focus();return;}
   $('#loadBtn').disabled=true;$('#loadBtn').textContent='…loading';
-  walletNFTs=await fetchWalletNFTs(addr);
-  $('#walletLabel').textContent=shorten(addr);
-  $('#walletMeta').style.display='block';
-  $('#walletMeta').innerHTML=`<b>${walletNFTs.length}</b> eligible NFTs found in ${shorten(addr)} — tap 5 to draft`;
+  $('#walletMeta').style.display='block';$('#walletMeta').classList.remove('err');$('#walletMeta').textContent='Diving the blockchain…';
+  try{
+    walletNFTs=await fetchWalletNFTs(addr);
+    $('#walletLabel').textContent=shorten(addr);
+    $('#walletMeta').innerHTML=`<b>${walletNFTs.length}</b> whales found in ${shorten(addr)} — tap 5 to draft`;
+    renderWallet();
+  }catch(e){
+    walletNFTs=[];renderWallet();
+    $('#walletMeta').classList.add('err');$('#walletMeta').textContent='⚠ '+e.message;
+  }
   $('#loadBtn').disabled=false;$('#loadBtn').textContent='⊳ Reload';
-  renderWallet();
 };
 $('#walletInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('#loadBtn').click();});
 $('#nickInput').addEventListener('input',e=>{nickname=e.target.value.trim();});
@@ -312,17 +331,17 @@ $('#nickInput').addEventListener('input',e=>{nickname=e.target.value.trim();});
 function renderWallet(){
   const grid=$('#walletGrid');grid.innerHTML='';
   walletNFTs.forEach(n=>{
-    const sel=squad.some(s=>s.slug===n.slug&&s.id===n.id);
+    const sel=squad.some(s=>s.id===n.id);
     const d=document.createElement('div');d.className='nftcard pick'+(sel?' sel':'');
     d.innerHTML=`<div class="pwrtag">${n.power}</div>${sel?'<div class="check">✓</div>':''}
-      <img class="art" src="${n.img}" alt="">
-      <span class="badge ${n.listed?'listed':'held'}">${n.listed?'LISTED':'DIAMOND'}</span>
-      <div class="meta"><div class="nm">${n.name}</div><div class="st">rank #${n.rank.toLocaleString()} · ${CHAINTAG[n.chain]||n.chain}</div></div>`;
+      <img class="art" src="${n.img}" alt="" loading="lazy">
+      <span class="badge">${n.badge}</span>
+      <div class="meta"><div class="nm">${n.name}</div><div class="st">${n.chain} · ${n.traits.length} traits</div></div>`;
     d.onclick=()=>toggle(n);grid.appendChild(d);
   });
 }
 function toggle(n){
-  const i=squad.findIndex(s=>s.slug===n.slug&&s.id===n.id);
+  const i=squad.findIndex(s=>s.id===n.id);
   if(i>=0)squad.splice(i,1);
   else{if(squad.length>=5){alert('Squad is full — 5 max. Tap one to drop it.');return;}squad.push(n);}
   renderWallet();renderRoster();
@@ -334,9 +353,9 @@ function renderRoster(){
     if(!n){const d=document.createElement('div');d.className='nftcard empty';d.textContent='＋';host.appendChild(d);continue;}
     const d=document.createElement('div');d.className='nftcard';
     d.innerHTML=`<div class="pwrtag">${n.power}</div><button class="rm" data-i="${i}">✕</button>
-      <img class="art" src="${n.img}" alt="">
-      <span class="badge ${n.listed?'listed':'held'}">${n.listed?'LISTED':'DIAMOND'}</span>
-      <div class="meta"><div class="nm">${n.name}</div><div class="st">rank #${n.rank.toLocaleString()} · ${CHAINTAG[n.chain]||n.chain}</div></div>`;
+      <img class="art" src="${n.img}" alt="" loading="lazy">
+      <span class="badge">${n.badge}</span>
+      <div class="meta"><div class="nm">${n.name}</div><div class="st">${n.chain} · ${n.traits.length} traits</div></div>`;
     host.appendChild(d);
   }
   host.querySelectorAll('.rm').forEach(b=>b.onclick=()=>{squad.splice(+b.dataset.i,1);renderWallet();renderRoster();});
@@ -345,21 +364,10 @@ function renderRoster(){
 }
 $('#toPitBtn').onclick=()=>document.querySelector('[data-view=live]').click();
 
-/* bots now carry a full 5-NFT squad so the winner has NFTs to show */
-async function buildBot(name){
-  const sq=[];
-  for(let i=0;i<5;i++){
-    const c=COLLECTIONS[Math.floor(Math.random()*COLLECTIONS.length)];
-    const n=await fetchNFTData(c.slug,String(100+Math.floor(Math.random()*9000)));
-    n.power=powerOf(n);sq.push(n);
-  }
-  const pwr=Math.round(sq.reduce((a,n)=>a+n.power,0)/5);
-  return {name,pwr,squad:sq,av:sq[0].img};
-}
-
+/* LIVE PIT */
 $('#joinBtn').onclick=async()=>{
   if(roundActive)return;
-  if(squad.length<5){alert('Load your wallet and draft 5 NFTs first.');document.querySelector('[data-view=draft]').click();return;}
+  if(squad.length<5){alert('Load your wallet and draft 5 whales first.');document.querySelector('[data-view=draft]').click();return;}
   roundActive=true;skipTimer=false;
   const join=$('#joinBtn');join.disabled=true;join.textContent='IN THE ROUND';
   $('#resultHost').innerHTML='';$('#shareBtn').style.display='none';$('#placetrack').textContent='';
@@ -421,20 +429,16 @@ function renderJoinLobby(players){
   });
 }
 
-/* ===== slow reveal: YOUR NFTs + dice, then field climbs ===== */
 async function slowReveal(players, me){
   const lobby=$('#lobby');lobby.innerHTML='';
-  // YOUR squad showcase with dice under each NFT
   const sc=$('#showcase');sc.style.display='grid';sc.innerHTML='';
   me.squad.forEach((n,i)=>{
     const d=document.createElement('div');d.className='scard';
-    d.innerHTML=`<img src="${n.img}" alt=""><div class="snm">${n.name}</div>
-      <div class="sdie" data-d="${i}">?</div>`;
+    d.innerHTML=`<img src="${n.img}" alt=""><div class="snm">${n.name}</div><div class="sdie" data-d="${i}">?</div>`;
     sc.appendChild(d);
   });
   const st=$('#showtotal');st.style.display='block';st.innerHTML='ROLLING… <small>0/50</small>';
   $('#placetrack').innerHTML='YOUR SQUAD ROLLS';
-
   const dice=sc.querySelectorAll('.sdie');
   for(let i=0;i<5;i++){
     await tumbleDie(dice[i], me.rolls[i]);
@@ -445,8 +449,6 @@ async function slowReveal(players, me){
   st.innerHTML=`YOU ROLLED ${me.total} <small>/50</small>`;
   $('#placetrack').innerHTML='WAITING ON THE FIELD…';
   await wait(700);
-
-  // field climbs lowest → highest
   const others=players.filter(p=>!p.you).sort((a,b)=>a.total-b.total);
   let standings=[me];
   for(const op of others){
@@ -460,7 +462,6 @@ async function slowReveal(players, me){
   renderStandings(standings, me, null, true);
   return standings;
 }
-
 function tumbleDie(die, final){
   return new Promise(res=>{
     let delay=45;
@@ -473,7 +474,6 @@ function tumbleDie(die, final){
     tick();
   });
 }
-
 function renderStandings(standings, me, justIn, final){
   const lobby=$('#lobby');lobby.innerHTML='';
   standings.forEach((p,idx)=>{
@@ -485,8 +485,6 @@ function renderStandings(standings, me, justIn, final){
     lobby.appendChild(d);
   });
 }
-
-/* winner brag card — the champion's 5 NFTs, screenshot-ready */
 function winnerCard(w, round, youWon, place, field){
   const tiles=w.squad.map((n,i)=>`<div class="scard"><img src="${n.img}" alt="">
     <div class="snm">${n.name}</div><div class="sdie locked">${w.rolls[i]}</div></div>`).join('');
@@ -496,14 +494,14 @@ function winnerCard(w, round, youWon, place, field){
     <div class="bragname">${w.name}</div>
     <div class="showcase">${tiles}</div>
     <div class="bragtotal">SQUAD TOTAL ${w.total} / 50</div>
-    <div class="bragfoot">Any NFT · One roll · thewhaleclub.xyz</div>
+    <div class="bragfoot">Whale Royale · thewhaleclub.xyz/metapit</div>
     ${placeLine}
   </div>`;
 }
 
 $('#shareBtn').onclick=()=>{
   const r=lastResult;if(!r)return;
-  const txt=`⚔ META PIT · ROUND ${r.round} ⚔\n${r.youWon?'I WON 👑':'Winner: '+r.winner}\nSquad total ${r.winTotal}/50 · field of ${r.field}\n${r.youWon?'':'I placed #'+r.youPlace+'\n'}\nAny NFT. One roll. Enter the Pit. #MetaPit`;
+  const txt=`⚔ META PIT · ROUND ${r.round} ⚔\n${r.youWon?'I WON 👑':'Winner: '+r.winner}\nSquad total ${r.winTotal}/50 · field of ${r.field}\n${r.youWon?'':'I placed #'+r.youPlace+'\n'}\nWhale Royale · thewhaleclub.xyz/metapit #MetaPit`;
   navigator.clipboard?.writeText(txt);
   $('#shareBtn').textContent='✓ Copied!';setTimeout(()=>$('#shareBtn').textContent='⤴ Copy Result Card for X',1400);
 };
