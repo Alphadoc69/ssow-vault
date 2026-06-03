@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE TRENCH · Secret Society of Whales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#161b29;--panel:#1f2638;--panel-2:#283046;--line:#3a4259;
+    --ink:#f3f6fc;--dim:#aab4cc;--acid:#c8ff4d;--plasma:#3ae3ff;
+    --magenta:#ff4d8a;--gold:#ffce5a;--win:#c8ff4d;--lose:#ff4d8a;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:'JetBrains Mono',monospace}
+  body{min-height:100vh;background-image:
+      radial-gradient(circle at 15% 0%, rgba(58,227,255,.10), transparent 40%),
+      radial-gradient(circle at 85% 100%, rgba(255,77,138,.10), transparent 45%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,.02) 39px, rgba(255,255,255,.02) 40px);}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+  .backlink{display:inline-block;color:var(--dim);text-decoration:none;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;transition:.15s}
+  .backlink:hover{color:var(--plasma)}
+  a.logo{text-decoration:none;cursor:pointer}
+  header{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:26px;flex-wrap:wrap;gap:14px}
+  .brand{display:flex;align-items:baseline;gap:14px}
+  .logo{font-family:'Anton',sans-serif;font-size:clamp(38px,7vw,72px);line-height:.85;letter-spacing:1px;text-transform:uppercase}
+  .logo .a{color:var(--ink)} .logo .b{color:var(--acid);text-shadow:0 0 24px rgba(196,255,61,.35)}
+  .tag{color:var(--dim);font-size:11px;letter-spacing:3px;text-transform:uppercase;padding-bottom:6px}
+  .head-meta{text-align:right;font-size:11px;color:var(--dim);letter-spacing:1px;line-height:1.7}
+  .head-meta b{color:var(--plasma)}
+  .tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap}
+  .tab{background:var(--panel);border:1px solid var(--line);color:var(--dim);padding:11px 20px;font-weight:700;font-size:12px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:.15s;position:relative}
+  .tab:hover{color:var(--ink);border-color:#2c3450}
+  .tab.on{background:var(--acid);color:#07080d;border-color:var(--acid)}
+  .tab .dot{position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--magenta);box-shadow:0 0 8px var(--magenta);animation:pulse 1.2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .view{display:none;animation:fade .25s ease} .view.on{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .grid{display:grid;grid-template-columns:1fr 400px;gap:22px}
+  .howto{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px}
+  @media(max-width:760px){.howto{grid-template-columns:1fr 1fr}}
+  .howstep{background:var(--panel);border:1px solid var(--line);padding:13px 14px;font-size:12px;color:var(--dim);letter-spacing:.4px;line-height:1.5;display:flex;gap:9px;align-items:flex-start}
+  .howstep b{font-family:'Anton';font-size:15px;color:var(--acid);flex:0 0 auto;line-height:1}
+  @media(max-width:920px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);padding:20px}
+  .card h2{font-family:'Anton';font-size:20px;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+  .card .sub{color:var(--dim);font-size:12px;letter-spacing:1px;margin-bottom:18px}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+  .field input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--ink);padding:11px 12px;font-family:'JetBrains Mono';font-size:13px}
+  .field input:focus{outline:none;border-color:var(--plasma)}
+  .btn{width:100%;background:var(--plasma);color:#07080d;border:none;padding:13px;font-family:'JetBrains Mono';font-weight:800;font-size:13px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:.15s}
+  .btn:hover{filter:brightness(1.1)} .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.magenta{background:var(--magenta);color:#fff}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--dim)}
+  .btn.ghost:hover{color:var(--ink);border-color:#2c3450}
+  .btn.sm{padding:9px;font-size:11px;width:auto;flex:0 0 auto}
+  .walletmeta{font-size:11px;color:var(--dim);letter-spacing:1px;margin:14px 0 4px}.walletmeta b{color:var(--plasma);font-family:'Anton';font-size:15px}
+  .walletmeta.err{color:var(--magenta)}
+  .squadgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .pickgrid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}
+  @media(max-width:560px){.squadgrid{grid-template-columns:repeat(3,1fr)}}
+  .nftcard{background:var(--panel-2);border:1px solid var(--line);overflow:hidden;position:relative;animation:pop .3s ease}
+  @keyframes pop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+  .nftcard.empty{border-style:dashed;display:flex;align-items:center;justify-content:center;aspect-ratio:1/1.35;color:#2c3450;font-size:22px}
+  .nftcard.pick{cursor:pointer} .nftcard.pick:hover{border-color:#2c3450}
+  .nftcard.sel{border-color:var(--acid);box-shadow:0 0 0 1px var(--acid),0 0 18px rgba(196,255,61,.18)}
+  .nftcard .check{position:absolute;top:6px;right:6px;width:22px;height:22px;background:var(--acid);color:#07080d;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;z-index:2}
+  .nftcard .art{width:100%;aspect-ratio:1/1;display:block;background:#0a0b12}
+  .nftcard .meta{padding:7px 8px}
+  .nftcard .nm{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nftcard .st{font-size:9.5px;color:var(--dim);letter-spacing:.5px;margin-top:3px}
+  .nftcard .pwrtag{position:absolute;top:6px;left:6px;background:rgba(7,8,13,.85);border:1px solid var(--line);font-family:'Anton';font-size:13px;color:var(--plasma);padding:2px 7px;z-index:2}
+  .nftcard .rm{position:absolute;top:6px;right:6px;background:rgba(7,8,13,.85);border:1px solid var(--line);color:var(--dim);cursor:pointer;width:22px;height:22px;font-size:12px;line-height:1;z-index:2}
+  .nftcard .rm:hover{color:var(--magenta);border-color:var(--magenta)}
+  .nftcard .badge{position:absolute;bottom:38px;left:6px;font-size:8px;padding:1px 6px;letter-spacing:1px;background:rgba(196,255,61,.16);color:var(--acid)}
+  .note{font-size:10px;color:#8893ad;line-height:1.7;margin-top:16px;border-top:1px dashed var(--line);padding-top:14px}
+  .odds{font-size:12px;line-height:1.7;color:var(--ink);background:rgba(255,206,90,.06);border:1px solid rgba(255,206,90,.25);padding:14px 16px;margin-top:16px;letter-spacing:.3px}
+  .lore{font-size:13px;line-height:1.75;color:var(--dim);margin-bottom:20px;max-width:760px;letter-spacing:.3px;border-left:2px solid var(--plasma);padding-left:14px}
+  .lore b{color:var(--ink);font-weight:600}
+  .odds b{color:var(--gold);letter-spacing:2px} .odds i{color:var(--acid);font-style:normal}
+  .note code{color:var(--acid);background:rgba(196,255,61,.07);padding:1px 5px;border-radius:3px}
+  /* LIVE */
+  .livehead{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px}
+  .livestat{font-family:'Anton';font-size:13px;letter-spacing:1px;color:var(--dim)} .livestat b{color:var(--magenta)}
+  .timerbar{height:6px;background:var(--panel-2);border:1px solid var(--line);margin:14px 0 4px;overflow:hidden}
+  .timerfill{height:100%;background:linear-gradient(90deg,var(--plasma),var(--acid));width:100%;transition:width 1s linear}
+  .timerlabel{display:flex;justify-content:space-between;font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+  .timerlabel b{color:var(--plasma);font-family:'Anton';font-size:14px}
+  .countdown{font-family:'Anton';font-size:64px;text-align:center;letter-spacing:4px;color:var(--plasma);margin:16px 0;text-shadow:0 0 30px rgba(0,224,255,.4);animation:cdpop .5s ease}
+  @keyframes cdpop{from{transform:scale(1.6);opacity:0}to{transform:scale(1);opacity:1}}
+  .countdown.go{color:var(--magenta);text-shadow:0 0 30px rgba(255,45,120,.5)}
+  .placetrack{text-align:center;font-family:'Anton';font-size:15px;letter-spacing:3px;color:var(--dim);margin:12px 0 4px;text-transform:uppercase;min-height:20px}
+  .placetrack b{color:var(--plasma)}
+  .showcase{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:6px 0 4px}
+  .scard{background:var(--panel-2);border:1px solid var(--line);overflow:hidden;position:relative}
+  .scard img{width:100%;aspect-ratio:1/1;display:block;background:#0a0b12}
+  .scard .snm{font-size:8.5px;color:var(--dim);letter-spacing:.3px;padding:3px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+  .scard .sdie{height:30px;display:flex;align-items:center;justify-content:center;font-family:'Anton';font-size:17px;background:var(--bg);border-top:1px solid var(--line);color:var(--dim);transition:.1s}
+  .scard .htag{position:absolute;top:4px;left:4px;font-size:7px;background:rgba(255,255,255,.14);color:var(--ink);padding:1px 5px;letter-spacing:1px;border-radius:2px}
+  .divetile{display:flex;flex-direction:column;align-items:center;min-width:0}
+  .dtname{font-size:8.5px;color:var(--dim);letter-spacing:.3px;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center}
+  .dtname .htag{position:static;font-size:6px;padding:0 3px}
+  .divetube{position:relative;width:100%;height:200px;border:1px solid var(--line);overflow:hidden;border-radius:4px;
+    background:linear-gradient(180deg,#3a86a8 0%,#26688a 16%,#1a4a68 36%,#102f47 58%,#0a1d30 78%,#060f1c 100%);}
+  .diver{position:absolute;top:6px;left:50%;width:46px;height:46px;margin-left:-23px;border-radius:50%;object-fit:cover;
+    border:2px solid rgba(255,255,255,.45);background:#0a0b12;box-shadow:0 4px 14px rgba(0,0,0,.55);will-change:transform}
+  .depthlabel{font-family:'Anton';font-size:16px;color:var(--ink);margin-top:8px;letter-spacing:.5px}
+  .depthlabel.record{color:var(--gold);text-shadow:0 0 10px rgba(255,206,90,.5)}
+  .chest{position:absolute;left:50%;transform:translateX(-50%);bottom:9px;width:38px;height:30px;opacity:0;pointer-events:none}
+  .chest.show{opacity:1}
+  .chest .base{position:absolute;bottom:0;left:0;width:38px;height:18px;background:linear-gradient(#9a6633,#5a3614);border:1px solid #3c2410;border-radius:0 0 5px 5px;box-shadow:inset 0 2px 0 rgba(255,255,255,.14)}
+  .chest .base::after{content:'';position:absolute;top:4px;left:50%;transform:translateX(-50%);width:6px;height:7px;background:var(--gold);border-radius:1px;box-shadow:0 0 3px rgba(255,206,90,.6)}
+  .chest .lid{position:absolute;bottom:17px;left:0;width:38px;height:11px;background:linear-gradient(#b87c42,#774c20);border:1px solid #3c2410;border-radius:6px 6px 0 0;transform-origin:left bottom;transition:transform .42s ease}
+  .chest.open .lid{transform:rotate(-118deg)}
+  .chest .gem{position:absolute;left:50%;margin-left:-11px;bottom:13px;font-size:20px;opacity:0;transition:opacity .42s ease, bottom .42s ease}
+  .chest.open .gem{opacity:1;bottom:30px}
+  .chest.open.sand .gem{opacity:.6}
+  .chest.open.ruby .gem{filter:drop-shadow(0 0 8px rgba(255,77,138,.95))}
+  .chest.open.sapphire .gem{filter:drop-shadow(0 0 8px rgba(58,227,255,.95))}
+  .chest.open.emerald .gem{filter:drop-shadow(0 0 8px rgba(120,255,140,.95))}
+  .chest.open.diamond .gem{filter:drop-shadow(0 0 12px rgba(255,255,255,1))}
+  .depthlabel.swept{color:var(--lose)}
+  .divetube.current::after{content:'';position:absolute;inset:0;background:linear-gradient(115deg,transparent 38%,rgba(120,200,255,.4) 50%,transparent 62%);animation:cur .5s linear}
+  @keyframes cur{from{transform:translateX(-110%)}to{transform:translateX(110%)}}
+  .livebody{display:flex;gap:16px;align-items:flex-start;margin-top:12px}
+  .arena{flex:1;min-width:0}
+  .legend{flex:0 0 212px;background:var(--panel-2);border:1px solid var(--line);padding:14px;border-radius:4px}
+  .legtitle{font-family:'Anton';font-size:13px;letter-spacing:1.5px;color:var(--gold);text-transform:uppercase;margin:2px 0 8px}
+  .leglist{margin:0 0 14px;padding-left:17px}
+  .leglist li{font-size:11px;color:var(--dim);line-height:1.55;margin-bottom:5px}
+  .legrow{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink);padding:3px 0}
+  .legrow span{font-size:15px;width:18px;text-align:center}
+  .legrow b{margin-left:auto;color:var(--acid);font-family:'JetBrains Mono'}
+  .legnote{font-size:10px;color:var(--dim);line-height:1.6;margin-top:10px;border-top:1px dashed var(--line);padding-top:10px}
+  .gemkey{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;background:var(--panel);border:1px solid var(--line);padding:12px 16px;margin-bottom:18px;border-radius:4px}
+  .podintro{margin-bottom:14px}
+  .introh{font-family:'Anton';font-size:24px;letter-spacing:.5px;margin:0 0 8px}
+  .podintro p{font-size:13.5px;line-height:1.6;color:var(--dim);margin:0 0 6px;max-width:760px}
+  .podintro p b{color:var(--ink)}
+  .introreward b{color:var(--acid)}
+  .gemkey-t{font-family:'Anton';font-size:12px;letter-spacing:1.5px;color:var(--gold);text-transform:uppercase}
+  .gk{font-size:12.5px;color:var(--ink);display:inline-flex;align-items:center;gap:5px}
+  .gk i{color:var(--acid);font-style:normal;font-family:'JetBrains Mono'}
+  .gk.dim{color:var(--dim);font-size:11px}
+  .podstrip{margin-bottom:12px}
+  .podstrip-t{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+  .podrow{display:flex;gap:8px;flex-wrap:wrap}
+  .podw{flex:1;min-width:72px;max-width:120px;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:8px 7px;text-align:center;cursor:pointer;transition:.15s}
+  .podw:hover{border-color:var(--plasma)}
+  .podw img{width:34px;height:34px;border-radius:50%;object-fit:cover;border:1px solid var(--line)}
+  .podw .po2{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;margin:6px 0 4px}
+  .podw .po2f{height:100%;background:linear-gradient(90deg,var(--plasma),var(--acid));transition:width .4s}
+  .podw .postate{font-size:9px;color:var(--dim);letter-spacing:.5px}
+  .podw .podact{font-size:8px;letter-spacing:.5px;color:var(--plasma);margin-top:3px;font-weight:700}
+  .podw.diving{border-color:var(--acid)}
+  .podw.diving .podact{color:var(--acid)}
+  .podw.low .po2f{background:var(--lose)}
+  .podempty{font-size:11px;color:var(--dim)}
+  .benchrow{max-height:128px;overflow:auto}
+  @media(max-width:760px){.livebody{flex-direction:column}.legend{flex:auto;width:100%}}
+  .scard .sdie.rolling{color:var(--plasma)}
+  .scard .sdie.locked{color:var(--ink)}
+  .scard .sdie.pop{animation:diepop .35s ease}
+  @keyframes diepop{0%{transform:scale(1.6);color:var(--acid)}100%{transform:scale(1)}}
+  .showtotal{text-align:center;font-family:'Anton';font-size:34px;letter-spacing:2px;color:var(--acid);margin:10px 0 28px}
+  .showtotal small{font-size:14px;color:var(--dim)}
+  .lobby{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+  .winreward{text-align:center;background:rgba(200,255,77,.1);border:1px solid var(--acid);color:var(--acid);font-family:'Anton';font-size:17px;letter-spacing:1px;padding:12px;margin-bottom:12px;border-radius:4px}
+  .winreward span{display:block;font-family:'JetBrains Mono';font-size:11px;letter-spacing:.5px;color:var(--ink);margin-top:5px;font-weight:600}
+  #resultHost:not(:empty){margin-top:6px}
+  .player{display:flex;align-items:center;gap:10px;background:var(--panel-2);border:1px solid var(--line);padding:9px 12px;animation:slidein .35s ease;transition:.4s}
+  @keyframes slidein{from{transform:translateX(-14px);opacity:0}to{transform:none;opacity:1}}
+  .player.you{border-color:var(--plasma);background:rgba(0,224,255,.06)}
+  .player.winner{border-color:var(--gold);background:rgba(255,200,61,.12);box-shadow:0 0 30px rgba(255,200,61,.22)}
+  .player.justin{animation:flashrow .6s ease}
+  @keyframes flashrow{0%{background:rgba(196,255,61,.25)}100%{}}
+  .player .av{width:30px;height:30px;flex:0 0 30px;border-radius:4px;border:1px solid var(--line);object-fit:cover;background:#0a0b12}
+  .player .pn{flex:1 1 80px;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .player .pp{font-size:9px;color:var(--dim);letter-spacing:1px;flex:0 0 auto}
+  .player .total{font-family:'Anton';font-size:23px;width:46px;text-align:right;flex:0 0 auto;transition:.2s}
+  .player .total.dim{color:#2c3450}
+  .player .total.ahead{color:var(--win)} .player .total.beat{color:var(--gold)}
+  .crown{font-size:15px}
+  .winbanner,.bragcard{border:1px solid var(--gold);background:linear-gradient(180deg,rgba(255,200,61,.09),rgba(255,200,61,.03));padding:18px;margin-top:8px;text-align:center;animation:fade .4s ease;box-shadow:0 0 40px rgba(255,200,61,.12)}
+  .bragcard.lose{border-color:var(--line);background:var(--panel-2);box-shadow:none}
+  .placebadge{font-family:'Anton';font-size:21px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink);margin-bottom:8px}
+  .placebadge.win{color:var(--gold);text-shadow:0 0 14px rgba(255,206,90,.4)}
+  .gembadge{position:absolute;top:5px;right:5px;font-size:17px;filter:drop-shadow(0 0 4px rgba(0,0,0,.7))}
+  .swepttxt{color:var(--lose);font-size:13px}
+  .winnerline{font-size:12px;color:var(--dim);margin-top:10px;letter-spacing:.5px}
+  .winnerline b{color:var(--ink)}
+  .braghdr{font-family:'Anton';font-size:13px;letter-spacing:3px;color:var(--gold);text-transform:uppercase}
+  .bragname{font-family:'Anton';font-size:30px;letter-spacing:2px;color:var(--ink);margin:4px 0 12px;text-transform:uppercase}
+  .bragcard .scard{border-color:var(--gold)}
+  .bragcard .sdie{color:var(--gold);border-top-color:var(--gold)}
+  .bragtotal{font-family:'Anton';font-size:18px;letter-spacing:2px;color:var(--gold);margin-top:12px}
+  .bragfoot{font-size:9px;color:var(--dim);letter-spacing:3px;margin-top:8px;text-transform:uppercase}
+  .you-place{font-size:11px;color:var(--dim);letter-spacing:2px;margin-top:10px}.you-place b{color:var(--plasma)}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{text-align:left;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);padding:10px;border-bottom:1px solid var(--line)}
+  td{padding:11px 10px;border-bottom:1px solid rgba(255,255,255,.04)}
+  tr.me td{background:rgba(0,224,255,.06)}
+  .rank{font-family:'Anton';font-size:16px;color:var(--dim);width:30px}
+  .rank.g1{color:var(--gold)} .rank.g2{color:#cdd6e8} .rank.g3{color:#cd7f32}
+  .wl{color:var(--dim)} .wl b{color:var(--acid)}
+  .seat{background:var(--panel-2);border:1px solid var(--line);padding:14px 16px;margin-bottom:16px}
+  .seathead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+  .seathead .tier{font-family:'Anton';font-size:21px;letter-spacing:1px;color:var(--gold);text-transform:uppercase}
+  .seathead .seatxp{font-size:11px;color:var(--dim);letter-spacing:1px}
+  .xpbar{height:8px;background:var(--bg);border:1px solid var(--line);overflow:hidden}
+  .xpfill{height:100%;background:linear-gradient(90deg,var(--plasma),var(--acid));transition:width .5s ease}
+  .seatmeta{font-size:10px;color:var(--dim);letter-spacing:1px;margin-top:8px;text-transform:uppercase}
+  .seatmeta b{color:var(--plasma)}
+  .boardtabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .btab{background:var(--panel-2);border:1px solid var(--line);color:var(--dim);padding:8px 14px;font-family:'JetBrains Mono';font-weight:700;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer}
+  .btab:hover{color:var(--ink)} .btab.on{background:var(--gold);color:#1a1a1a;border-color:var(--gold)}
+  .xpgain{text-align:center;font-family:'Anton';font-size:18px;letter-spacing:2px;color:var(--acid);margin-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="backlink" href="/">← SSoW Vault</a>
+  <header>
+    <div class="brand">
+      <a href="/thetrench" class="logo"><span class="a">THE</span> <span class="b">TRENCH</span></a>
+      <div class="tag">Secret Society of Whales · deepest pod wins</div>
+    </div>
+    <div class="head-meta">WALLET <b id="walletLabel">not loaded</b></div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab on" data-view="draft">// Pod</button>
+    <button class="tab" data-view="live">// Live Dive <span class="dot"></span></button>
+    <button class="tab" data-view="board">// The Depths</button>
+  </div>
+
+  <section class="view on" id="draft">
+    <div class="podintro">
+      <h2 class="introh">Build your pod</h2>
+      <p>Load your wallet and pick up to <b>5 whales</b>. They dive the Trench — <b>deepest total wins</b>. Rare whales dive deeper, but luck rules every plunge and a current can sweep a dive to 0.</p>
+      <p class="introreward">🏆 Finish <b>#1</b> for a <b>+12 XP bonus</b> and a Wins-board climb. Every dive also cracks a chest:</p>
+    </div>
+    <div class="gemkey">
+      <span class="gk">🐚 Sand Dollar <i>+0</i></span>
+      <span class="gk">🔴 Ruby <i>+5</i></span>
+      <span class="gk">🔵 Sapphire <i>+9</i></span>
+      <span class="gk">🟢 Emerald <i>+14</i></span>
+      <span class="gk">💎 Diamond <i>+25</i></span>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h2>Load Your Wallet</h2>
+        <div class="sub">Set a nickname, paste your address, then tap any 5 whales you own to field your squad.</div>
+        <div class="field"><label>Nickname <span style="color:#3a4258">(optional · shown on the leaderboard)</span></label><input id="nickInput" maxlength="18" placeholder="e.g. WhaleKing"></div>
+        <div class="field"><label>Wallet address</label><input id="walletInput" placeholder="0x… paste your address"></div>
+        <button class="btn" id="loadBtn">⊳ Load My Whales</button>
+        <div class="walletmeta" id="walletMeta" style="display:none"></div>
+        <div class="squadgrid pickgrid" id="walletGrid"></div>
+      </div>
+      <div class="card">
+        <h2>Your Squad <span id="squadCount" style="color:var(--dim);font-family:'JetBrains Mono';font-size:13px">0/5</span></h2>
+        <div class="sub">Tap whales on the left to add · empty slots are filled by the house</div>
+        <div class="squadgrid" id="roster"></div>
+        <button class="btn magenta" id="toPitBtn" style="margin-top:14px" disabled>Enter The Trench →</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="live">
+    <div class="card">
+      <div class="livehead">
+        <div><h2>Live Dive</h2><div class="sub" style="margin:0">30-second dive · your pod plunges · deepest pod wins</div></div>
+        <div class="livestat">ROUND <b id="roundNo">#1</b></div>
+      </div>
+      <div class="livebody">
+        <div class="arena">
+          <div class="podstrip" id="podstrip"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn magenta" id="joinBtn" style="flex:1;min-width:160px">🌊 Dive In</button>
+            <button class="btn ghost sm" id="skipBtn" style="display:none">⏩ Skip timer (demo)</button>
+          </div>
+          <div id="timerHost" style="display:none">
+            <div class="timerlabel"><span>round closes in</span><b id="timerSecs">60s</b></div>
+            <div class="timerbar"><div class="timerfill" id="timerfill"></div></div>
+          </div>
+          <div class="countdown" id="countdown" style="display:none">—</div>
+          <div class="placetrack" id="placetrack"></div>
+          <div class="showcase" id="showcase" style="display:none"></div>
+          <div class="showtotal" id="showtotal" style="display:none"></div>
+          <div class="lobby" id="lobby"></div>
+          <button class="btn ghost sm" id="standingsToggle" style="display:none;margin:10px auto 0">▾ Round standings</button>
+          <div id="resultHost"></div>
+        </div>
+        <aside class="legend">
+          <div class="legtitle">How To Dive</div>
+          <ol class="leglist">
+            <li>Your 5 whales each plunge into the Trench.</li>
+            <li>Deeper dive = more miles. All 5 add up.</li>
+            <li>Deepest total pod wins the round.</li>
+            <li>Currents can sweep a dive to <b>0 mi</b> — the risk of the deep.</li>
+          </ol>
+          <div class="legtitle">What's In The Chest</div>
+          <div class="legrow"><span>🐚</span> Sand Dollar <b>+0</b></div>
+          <div class="legrow"><span>🔴</span> Ruby <b>+5</b></div>
+          <div class="legrow"><span>🔵</span> Sapphire <b>+9</b></div>
+          <div class="legrow"><span>🟢</span> Emerald <b>+14</b></div>
+          <div class="legrow"><span>💎</span> Diamond <b>+25</b></div>
+          <div class="legnote">Deeper dives strike richer gems. <b>Win a round</b> for bonus XP, a Wins-board climb, and a hotter streak.</div>
+          <div class="legtitle" style="margin-top:14px">Oxygen</div>
+          <div class="legnote" style="border-top:none;margin-top:0;padding-top:0">A deep dive burns a whale's air. <b>Bench a tired diver</b> to recover it and send down another of your whales — a house whale only fills in if your bench is empty. Dive a winded whale and it goes shallow and risks the bends.</div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="board">
+    <div class="card">
+      <h2>The Depths</h2>
+      <div class="sub">Deepest divers · shared across everyone</div>
+      <div class="seat" id="seat" style="display:none"></div>
+      <div class="boardtabs">
+        <button class="btab on" data-board="wins">Most Wins</button>
+        <button class="btab" data-board="streak">Hot Streak</button>
+        <button class="btab" data-board="dive">Deepest Dive</button>
+        <button class="btab" data-board="weekly">This Week</button>
+      </div>
+      <table><thead><tr><th>#</th><th>Degen</th><th id="metricCol">Wins</th></tr></thead><tbody id="boardBody"></tbody></table>
+    </div>
+  </section>
+</div>
+
+<script>
+/* ============================================================
+   THE TRENCH — wired to your live /api/whales endpoint.
+   Power is scored from real whale traits. Live rounds roll locally.
+============================================================ */
+const JOIN_SECONDS=30;
+const WHALES_ENDPOINT='/api/whales'; // your Vercel function, called as ?wallet=ADDRESS
+
+/* ---- HOUSE DECK: real SSoW whales bots draw from (so the field looks legit) ---- */
+const _E='https://i2c.seadn.io/ethereum/0x88091012eedf8dba59d08e27ed7b22008f5d6fe5/';
+const HOUSE_DECK=[
+  {id:'5288',img:_E+'626a105faf8f53190a7373bd055824/fa626a105faf8f53190a7373bd055824.png'},
+  {id:'9944',img:_E+'c81311a361e3c0f8cb541b3686127d/50c81311a361e3c0f8cb541b3686127d.png'},
+  {id:'1981',img:_E+'5cc176b8848570fcd5d9f55c383d15/f75cc176b8848570fcd5d9f55c383d15.png'},
+  {id:'1824',img:_E+'28ec1aad3affbbf14150a166a19f7c/3f28ec1aad3affbbf14150a166a19f7c.png'},
+  {id:'4927',img:_E+'0663da85e8915717885c3bdf2f4e05/640663da85e8915717885c3bdf2f4e05.png'},
+  {id:'5011',img:_E+'228a673173b490e9ee27a79b086d5a/ce228a673173b490e9ee27a79b086d5a.png'},
+  {id:'1598',img:_E+'a8ddde298f7ba0992b8dedae231ab0/9fa8ddde298f7ba0992b8dedae231ab0.png'},
+  {id:'7736',img:_E+'ae6c6231e1b767422e403983afc04a/89ae6c6231e1b767422e403983afc04a.png'},
+  {id:'5068',img:_E+'e2501c1619f4a4f6853a56068f7363/11e2501c1619f4a4f6853a56068f7363.png'},
+  {id:'6623',img:_E+'42c1f04b25395183b15c1b12567047/c242c1f04b25395183b15c1b12567047.png'},
+  {id:'5009',img:_E+'fa297756b7b25ddc8a1a488e61f250/86fa297756b7b25ddc8a1a488e61f250.png'},
+  {id:'6570',img:_E+'092bd33c413ee8152b1605eaf39fe6/b7092bd33c413ee8152b1605eaf39fe6.png'},
+  {id:'4294',img:_E+'79529d853ba28386299b922d74dc6d/2579529d853ba28386299b922d74dc6d.png'},
+  {id:'8617',img:_E+'445b868ab3aa82c85cfc1e2b509f83/f2445b868ab3aa82c85cfc1e2b509f83.png'},
+  {id:'760',img:_E+'05039032e0748d8b936d56532f7348/6005039032e0748d8b936d56532f7348.png'},
+  {id:'2001',img:_E+'89cbf1b70007663ad8eb07e1164684/4389cbf1b70007663ad8eb07e1164684.png'},
+  {id:'7941',img:_E+'39c9ebbf5cf3c5f58d4cd27179623c/a039c9ebbf5cf3c5f58d4cd27179623c.png'},
+  {id:'4608',img:_E+'09eb6388f7545546c4d3af7789be31/d009eb6388f7545546c4d3af7789be31.png'},
+  {id:'5530',img:_E+'4d6bfd27bf3c30589044791107fae0/9f4d6bfd27bf3c30589044791107fae0.png'},
+  {id:'4220',img:_E+'e0b18c53a2d9a76e40fdde18ac0826/9ee0b18c53a2d9a76e40fdde18ac0826.png'},
+  {id:'8589',img:_E+'c8ac50ffb6076ac5653de57227a5d6/5cc8ac50ffb6076ac5653de57227a5d6.png'},
+  {id:'5327',img:_E+'ce2bf832139a93f0aff9e2f9ba6740/ffce2bf832139a93f0aff9e2f9ba6740.png'},
+  {id:'1687',img:_E+'f9b7ca5072b8366c728c7242df6777/5af9b7ca5072b8366c728c7242df6777.png'},
+  {id:'6840',img:_E+'210dab243e8da00a0fd0ff2e9b5afb/c3210dab243e8da00a0fd0ff2e9b5afb.png'},
+  {id:'4934',img:_E+'7de177802670620c23b3a8c26b0861/d97de177802670620c23b3a8c26b0861.png'},
+  {id:'5752',img:_E+'46f61758c822c59e4cd6270eff4b62/b646f61758c822c59e4cd6270eff4b62.png'},
+  {id:'4418',img:_E+'9897d03ccbdd3006bc304b27781bef/a99897d03ccbdd3006bc304b27781bef.png'},
+  {id:'2251',img:_E+'de68c05dde9e414797877509764878/f6de68c05dde9e414797877509764878.png'},
+  {id:'3077',img:'https://i2c.seadn.io/ape_chain/0x3c3e92b627a817832ded520da5640246c9aaaf65/18680dd8e3da17ac963c11d7835447/f318680dd8e3da17ac963c11d7835447.png'},
+  {id:'857',img:'https://i2c.seadn.io/ape_chain/0x3c3e92b627a817832ded520da5640246c9aaaf65/6336a591bf9f1db3cecb286eb6e708/4a6336a591bf9f1db3cecb286eb6e708.png'},
+  {id:'1264',img:'https://i2c.seadn.io/abstract/0x7f283cb49724c3f592af1db8de400091acb9cf6f/3446818948c04c29f322f9b83f7470/583446818948c04c29f322f9b83f7470.png'},
+  {id:'5901',img:'https://i2c.seadn.io/abstract/0x7f283cb49724c3f592af1db8de400091acb9cf6f/1f5c583277b74ffb788a5a85d27cb2/831f5c583277b74ffb788a5a85d27cb2.png'},
+];
+function housePower(id){const s=[...String(id)].reduce((a,c)=>a+c.charCodeAt(0),0);return 46+(s*7)%37;}
+
+/* trait values the community recognizes as rare → bigger odds */
+const RARE_SKINS=['Gold','Ice','Trippy','Lightning','Mega Bot','Diamond','Rainbow'];
+const RARE_EYES=['Green Lasers','Cyborg','Heart Eyes','Battle Scar','Tripping','Laser Eyes'];
+
+function whalePower(traits){
+  if(!traits||!traits.length) return 40;
+  const types=traits.map(t=>t.trait_type);
+  const val=(ty)=>{const t=traits.find(x=>x.trait_type===ty);return t?t.value:null;};
+  let p=33;
+  if(types.includes('Fin')) p+=14;            // Fin = rare add-on
+  if(types.includes('Blowhole Ring')) p+=8;   // Ring = add-on
+  if(types.includes('Hat')) p+=3;
+  if(RARE_SKINS.includes(val('Skin'))) p+=18;
+  if(RARE_EYES.includes(val('Eyes'))) p+=10;
+  p+=traits.length*2;
+  return Math.max(1,Math.min(100,Math.round(p)));
+}
+function chainTag(url){
+  if(!url) return 'ETH';
+  if(url.indexOf('/ape_chain/')>-1) return 'APE';
+  if(url.indexOf('/abstract/')>-1) return 'ABS';
+  return 'ETH';
+}
+function topTrait(traits){
+  const skin=traits.find(t=>t.trait_type==='Skin');
+  if(skin && RARE_SKINS.includes(skin.value)) return skin.value;
+  if(traits.some(t=>t.trait_type==='Fin')) return 'FIN';
+  if(skin) return skin.value;
+  return 'WHALE';
+}
+
+/* generated art (used only for bot opponents) */
+function artFor(seedStr){
+  const seed=[...seedStr].reduce((a,c)=>a+c.charCodeAt(0),0);
+  const h1=seed%360,h2=(seed*7)%360;
+  const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'>
+    <defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
+      <stop offset='0' stop-color='hsl(${h1},70%,22%)'/><stop offset='1' stop-color='hsl(${h2},75%,12%)'/></linearGradient></defs>
+    <rect width='200' height='200' fill='url(#g)'/>
+    <circle cx='${40+seed%120}' cy='${50+seed%90}' r='${30+seed%40}' fill='hsl(${h2},80%,55%)' opacity='.25'/>
+    <text x='100' y='120' font-size='70' text-anchor='middle'>🐋</text></svg>`;
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+}
+
+/* ---- sound (synthesized, no files) ---- */
+let _ac=null;
+function audio(){ if(_ac) return _ac; try{_ac=new (window.AudioContext||window.webkitAudioContext)();}catch(e){_ac=null;} return _ac; }
+function tone(freq,dur,type,vol,when){
+  const ac=audio(); if(!ac) return;
+  const t=when||ac.currentTime;
+  const o=ac.createOscillator(), g=ac.createGain();
+  o.type=type||'square'; o.frequency.value=freq;
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(vol||0.05,t+0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+(dur||0.08));
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t+(dur||0.1));
+}
+const sfxTick =()=>tone(700+Math.random()*140,0.03,'square',0.022);
+const sfxClack=()=>{ tone(190,0.10,'triangle',0.06); tone(95,0.12,'sine',0.045); };
+const sfxCount=()=>tone(440,0.12,'square',0.05);
+const sfxRoll =()=>tone(230,0.28,'sawtooth',0.045);
+const sfxDrop =()=>tone(330,0.06,'triangle',0.035);
+function sfxWin(){ const ac=audio(); if(!ac) return; const b=ac.currentTime; [523,659,784,1047].forEach((f,i)=>tone(f,0.20,'triangle',0.055,b+i*0.10)); }
+function sweepTone(f1,f2,dur,vol){ const ac=audio(); if(!ac) return; const t=ac.currentTime;
+  const o=ac.createOscillator(), g=ac.createGain(); o.type='sine';
+  o.frequency.setValueAtTime(f1,t); o.frequency.exponentialRampToValueAtTime(f2,t+dur);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol||0.045,t+0.04); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t+dur+0.05); }
+const sfxDive=()=>sweepTone(680,140,1.05,0.05);
+const sfxLand=()=>{ tone(110,0.16,'sine',0.06); tone(70,0.22,'sine',0.04); };
+function sfxTreasure(){ const ac=audio(); if(!ac) return; const b=ac.currentTime; [784,988,1319].forEach((f,i)=>tone(f,0.16,'triangle',0.06,b+i*0.07)); }
+function sfxDiamond(){ const ac=audio(); if(!ac) return; const b=ac.currentTime; [988,1319,1568,2093].forEach((f,i)=>tone(f,0.20,'triangle',0.07,b+i*0.08)); }
+const sfxBubble=()=>tone(300,0.09,'sine',0.03);
+const sfxSwept=()=>sweepTone(150,560,0.42,0.05);
+function sfxWhale(){
+  const ac=audio(); if(!ac) return;
+  const t=ac.currentTime;
+  const o=ac.createOscillator(), g=ac.createGain(), lfo=ac.createOscillator(), lg=ac.createGain();
+  o.type='sine';
+  o.frequency.setValueAtTime(150,t);
+  o.frequency.exponentialRampToValueAtTime(92,t+0.7);
+  o.frequency.exponentialRampToValueAtTime(168,t+1.5);
+  o.frequency.exponentialRampToValueAtTime(108,t+2.2);
+  lfo.type='sine'; lfo.frequency.value=6; lg.gain.value=6; lfo.connect(lg); lg.connect(o.frequency);
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(0.05,t+0.35);
+  g.gain.setValueAtTime(0.05,t+1.6);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+2.4);
+  o.connect(g); g.connect(ac.destination);
+  o.start(t); lfo.start(t); o.stop(t+2.5); lfo.stop(t+2.5);
+}
+
+function weightedRoll(power){
+  const base=Math.random()*10;const tilt=(power/100)*4-2;
+  return Math.max(1,Math.min(10,Math.round(base+tilt)||1));
+}
+/* dive depth in MILES, weighted by power. record ceiling ≈ 1.86 (Cuvier's beaked whale) */
+function diveDepth(power){
+  const luck=0.2+Math.random()*1.2;     // 0.20 .. 1.40
+  const tilt=(power/100)*0.6;            // 0 .. 0.60 from rarity
+  const d=luck+tilt+Math.random()*0.15; // a little extra variance
+  return Math.min(1.90,Math.max(0.15,+d.toFixed(2)));
+}
+/* chest loot — deeper dives shift the odds toward the good gems.
+   sand dollar = the "nothing", then ruby < sapphire < emerald < diamond */
+function gemFor(depth){
+  const r=Math.min(1,depth/1.9);
+  const tbl=[
+    {k:'sand',     n:'Sand Dollar', i:'🐚', xp:0,  w:70-55*r},
+    {k:'ruby',     n:'Ruby',        i:'🔴', xp:5,  w:14+6*r},
+    {k:'sapphire', n:'Sapphire',    i:'🔵', xp:9,  w:8+10*r},
+    {k:'emerald',  n:'Emerald',     i:'🟢', xp:14, w:5+14*r},
+    {k:'diamond',  n:'Diamond',     i:'💎', xp:25, w:1+12*r},
+  ];
+  let total=tbl.reduce((a,x)=>a+x.w,0), roll=Math.random()*total;
+  for(const x of tbl){ if(roll<x.w) return x; roll-=x.w; }
+  return tbl[0];
+}
+const shorten=(a)=>a.length>12?a.slice(0,6)+'…'+a.slice(-4):a;
+
+/* ---- LIVE: fetch the player's real whales ---- */
+async function fetchWalletNFTs(addr){
+  const r=await fetch(`${WHALES_ENDPOINT}?wallet=${encodeURIComponent(addr)}`);
+  const data=await r.json();
+  if(!data || !data.nfts || !data.nfts.length){
+    throw new Error((data && data.error) ? data.error : 'No whales found in that wallet');
+  }
+  return data.nfts.map(n=>{
+    const img=n.display_image_url||n.image_url;
+    const traits=n.traits||[];
+    return {id:n.identifier,name:`Whale #${n.identifier}`,img,traits,
+            chain:chainTag(img),badge:topTrait(traits),power:whalePower(traits)};
+  });
+}
+
+/* fill a short squad up to 5 with borrowed house whales, so 1-whale holders can still play.
+   borrowed whales roll weaker — owning more of your own whales is an edge. */
+function padSquad(picks){
+  const out=picks.slice(0,5);
+  const pool=HOUSE_DECK.filter(w=>!out.some(p=>p.id===w.id)).sort(()=>Math.random()-.5);
+  let i=0;
+  while(out.length<5 && i<pool.length){
+    const w=pool[i++];
+    const weak=Math.max(20,Math.round(housePower(w.id)*0.6)); // ~40% weaker borrowed whales
+    out.push({id:w.id,name:`Whale #${w.id}`,img:w.img,traits:[],chain:'ETH',power:weak,house:true});
+  }
+  return out;
+}
+
+/* bots draw a 5-whale squad from the real house deck */
+async function buildBot(name){
+  const pool=[...HOUSE_DECK].sort(()=>Math.random()-.5).slice(0,5);
+  const sq=pool.map(w=>({id:w.id,name:`Whale #${w.id}`,img:w.img,power:housePower(w.id)}));
+  const pwr=Math.round(sq.reduce((a,n)=>a+n.power,0)/5);
+  return {name,pwr,squad:sq,av:sq[0].img};
+}
+
+let walletNFTs=[],squad=[],myStats={w:0,l:0,streak:0},round=1,lastResult=null,roundActive=false,skipTimer=false,nickname='',walletAddr='';
+const myLabel=()=>nickname||'YOU';
+/* house-status ladder (casino + whale puns) — XP climbs it */
+const TIERS=[
+  {n:'Minnow',x:0},{n:'Small Fry',x:60},{n:'Grinder',x:180},{n:'Card Counter',x:400},
+  {n:'Roller',x:800},{n:'High Roller',x:1500},{n:'Shark',x:2600},{n:'Whale',x:4200},{n:'Leviathan',x:7000}
+];
+function tierFor(xp){let t=TIERS[0],next=null;for(let i=0;i<TIERS.length;i++){if(xp>=TIERS[i].x){t=TIERS[i];next=TIERS[i+1]||null;}}return {tier:t,next};}
+const METRIC={wins:'Wins',streak:'Best Streak',dive:'Deepest Dive',weekly:'Wins · Week'};
+let currentBoard='wins';
+const board=[
+  {name:'0xfrostbite.eth',pwr:71,w:14,l:3,streak:'W5'},
+  {name:'whalemaxi',pwr:68,w:11,l:6,streak:'W2'},
+  {name:'pengurekt',pwr:64,w:9,l:7,streak:'L1'},
+  {name:'apexdraft',pwr:59,w:8,l:8,streak:'W1'},
+  {name:'floordiver',pwr:55,w:5,l:11,streak:'L3'},
+];
+const BOTNAMES=['0xfrostbite.eth','whalemaxi','pengurekt','apexdraft','floordiver','gigamint','serbiandane','vibesonly.eth','rarehunter','degenjuan'];
+
+const $=(s)=>document.querySelector(s);
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');$('#'+t.dataset.view).classList.add('on');
+  if(t.dataset.view==='board')renderBoard(currentBoard);
+  if(t.dataset.view==='live')renderPodStrip();
+});
+document.querySelectorAll('.btab').forEach(b=>b.onclick=()=>renderBoard(b.dataset.board));
+
+/* WALLET */
+$('#loadBtn').onclick=async()=>{
+  const addr=$('#walletInput').value.trim();
+  if(!addr){$('#walletInput').focus();return;}
+  $('#loadBtn').disabled=true;$('#loadBtn').textContent='…loading';
+  $('#walletMeta').style.display='block';$('#walletMeta').classList.remove('err');$('#walletMeta').textContent='Diving the blockchain…';
+  try{
+    walletNFTs=await fetchWalletNFTs(addr);
+    walletNFTs.forEach(n=>n.o2=100);
+    walletAddr=addr;
+    $('#walletLabel').textContent=shorten(addr);
+    $('#walletMeta').innerHTML=`<b>${walletNFTs.length}</b> whales found in ${shorten(addr)} — tap 5 to draft`;
+    renderWallet();
+  }catch(e){
+    walletNFTs=[];renderWallet();
+    $('#walletMeta').classList.add('err');$('#walletMeta').textContent='⚠ '+e.message;
+  }
+  $('#loadBtn').disabled=false;$('#loadBtn').textContent='⊳ Reload';
+};
+$('#walletInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('#loadBtn').click();});
+$('#nickInput').addEventListener('input',e=>{nickname=e.target.value.trim();});
+
+function renderWallet(){
+  const grid=$('#walletGrid');grid.innerHTML='';
+  walletNFTs.forEach(n=>{
+    const sel=squad.some(s=>s.id===n.id);
+    const d=document.createElement('div');d.className='nftcard pick'+(sel?' sel':'');
+    d.innerHTML=`<div class="pwrtag">${n.power}</div>${sel?'<div class="check">✓</div>':''}
+      <img class="art" src="${n.img}" alt="" loading="lazy">
+      <div class="meta"><div class="nm">${n.name}</div></div>`;
+    d.onclick=()=>toggle(n);grid.appendChild(d);
+  });
+}
+function toggle(n){
+  const i=squad.findIndex(s=>s.id===n.id);
+  if(i>=0)squad.splice(i,1);
+  else{if(squad.length>=5){alert('5 divers max — bench one first.');return;}n.o2=n.o2??100;squad.push(n);}
+  renderWallet();renderRoster();renderPodStrip();
+}
+function renderPodStrip(){
+  const host=$('#podstrip'); if(!host) return;
+  if(!walletNFTs.length){ host.innerHTML=''; return; }
+  const chip=(w,active)=>{
+    const o2=w.o2??100, low=o2<35;
+    return `<div class="podw ${active?'diving':''} ${low?'low':''}" data-id="${w.id}">
+      <img src="${w.img}" alt="">
+      <div class="po2"><div class="po2f" style="width:${o2}%"></div></div>
+      <div class="postate">${o2}% O₂</div>
+      <div class="podact">${active?'BENCH ↓':'DIVE ↑'}</div></div>`;
+  };
+  const diving=squad.map(w=>chip(w,true)).join('');
+  const bench=walletNFTs.filter(w=>!squad.includes(w)).map(w=>chip(w,false)).join('');
+  host.innerHTML=`<div class="podstrip-t">Diving (${squad.length}/5) · tap to bench${squad.length<5?' · house fills empty slots':''}</div>
+    <div class="podrow">${diving||'<span class="podempty">no divers — tap a whale below to send it down</span>'}</div>
+    ${bench?`<div class="podstrip-t" style="margin-top:12px">Bench · tap to send down · rests &amp; recovers here</div><div class="podrow benchrow">${bench}</div>`:''}`;
+  host.querySelectorAll('.podw').forEach(el=>el.onclick=()=>{
+    if(roundActive) return;
+    const w=walletNFTs.find(x=>x.id===el.dataset.id); if(w) toggle(w);
+  });
+}
+function renderRoster(){
+  const host=$('#roster');host.innerHTML='';
+  for(let i=0;i<5;i++){
+    const n=squad[i];
+    if(!n){const d=document.createElement('div');d.className='nftcard empty';d.textContent='＋';host.appendChild(d);continue;}
+    const d=document.createElement('div');d.className='nftcard';
+    d.innerHTML=`<div class="pwrtag">${n.power}</div><button class="rm" data-i="${i}">✕</button>
+      <img class="art" src="${n.img}" alt="" loading="lazy">
+      <div class="meta"><div class="nm">${n.name}</div></div>`;
+    host.appendChild(d);
+  }
+  host.querySelectorAll('.rm').forEach(b=>b.onclick=()=>{squad.splice(+b.dataset.i,1);renderWallet();renderRoster();});
+  $('#squadCount').textContent=`${squad.length}/5`;
+  $('#toPitBtn').disabled=squad.length<1;
+}
+$('#toPitBtn').onclick=()=>document.querySelector('[data-view=live]').click();
+
+/* LIVE DIVE */
+$('#joinBtn').onclick=async()=>{
+  if(roundActive)return;
+  if(squad.length<1){alert('Load your wallet and draft at least 1 whale first.');document.querySelector('[data-view=draft]').click();return;}
+  roundActive=true;skipTimer=false;
+  const ps=$('#podstrip'); if(ps) ps.style.display='none';
+  $('#lobby').style.display='';
+  const stgR=$('#standingsToggle'); if(stgR) stgR.style.display='none';
+  try{const ac=audio(); if(ac && ac.state==='suspended') ac.resume();}catch(e){}
+  const join=$('#joinBtn');join.disabled=true;join.textContent='DIVING…';
+  $('#resultHost').innerHTML='';$('#placetrack').textContent='';
+  $('#showcase').style.display='none';$('#showtotal').style.display='none';
+  const lobby=$('#lobby');lobby.innerHTML='';$('#skipBtn').style.display='block';
+
+  const mySquad=padSquad(squad);
+  const myPwr=Math.round(mySquad.reduce((a,n)=>a+n.power,0)/5);
+  const me={name:myLabel(),you:true,pwr:myPwr,av:mySquad[0].img,squad:mySquad};
+  const players=[me];
+  renderJoinLobby(players);
+
+  const nBots=5+Math.floor(Math.random()*4);
+  const names=[...BOTNAMES].sort(()=>Math.random()-.5).slice(0,nBots);
+  const arrivals=names.map(()=>Math.random()*(JOIN_SECONDS-5)).sort((a,b)=>a-b);
+  let arrived=0;
+
+  $('#timerHost').style.display='block';
+  for(let s=JOIN_SECONDS;s>=0;s--){
+    if(skipTimer){
+      while(arrived<nBots){players.push(await buildBot(names[arrived].trim()));arrived++;}
+      renderJoinLobby(players);break;
+    }
+    $('#timerSecs').textContent=s+'s';$('#timerfill').style.width=(s/JOIN_SECONDS*100)+'%';
+    while(arrived<nBots && arrivals[arrived] >= (JOIN_SECONDS-s)){
+      players.push(await buildBot(names[arrived].trim()));arrived++;renderJoinLobby(players);
+    }
+    if(s===0)break;await wait(1000);
+  }
+  $('#skipBtn').style.display='none';$('#timerHost').style.display='none';
+
+  const cd=$('#countdown');cd.style.display='block';cd.classList.remove('go');
+  for(const t of ['3','2','1']){cd.textContent=t;sfxCount();await wait(650);}
+  cd.textContent='DIVE!';cd.classList.add('go');sfxRoll();await wait(550);cd.style.display='none';
+
+  const CURRENT=0.20; // base chance a dive gets swept by a current
+  players.forEach(p=>{p.rolls=[];p.swept=[];p.total=0;for(let i=0;i<5;i++){
+    const o2=(p.you && p.squad[i] && p.squad[i].o2!=null)?p.squad[i].o2:100;
+    const sweepCh=CURRENT+(1-o2/100)*0.22; // a winded whale risks the bends
+    if(Math.random()<sweepCh){p.rolls.push(0);p.swept.push(true);}
+    else{let r=diveDepth(p.pwr)*(0.55+0.45*o2/100); r=Math.max(0.15,+r.toFixed(2)); p.rolls.push(r);p.swept.push(false);p.total+=r;}
+  }p.total=+p.total.toFixed(2);});
+  me.loot=me.rolls.map((d,i)=>me.swept[i]?null:gemFor(d));
+  // oxygen: divers tire (deeper = more), rested whales recover
+  me.squad.forEach((w,i)=>{ if(w.house||w.o2==null) return;
+    if(me.swept[i]) w.o2=Math.max(0,w.o2-8);
+    else w.o2=Math.max(0,Math.min(100,w.o2-Math.round(me.rolls[i]*26)+8)); });
+  walletNFTs.forEach(w=>{ if(!squad.includes(w)) w.o2=Math.min(100,(w.o2??100)+45); });
+
+  const standings=await slowReveal(players, me);
+  const winner=standings[0],youWon=winner.you,youPlace=standings.findIndex(p=>p.you)+1;
+  $('#showtotal').innerHTML=`YOU DOVE ${me.total.toFixed(2)} <small>mi · ${youWon?'🏆 1st':'#'+youPlace} of ${players.length}</small>`;
+
+  myStats[youWon?'w':'l']++;
+  myStats.streak=youWon?(myStats.streak>0?myStats.streak+1:1):(myStats.streak<0?myStats.streak-1:-1);
+  lastResult={winner:winner.name,winTotal:winner.total,youWon,youPlace,field:players.length,round};
+  const topOpp=Math.max(0,...players.filter(p=>!p.you).map(p=>p.pwr));
+  const upset=youWon && topOpp>me.pwr;
+  const lootXP=(me.loot||[]).reduce((a,g)=>a+(g?g.xp:0),0);
+  const streakN=myStats.streak;
+  const winBonus=youWon?12:0;
+  const streakBonus=(youWon && streakN>1)?streakN*3:0; // deeper win streaks pay more
+  const xpGain=4+winBonus+streakBonus+Math.round(me.total)+(upset?8:0)+lootXP;
+  try{ fetch('/api/leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({wallet:walletAddr||myLabel(),name:myLabel(),won:youWon,xp:xpGain,total:me.total})}); }catch(e){}
+
+  $('#placetrack').textContent='';
+  $('#resultHost').innerHTML=resultCard(me, winner, round, youPlace, players.length, youWon);
+  if(youWon){
+    $('#resultHost').insertAdjacentHTML('afterbegin',
+      `<div class="winreward">+${winBonus} XP WIN BONUS<span>${streakBonus?`+${streakBonus} streak (${streakN}🔥) · `:''}climbs the Wins board</span></div>`);
+  }
+  $('#resultHost').insertAdjacentHTML('beforeend',`<div class="xpgain">+${xpGain} XP · ${(me.loot||[]).map(g=>g?g.i:'🌀').join(' ')}${upset?' · UPSET':''}</div>`);
+  $('#lobby').style.display='none';
+  const stg=$('#standingsToggle'); if(stg){ stg.style.display='block'; stg.textContent=`▾ Round standings (${players.length})`; }
+  round++;$('#roundNo').textContent='#'+round;
+  join.disabled=false;join.textContent='🌊 Dive Again';roundActive=false;
+  const ps2=$('#podstrip'); if(ps2) ps2.style.display='';
+  renderPodStrip();
+};
+$('#skipBtn').onclick=()=>{skipTimer=true;};
+$('#standingsToggle').onclick=()=>{
+  const lb=$('#lobby'), open=lb.style.display!=='none';
+  lb.style.display=open?'none':'flex';
+  $('#standingsToggle').textContent=(open?'▾ Round standings':'▴ Hide standings');
+};
+
+function renderJoinLobby(players){
+  const lobby=$('#lobby');lobby.innerHTML='';
+  players.forEach(p=>{
+    const d=document.createElement('div');d.className='player'+(p.you?' you':'');
+    d.innerHTML=`<img class="av" src="${p.av}"><div class="pn">${p.name}</div>
+      <div class="pp">PWR ${p.pwr}</div><div class="total dim">…</div>`;
+    lobby.appendChild(d);
+  });
+}
+
+async function slowReveal(players, me){
+  const lobby=$('#lobby');lobby.innerHTML='';
+  const sc=$('#showcase');sc.style.display='grid';sc.innerHTML='';
+  me.squad.forEach((n,i)=>{
+    const d=document.createElement('div');d.className='divetile';
+    d.innerHTML=`<div class="dtname">${n.name}${n.house?' <span class="htag">HOUSE</span>':''}</div>
+      <div class="divetube"><img class="diver" data-d="${i}" src="${n.img}" alt=""><div class="chest" data-c="${i}"><span class="gem"></span><span class="lid"></span><span class="base"></span></div></div>
+      <div class="depthlabel" data-l="${i}">— mi</div>`;
+    sc.appendChild(d);
+  });
+  const st=$('#showtotal');st.style.display='block';st.innerHTML='DIVING… <small>0.00 mi</small>';
+  $('#placetrack').innerHTML='THE POD DESCENDS';
+  sfxWhale();
+  let run=0;
+  for(let i=0;i<5;i++){
+    const diver=sc.querySelector(`.diver[data-d="${i}"]`), label=sc.querySelector(`.depthlabel[data-l="${i}"]`), chest=sc.querySelector(`.chest[data-c="${i}"]`);
+    if(me.swept[i]) await sweptAnimate(diver, label);
+    else await diveAnimate(diver, label, me.rolls[i], me.loot[i], chest);
+    run=+(run+me.rolls[i]).toFixed(2);
+    st.innerHTML=`${run.toFixed(2)} <small>mi</small>`;
+    await wait(240);
+  }
+  st.innerHTML=`YOU DOVE ${me.total.toFixed(2)} <small>mi</small>`;
+  $('#placetrack').innerHTML='THE POD SURFACES…';
+  await wait(700);
+  const others=players.filter(p=>!p.you).sort((a,b)=>a.total-b.total);
+  let standings=[me];
+  for(const op of others){
+    await wait(900);
+    standings.push(op);standings.sort((a,b)=>b.total-a.total);
+    renderStandings(standings, me, op, false);sfxDrop();
+    const place=standings.findIndex(p=>p.you)+1;
+    $('#placetrack').innerHTML=`${myLabel()}: <b>#${place}</b> of ${standings.length}`;
+  }
+  await wait(500);
+  renderStandings(standings, me, null, true);sfxWin();
+  return standings;
+}
+/* animate one whale sinking to its depth, then crack open its chest */
+function diveAnimate(diver, label, depth, gem, chest){
+  return new Promise(res=>{
+    const tube=diver.parentElement;
+    const maxY=Math.max(0, tube.clientHeight - diver.clientHeight - 56); // leave the seabed for the chest
+    const endY=Math.min(1, depth/1.9)*maxY;
+    const T=1300, start=performance.now();
+    sfxDive();
+    function frame(now){
+      let p=(now-start)/T; if(p>1)p=1;
+      const e=p*p;
+      diver.style.transform=`translateY(${(e*endY).toFixed(1)}px)`;
+      label.textContent=(e*depth).toFixed(2)+' mi';
+      if(p<1){ requestAnimationFrame(frame); }
+      else{
+        diver.style.transform=`translateY(${endY.toFixed(1)}px)`;
+        label.textContent=depth.toFixed(2)+' mi';
+        diver.classList.add('landed');
+        if(depth>=1.80){ label.classList.add('record'); label.textContent=depth.toFixed(2)+' mi 🏆'; }
+        sfxLand();
+        if(chest && gem){
+          chest.querySelector('.gem').textContent=gem.i;
+          chest.classList.add('show');
+          setTimeout(()=>{
+            chest.classList.add('open', gem.k);
+            if(gem.k==='sand') sfxBubble();
+            else if(gem.k==='diamond') sfxDiamond();
+            else sfxTreasure();
+            setTimeout(res, 420);
+          },360);
+        } else res();
+      }
+    }
+    requestAnimationFrame(frame);
+  });
+}
+/* a current sweeps the dive — whale dips, gets yanked back up, no chest */
+function sweptAnimate(diver, label){
+  return new Promise(res=>{
+    const tube=diver.parentElement;
+    const maxY=Math.max(0, tube.clientHeight - diver.clientHeight - 56);
+    const dip=maxY*0.45, start=performance.now();
+    sfxDive();
+    function down(now){
+      let p=(now-start)/700; if(p>1)p=1;
+      diver.style.transform=`translateY(${(p*dip).toFixed(1)}px)`;
+      label.textContent=(p*0.45).toFixed(2)+' mi';
+      if(p<1) requestAnimationFrame(down); else up();
+    }
+    function up(){
+      tube.classList.add('current'); sfxSwept();
+      const s2=performance.now();
+      function rise(now){
+        let p=(now-s2)/620; if(p>1)p=1;
+        const x=Math.sin(p*Math.PI*4)*10*(1-p);
+        diver.style.transform=`translate(${x.toFixed(1)}px, ${((1-p)*dip).toFixed(1)}px)`;
+        if(p<1) requestAnimationFrame(rise);
+        else{ diver.style.transform='translateY(0)'; label.textContent='SWEPT'; label.classList.add('swept'); setTimeout(()=>tube.classList.remove('current'),200); setTimeout(res,250); }
+      }
+      requestAnimationFrame(rise);
+    }
+    requestAnimationFrame(down);
+  });
+}
+function renderStandings(standings, me, justIn, final){
+  const lobby=$('#lobby');lobby.innerHTML='';
+  standings.forEach((p,idx)=>{
+    const d=document.createElement('div');
+    d.className='player'+(p.you?' you':'')+(final&&idx===0?' winner':'')+(p===justIn?' justin':'');
+    const rel = p.you ? '' : (p.total>me.total ? 'beat' : 'ahead');
+    d.innerHTML=`<img class="av" src="${p.av}"><div class="pn">${p.name} ${final&&idx===0?'<span class="crown">👑</span>':''}</div>
+      <div class="pp">P${p.pwr}</div><div class="total ${rel}">${p.total.toFixed(2)}</div>`;
+    lobby.appendChild(d);
+  });
+}
+function resultCard(me, winner, round, place, field, youWon){
+  const tiles=me.squad.map((n,i)=>{
+    const gem=me.loot[i];
+    const val=me.swept[i]?'<span class="swepttxt">SWEPT</span>':me.rolls[i].toFixed(2);
+    return `<div class="scard"><img src="${n.img}" alt="">${n.house?'<span class="htag">HOUSE</span>':''}${gem?'<span class="gembadge">'+gem.i+'</span>':''}
+      <div class="snm">${n.name}</div><div class="sdie locked">${val}</div></div>`;
+  }).join('');
+  const badge=youWon?'🏆 1ST PLACE · DEEPEST POD':`YOU PLACED #${place} OF ${field}`;
+  return `<div class="bragcard ${youWon?'':'lose'}">
+    <div class="placebadge ${youWon?'win':''}">${badge}</div>
+    <div class="bragname">${myLabel()} · ROUND ${round}</div>
+    <div class="showcase">${tiles}</div>
+    <div class="bragtotal">YOU DOVE ${me.total.toFixed(2)} mi</div>
+    <div class="bragfoot">THE TRENCH · thewhaleclub.xyz/thetrench</div>
+  </div>`;
+}
+
+async function renderBoard(board){
+  board=board||currentBoard;currentBoard=board;
+  document.querySelectorAll('.btab').forEach(b=>b.classList.toggle('on',b.dataset.board===board));
+  const mc=$('#metricCol'); if(mc) mc.textContent=METRIC[board]||'Wins';
+  const body=$('#boardBody');
+  body.innerHTML='<tr><td colspan="3" style="text-align:center;color:var(--dim);padding:22px">loading the floor…</td></tr>';
+  let data=null;
+  try{ const r=await fetch(`/api/leaderboard?board=${board}&me=${encodeURIComponent(walletAddr||'')}`); data=await r.json(); }catch(e){}
+  renderSeat(data&&data.me);
+  body.innerHTML='';
+  const rows=data&&Array.isArray(data.rows)?data.rows:null;
+  if(!rows){ body.innerHTML='<tr><td colspan="3" style="text-align:center;color:var(--dim);padding:22px">The floor opens once the leaderboard database is connected.</td></tr>'; return; }
+  if(!rows.length){ body.innerHTML='<tr><td colspan="3" style="text-align:center;color:var(--dim);padding:22px">Empty table — ante up to claim the #1 seat.</td></tr>'; return; }
+  rows.forEach((r,i)=>{
+    const name=r.name||(r.wallet?shorten(r.wallet):'anon');
+    const me=walletAddr&&r.wallet===walletAddr;
+    const val = board==='dive' ? Number(r.value).toFixed(2)+' mi' : r.value;
+    const tr=document.createElement('tr');if(me)tr.className='me';
+    tr.innerHTML=`<td class="rank ${i<3?'g'+(i+1):''}">${i+1}</td>
+      <td>${me?'<b style="color:var(--plasma)">'+name+'</b>':name}</td>
+      <td class="wl"><b>${val}</b></td>`;
+    body.appendChild(tr);
+  });
+}
+function renderSeat(me){
+  const seat=$('#seat'); if(!seat) return;
+  if(!me){ seat.style.display='none'; return; }
+  seat.style.display='block';
+  const xp=me.xp||0; const {tier,next}=tierFor(xp);
+  const pct=next?Math.min(100,Math.max(4,Math.round((xp-tier.x)/(next.x-tier.x)*100))):100;
+  seat.innerHTML=`<div class="seathead"><span class="tier">${tier.n}</span><span class="seatxp">${xp} XP</span></div>
+    <div class="xpbar"><div class="xpfill" style="width:${pct}%"></div></div>
+    <div class="seatmeta">${next?'<b>'+(next.x-xp)+'</b> XP to '+next.n:'MAX STATUS'} · ${me.wins} W · streak <b>${me.streak}</b> 🔥 · best ${me.beststreak} · deepest ${(me.besttotal||0).toFixed(2)} mi</div>`;
+}
+
+renderRoster();
+</script>
+</body>
+</html>
