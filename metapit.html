@@ -107,14 +107,32 @@
     border:1px solid rgba(255,255,255,.35);background:#0a0b12;box-shadow:0 3px 10px rgba(0,0,0,.5);will-change:transform}
   .depthlabel{font-family:'Anton';font-size:14px;color:var(--ink);margin-top:7px;letter-spacing:.5px}
   .depthlabel.record{color:var(--gold);text-shadow:0 0 10px rgba(255,206,90,.5)}
-  .chest{position:absolute;left:50%;margin-left:18px;top:5px;font-size:17px;opacity:0;pointer-events:none}
-  .chest.show{opacity:1;animation:chestpop .42s ease}
-  .chest.sand{opacity:.5}
-  .chest.ruby{filter:drop-shadow(0 0 7px rgba(255,77,138,.95))}
-  .chest.sapphire{filter:drop-shadow(0 0 7px rgba(58,227,255,.95))}
-  .chest.emerald{filter:drop-shadow(0 0 7px rgba(120,255,140,.95))}
-  .chest.diamond{filter:drop-shadow(0 0 11px rgba(255,255,255,1))}
-  @keyframes chestpop{0%{transform:scale(.3)}60%{transform:scale(1.35)}100%{transform:scale(1)}}
+  .chest{position:absolute;left:50%;margin-left:-13px;top:5px;width:26px;height:26px;opacity:0;pointer-events:none}
+  .chest.show{opacity:1}
+  .chest .base{position:absolute;bottom:0;left:0;width:26px;height:13px;background:linear-gradient(#946031,#5a3614);border:1px solid #3c2410;border-radius:0 0 4px 4px;box-shadow:inset 0 2px 0 rgba(255,255,255,.12)}
+  .chest .lid{position:absolute;bottom:12px;left:0;width:26px;height:9px;background:linear-gradient(#b3793e,#774c20);border:1px solid #3c2410;border-radius:5px 5px 0 0;transform-origin:left bottom;transition:transform .32s ease}
+  .chest.open .lid{transform:rotate(-122deg)}
+  .chest .gem{position:absolute;left:50%;margin-left:-9px;top:4px;font-size:16px;opacity:0;transition:opacity .35s ease, top .35s ease}
+  .chest.open .gem{opacity:1;top:-14px}
+  .chest.open.sand .gem{opacity:.6}
+  .chest.open.ruby .gem{filter:drop-shadow(0 0 7px rgba(255,77,138,.95))}
+  .chest.open.sapphire .gem{filter:drop-shadow(0 0 7px rgba(58,227,255,.95))}
+  .chest.open.emerald .gem{filter:drop-shadow(0 0 7px rgba(120,255,140,.95))}
+  .chest.open.diamond .gem{filter:drop-shadow(0 0 10px rgba(255,255,255,1))}
+  .depthlabel.swept{color:var(--lose)}
+  .divetube.current::after{content:'';position:absolute;inset:0;background:linear-gradient(115deg,transparent 38%,rgba(120,200,255,.4) 50%,transparent 62%);animation:cur .5s linear}
+  @keyframes cur{from{transform:translateX(-110%)}to{transform:translateX(110%)}}
+  .livebody{display:flex;gap:16px;align-items:flex-start;margin-top:12px}
+  .arena{flex:1;min-width:0}
+  .legend{flex:0 0 212px;background:var(--panel-2);border:1px solid var(--line);padding:14px;border-radius:4px}
+  .legtitle{font-family:'Anton';font-size:13px;letter-spacing:1.5px;color:var(--gold);text-transform:uppercase;margin:2px 0 8px}
+  .leglist{margin:0 0 14px;padding-left:17px}
+  .leglist li{font-size:11px;color:var(--dim);line-height:1.55;margin-bottom:5px}
+  .legrow{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink);padding:3px 0}
+  .legrow span{font-size:15px;width:18px;text-align:center}
+  .legrow b{margin-left:auto;color:var(--acid);font-family:'JetBrains Mono'}
+  .legnote{font-size:10px;color:var(--dim);line-height:1.6;margin-top:10px;border-top:1px dashed var(--line);padding-top:10px}
+  @media(max-width:760px){.livebody{flex-direction:column}.legend{flex:auto;width:100%}}
   .scard .sdie.rolling{color:var(--plasma)}
   .scard .sdie.locked{color:var(--ink)}
   .scard .sdie.pop{animation:diepop .35s ease}
@@ -182,12 +200,11 @@
   </div>
 
   <section class="view on" id="draft">
-    <div class="lore">Long after the surface forgot them, the Society's whales learned the deep still keeps its treasure. Now they dive the Trench for the gems and relics the dark swallowed — <b>deepest pod surfaces richest.</b></div>
     <div class="howto">
-      <div class="howstep"><b>1</b> Stack your 5 deepest-diving whales</div>
-      <div class="howstep"><b>2</b> Dive into a 30-second round</div>
-      <div class="howstep"><b>3</b> Each whale plunges — rare whales dive deeper</div>
-      <div class="howstep"><b>4</b> Deepest pod wins · take the crown</div>
+      <div class="howstep"><b>1</b> Pick 5 whales you own (or let the house fill empty slots)</div>
+      <div class="howstep"><b>2</b> All 5 dive the Trench — deeper dive = more miles</div>
+      <div class="howstep"><b>3</b> Deepest total pod wins · currents can sweep a dive to 0</div>
+      <div class="howstep"><b>4</b> Every dive cracks a chest for gems — bigger gems = more XP</div>
     </div>
     <div class="grid">
       <div class="card">
@@ -215,20 +232,40 @@
         <div><h2>Live Dive</h2><div class="sub" style="margin:0">30-second dive · your pod plunges · deepest pod wins</div></div>
         <div class="livestat">ROUND <b id="roundNo">#1</b></div>
       </div>
-      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-        <button class="btn magenta" id="joinBtn" style="flex:1;min-width:160px">🌊 Dive In</button>
-        <button class="btn ghost sm" id="skipBtn" style="display:none">⏩ Skip timer (demo)</button>
+      <div class="livebody">
+        <div class="arena">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn magenta" id="joinBtn" style="flex:1;min-width:160px">🌊 Dive In</button>
+            <button class="btn ghost sm" id="skipBtn" style="display:none">⏩ Skip timer (demo)</button>
+          </div>
+          <div id="timerHost" style="display:none">
+            <div class="timerlabel"><span>round closes in</span><b id="timerSecs">60s</b></div>
+            <div class="timerbar"><div class="timerfill" id="timerfill"></div></div>
+          </div>
+          <div class="countdown" id="countdown" style="display:none">—</div>
+          <div class="placetrack" id="placetrack"></div>
+          <div class="showcase" id="showcase" style="display:none"></div>
+          <div class="showtotal" id="showtotal" style="display:none"></div>
+          <div class="lobby" id="lobby"></div>
+          <div id="resultHost"></div>
+        </div>
+        <aside class="legend">
+          <div class="legtitle">How To Dive</div>
+          <ol class="leglist">
+            <li>Your 5 whales each plunge into the Trench.</li>
+            <li>Deeper dive = more miles. All 5 add up.</li>
+            <li>Deepest total pod beats the table.</li>
+            <li>Currents can sweep a dive to <b>0 mi</b> — the risk of the deep.</li>
+          </ol>
+          <div class="legtitle">What's In The Chest</div>
+          <div class="legrow"><span>🐚</span> Sand Dollar <b>+0</b></div>
+          <div class="legrow"><span>🔴</span> Ruby <b>+5</b></div>
+          <div class="legrow"><span>🔵</span> Sapphire <b>+9</b></div>
+          <div class="legrow"><span>🟢</span> Emerald <b>+14</b></div>
+          <div class="legrow"><span>💎</span> Diamond <b>+25</b></div>
+          <div class="legnote">Deeper dives strike richer gems. Gems + wins build your XP and rank.</div>
+        </aside>
       </div>
-      <div id="timerHost" style="display:none">
-        <div class="timerlabel"><span>round closes in</span><b id="timerSecs">60s</b></div>
-        <div class="timerbar"><div class="timerfill" id="timerfill"></div></div>
-      </div>
-      <div class="countdown" id="countdown" style="display:none">—</div>
-      <div class="placetrack" id="placetrack"></div>
-      <div class="showcase" id="showcase" style="display:none"></div>
-      <div class="showtotal" id="showtotal" style="display:none"></div>
-      <div class="lobby" id="lobby"></div>
-      <div id="resultHost"></div>
     </div>
   </section>
 
@@ -367,6 +404,7 @@ const sfxLand=()=>{ tone(110,0.16,'sine',0.06); tone(70,0.22,'sine',0.04); };
 function sfxTreasure(){ const ac=audio(); if(!ac) return; const b=ac.currentTime; [784,988,1319].forEach((f,i)=>tone(f,0.16,'triangle',0.06,b+i*0.07)); }
 function sfxDiamond(){ const ac=audio(); if(!ac) return; const b=ac.currentTime; [988,1319,1568,2093].forEach((f,i)=>tone(f,0.20,'triangle',0.07,b+i*0.08)); }
 const sfxBubble=()=>tone(300,0.09,'sine',0.03);
+const sfxSwept=()=>sweepTone(150,560,0.42,0.05);
 
 function weightedRoll(power){
   const base=Math.random()*10;const tilt=(power/100)*4-2;
@@ -558,8 +596,12 @@ $('#joinBtn').onclick=async()=>{
   for(const t of ['3','2','1']){cd.textContent=t;sfxCount();await wait(650);}
   cd.textContent='DIVE!';cd.classList.add('go');sfxRoll();await wait(550);cd.style.display='none';
 
-  players.forEach(p=>{p.rolls=[];p.total=0;for(let i=0;i<5;i++){const r=diveDepth(p.pwr);p.rolls.push(r);p.total+=r;}p.total=+p.total.toFixed(2);});
-  me.loot=me.rolls.map(d=>gemFor(d));
+  const CURRENT=0.13; // chance a dive gets swept by a current
+  players.forEach(p=>{p.rolls=[];p.swept=[];p.total=0;for(let i=0;i<5;i++){
+    if(Math.random()<CURRENT){p.rolls.push(0);p.swept.push(true);}
+    else{const r=diveDepth(p.pwr);p.rolls.push(r);p.swept.push(false);p.total+=r;}
+  }p.total=+p.total.toFixed(2);});
+  me.loot=me.rolls.map((d,i)=>me.swept[i]?null:gemFor(d));
 
   const standings=await slowReveal(players, me);
   const winner=standings[0],youWon=winner.you,youPlace=standings.findIndex(p=>p.you)+1;
@@ -569,14 +611,14 @@ $('#joinBtn').onclick=async()=>{
   lastResult={winner:winner.name,winTotal:winner.total,youWon,youPlace,field:players.length,round};
   const topOpp=Math.max(0,...players.filter(p=>!p.you).map(p=>p.pwr));
   const upset=youWon && topOpp>me.pwr;
-  const lootXP=(me.loot||[]).reduce((a,g)=>a+g.xp,0);
+  const lootXP=(me.loot||[]).reduce((a,g)=>a+(g?g.xp:0),0);
   const xpGain=4+(youWon?12:0)+Math.round(me.total)+(upset?8:0)+lootXP;
   try{ fetch('/api/leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({wallet:walletAddr||myLabel(),name:myLabel(),won:youWon,xp:xpGain,total:me.total})}); }catch(e){}
 
   $('#placetrack').textContent='';
   $('#resultHost').innerHTML=winnerCard(winner, round, youWon, youPlace, players.length);
-  $('#resultHost').insertAdjacentHTML('beforeend',`<div class="xpgain">+${xpGain} XP · ${(me.loot||[]).map(g=>g.i).join(' ')}${upset?' · UPSET':''}</div>`);
+  $('#resultHost').insertAdjacentHTML('beforeend',`<div class="xpgain">+${xpGain} XP · ${(me.loot||[]).map(g=>g?g.i:'🌀').join(' ')}${upset?' · UPSET':''}</div>`);
   round++;$('#roundNo').textContent='#'+round;
   join.disabled=false;join.textContent='🌊 Dive Again';roundActive=false;
 };
@@ -598,7 +640,7 @@ async function slowReveal(players, me){
   me.squad.forEach((n,i)=>{
     const d=document.createElement('div');d.className='divetile';
     d.innerHTML=`<div class="dtname">${n.name}${n.house?' <span class="htag">HOUSE</span>':''}</div>
-      <div class="divetube"><img class="diver" data-d="${i}" src="${n.img}" alt=""><div class="chest" data-c="${i}"></div></div>
+      <div class="divetube"><img class="diver" data-d="${i}" src="${n.img}" alt=""><div class="chest" data-c="${i}"><span class="gem"></span><span class="lid"></span><span class="base"></span></div></div>
       <div class="depthlabel" data-l="${i}">— mi</div>`;
     sc.appendChild(d);
   });
@@ -606,7 +648,9 @@ async function slowReveal(players, me){
   $('#placetrack').innerHTML='THE POD DESCENDS';
   let run=0;
   for(let i=0;i<5;i++){
-    await diveAnimate(sc.querySelector(`.diver[data-d="${i}"]`), sc.querySelector(`.depthlabel[data-l="${i}"]`), me.rolls[i], me.loot[i], sc.querySelector(`.chest[data-c="${i}"]`));
+    const diver=sc.querySelector(`.diver[data-d="${i}"]`), label=sc.querySelector(`.depthlabel[data-l="${i}"]`), chest=sc.querySelector(`.chest[data-c="${i}"]`);
+    if(me.swept[i]) await sweptAnimate(diver, label);
+    else await diveAnimate(diver, label, me.rolls[i], me.loot[i], chest);
     run=+(run+me.rolls[i]).toFixed(2);
     st.innerHTML=`${run.toFixed(2)} <small>mi</small>`;
     await wait(160);
@@ -637,7 +681,7 @@ function diveAnimate(diver, label, depth, gem, chest){
     sfxDive();
     function frame(now){
       let p=(now-start)/T; if(p>1)p=1;
-      const e=p*p; // ease-in: accelerate as it sinks
+      const e=p*p;
       diver.style.transform=`translateY(${(e*endY).toFixed(1)}px)`;
       label.textContent=(e*depth).toFixed(2)+' mi';
       if(p<1){ requestAnimationFrame(frame); }
@@ -648,19 +692,49 @@ function diveAnimate(diver, label, depth, gem, chest){
         if(depth>=1.80){ label.classList.add('record'); label.textContent=depth.toFixed(2)+' mi 🏆'; }
         sfxLand();
         if(chest && gem){
-          chest.style.top=(5+endY)+'px';
+          const maxTop=tube.clientHeight-30;
+          chest.style.top=Math.min(5+endY+8, maxTop).toFixed(1)+'px';
+          chest.querySelector('.gem').textContent=gem.i;
+          chest.classList.add('show');
           setTimeout(()=>{
-            chest.textContent=gem.i;
-            chest.classList.add('show', gem.k);
+            chest.classList.add('open', gem.k);
             if(gem.k==='sand') sfxBubble();
             else if(gem.k==='diamond') sfxDiamond();
             else sfxTreasure();
             res();
-          },150);
+          },260);
         } else res();
       }
     }
     requestAnimationFrame(frame);
+  });
+}
+/* a current sweeps the dive — whale dips, gets yanked back up, no chest */
+function sweptAnimate(diver, label){
+  return new Promise(res=>{
+    const tube=diver.parentElement;
+    const maxY=Math.max(0, tube.clientHeight - diver.clientHeight - 6);
+    const dip=maxY*0.42, start=performance.now();
+    sfxDive();
+    function down(now){
+      let p=(now-start)/460; if(p>1)p=1;
+      diver.style.transform=`translateY(${(p*dip).toFixed(1)}px)`;
+      label.textContent=(p*0.4).toFixed(2)+' mi';
+      if(p<1) requestAnimationFrame(down); else up();
+    }
+    function up(){
+      tube.classList.add('current'); sfxSwept();
+      const s2=performance.now();
+      function rise(now){
+        let p=(now-s2)/440; if(p>1)p=1;
+        const x=Math.sin(p*Math.PI*4)*9*(1-p);
+        diver.style.transform=`translate(${x.toFixed(1)}px, ${((1-p)*dip).toFixed(1)}px)`;
+        if(p<1) requestAnimationFrame(rise);
+        else{ diver.style.transform='translateY(0)'; label.textContent='SWEPT'; label.classList.add('swept'); setTimeout(()=>tube.classList.remove('current'),200); res(); }
+      }
+      requestAnimationFrame(rise);
+    }
+    requestAnimationFrame(down);
   });
 }
 function renderStandings(standings, me, justIn, final){
