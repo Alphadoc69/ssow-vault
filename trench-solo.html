@@ -100,6 +100,10 @@
   .chosen-info{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;}
   #chosenName{font-family:var(--font-display); font-size:1rem; letter-spacing:0.05em; color:#fff;}
   .chosen-perk{font-size:0.5rem; letter-spacing:0.04em; color:var(--dim); line-height:1.4;}
+  .orca-badge{display:flex; align-items:center; gap:10px; margin-top:8px; padding:8px;
+    border:1px solid rgba(120,220,255,0.32); border-radius:7px; background:rgba(40,90,120,0.18); text-align:left;}
+  .orca-badge img{width:42px; height:42px; border-radius:7px; object-fit:cover; flex:0 0 auto; background:#08202e;}
+  #orcaName{font-family:var(--font-display); font-size:0.95rem; letter-spacing:0.05em; color:#bfefff;}
   #changeBtn{flex:0 0 auto; background:transparent; border:1px solid rgba(91,200,232,0.3); color:var(--cyan-lt);
     font-family:var(--font-mono); font-size:0.55rem; letter-spacing:0.1em; text-transform:uppercase; padding:7px 10px; border-radius:5px; cursor:pointer;}
 
@@ -191,6 +195,10 @@
           <img id="chosenImg" alt="" />
           <div class="chosen-info"><span id="chosenName"></span><span id="chosenPerk" class="chosen-perk"></span></div>
           <button id="changeBtn">Change</button>
+        </div>
+        <div class="orca-badge" id="orcaBadge" style="display:none">
+          <img id="orcaImg" alt="" />
+          <div class="chosen-info"><span id="orcaName">🐳 Security Orca</span><span class="chosen-perk" id="orcaPerk">cannon ally — fires in dives &amp; boss fights</span></div>
         </div>
       </div>
 
@@ -390,7 +398,7 @@ const state = {
   dolphin: null, dolphinCd: 0,
   mode: 'dive', boss: null, whirls: [], rocks: [], jellies: [], stingFlash: 0, bossSharks: [],
   chestOpened: false, portal: null, hintT: 0,
-  hasOrca: false, orca: null, orcaCd: 0, cannons: [],
+  hasOrca: false, orca: null, orcaCd: 0, cannons: [], orcaImg: null,
 };
 
 // ── persistence (works on the real site; harmless if blocked) ──
@@ -1335,25 +1343,39 @@ function drawDecor(H,w,h){
 }
 function drawOrca(o){
   const X=o.x*CW+CW/2, Y=rowY(o.row)+CH/2, sz=Math.min(CW,CH);
+  const im=state.orcaImg;
+  // if we have the actual NFT image, show it (clipped to a glowing disc + a cannon)
+  if(im && im.complete && im.naturalWidth>0){
+    const r=sz*0.4;
+    ctx.save(); ctx.translate(X,Y);
+    const gl=ctx.createRadialGradient(0,0,1,0,0,r*1.5);
+    gl.addColorStop(0,'rgba(120,220,255,0.35)'); gl.addColorStop(1,'rgba(120,220,255,0)');
+    ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(0,0,r*1.5,0,Math.PI*2); ctx.fill();
+    ctx.save(); ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.clip();
+    ctx.drawImage(im,-r,-r,r*2,r*2); ctx.restore();
+    ctx.lineWidth=Math.max(2,sz*0.05); ctx.strokeStyle='#7fe9ff'; ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.stroke();
+    // cannon barrel pointing the way it fires
+    ctx.save(); if(o.dir<0) ctx.scale(-1,1);
+    ctx.fillStyle='#5a6470'; ctx.fillRect(r*0.5,-sz*0.05,sz*0.28,sz*0.1);
+    ctx.fillStyle='#3a424c'; ctx.fillRect(r*0.5+sz*0.22,-sz*0.04,sz*0.1,sz*0.08);
+    ctx.restore();
+    ctx.restore();
+    return;
+  }
+  // fallback: drawn black-and-white orca
   ctx.save(); ctx.translate(X,Y); if(o.dir<0) ctx.scale(-1,1);
-  // body (black)
   ctx.fillStyle='#16181d'; ctx.strokeStyle='#0a0b0e'; ctx.lineWidth=Math.max(1,sz*0.03);
   ctx.beginPath(); ctx.moveTo(sz*0.5,0);
   ctx.quadraticCurveTo(sz*0.05,-sz*0.24,-sz*0.38,-sz*0.06);
   ctx.quadraticCurveTo(-sz*0.52,0,-sz*0.38,sz*0.07);
   ctx.quadraticCurveTo(sz*0.05,sz*0.24,sz*0.5,0); ctx.closePath(); ctx.fill(); ctx.stroke();
-  // white belly + flank patch
   ctx.fillStyle='#f4f8fb';
   ctx.beginPath(); ctx.moveTo(sz*0.34,sz*0.05); ctx.quadraticCurveTo(sz*0.0,sz*0.2,-sz*0.34,sz*0.05);
   ctx.quadraticCurveTo(sz*0.0,sz*0.12,sz*0.34,sz*0.05); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(sz*0.12,-sz*0.06,sz*0.12,sz*0.06,-0.2,0,Math.PI*2); ctx.fill();   // eye patch
-  // dorsal fin (tall, orca-style)
+  ctx.beginPath(); ctx.ellipse(sz*0.12,-sz*0.06,sz*0.12,sz*0.06,-0.2,0,Math.PI*2); ctx.fill();
   ctx.fillStyle='#16181d'; ctx.beginPath(); ctx.moveTo(sz*0.04,-sz*0.14); ctx.lineTo(-sz*0.06,-sz*0.46); ctx.lineTo(-sz*0.2,-sz*0.14); ctx.closePath(); ctx.fill();
-  // tail fluke
   ctx.beginPath(); ctx.moveTo(-sz*0.38,0); ctx.lineTo(-sz*0.54,-sz*0.16); ctx.lineTo(-sz*0.5,0); ctx.lineTo(-sz*0.54,sz*0.16); ctx.closePath(); ctx.fill();
-  // eye
   ctx.fillStyle='#0a0b0e'; ctx.beginPath(); ctx.arc(sz*0.16,-sz*0.06,sz*0.03,0,Math.PI*2); ctx.fill();
-  // little cannon on its back
   ctx.fillStyle='#5a6470'; ctx.fillRect(-sz*0.02,-sz*0.2,sz*0.22,sz*0.09);
   ctx.fillStyle='#3a424c'; ctx.fillRect(sz*0.16,-sz*0.19,sz*0.1,sz*0.07);
   ctx.restore();
@@ -1772,7 +1794,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v18`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v20`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
@@ -1802,17 +1824,33 @@ function closePicker(){ picker.classList.remove('open'); }
 document.getElementById('pickerClose').addEventListener('click',closePicker);
 document.getElementById('changeBtn').addEventListener('click',openPicker);
 
+function setOrcaImg(url){
+  if(url){ const im=new Image(); im.crossOrigin='anonymous'; im.src=url; state.orcaImg=im; }
+  else state.orcaImg=null;
+}
+function showOrcaBadge(img,count){
+  const box=document.getElementById('orcaBadge'); if(!box) return;
+  box.style.display='flex';
+  const im=document.getElementById('orcaImg');
+  if(img){ im.style.display='block'; im.src=img; } else { im.style.display='none'; }
+  document.getElementById('orcaName').textContent=`🐳 Security Orca${count>1?` ×${count}`:''}`;
+  setOrcaImg(img);
+}
 async function checkOrca(wallet){
   try{
     const res=await fetch(`/api/orcas?wallet=${encodeURIComponent(wallet)}`);
     const data=await res.json();
     if(res.ok && data.owns){
       state.hasOrca=true;
-      try{ localStorage.setItem('trench_solo_orca','1'); }catch(e){}
+      try{ localStorage.setItem('trench_solo_orca','1');
+        localStorage.setItem('trench_solo_orca_img', data.image||'');
+        localStorage.setItem('trench_solo_orca_count', String(data.count||1)); }catch(e){}
+      showOrcaBadge(data.image||'', data.count||1);
       return true;
     }
     state.hasOrca=false;
-    try{ localStorage.removeItem('trench_solo_orca'); }catch(e){}
+    document.getElementById('orcaBadge').style.display='none';
+    try{ localStorage.removeItem('trench_solo_orca'); localStorage.removeItem('trench_solo_orca_img'); localStorage.removeItem('trench_solo_orca_count'); }catch(e){}
   }catch(e){ /* leave ally state as-is on network hiccup */ }
   return false;
 }
@@ -1838,10 +1876,11 @@ try{
   const lw=localStorage.getItem('trench_solo_wallet'); if(lw) wInput.value=lw;
   const sk=JSON.parse(localStorage.getItem('trench_solo_skin')||'null');
   if(sk&&sk.url){ const img=new Image(); img.crossOrigin='anonymous'; img.src=sk.url; state.skinImg=img; state.skinId=sk.id; state.tier=TIERS[sk.tier]||TIERS.common; showChosen(sk.url,sk.id,state.tier); }
-  if(localStorage.getItem('trench_solo_orca')==='1') state.hasOrca=true;
+  if(localStorage.getItem('trench_solo_orca')==='1'){ state.hasOrca=true;
+    showOrcaBadge(localStorage.getItem('trench_solo_orca_img')||'', parseInt(localStorage.getItem('trench_solo_orca_count'))||1); }
 }catch(e){}
 // ?orca=1 forces the ally on for testing
-try{ if(new URLSearchParams(location.search).get('orca')==='1') state.hasOrca=true; }catch(e){}
+try{ if(new URLSearchParams(location.search).get('orca')==='1'){ state.hasOrca=true; showOrcaBadge('',1); } }catch(e){}
 
 window.addEventListener('resize',resize);
 // boot
