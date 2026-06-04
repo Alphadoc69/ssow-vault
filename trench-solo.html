@@ -278,7 +278,7 @@
     </div>
     <div class="g-sec">
       <h3>🦑 Kraken Boss (every 20 levels)</h3>
-      <p>At levels 20, 40, 60, 80 and 100 a giant <b>Kraken</b> blocks the trench. It chases you and hurls <b>lightning</b> down columns — dodge to a dark column before it strikes. Whirlpools flicker in and out across the arena: <b>lead the Kraken onto one</b> for big damage (but they'll suck <i>you</i> in too, so don't linger). And let the <b>dolphin allies</b> ram it — each hit briefly freezes the Kraken. Drain its health bar to break through. Deeper Krakens get nastier: more lightning columns at once, rock obstacles, and roaming sharks.</p>
+      <p>At levels 20, 40, 60, 80 and 100 a giant <b>Kraken</b> blocks the trench. It chases you and hurls <b>lightning</b> down columns — dodge to a dark column before it strikes. Whirlpools flicker in and out across the arena: <b>lead the Kraken onto one</b> for big damage (but they'll suck <i>you</i> in too, so don't linger). And let the <b>dolphin allies</b> ram it — each hit briefly freezes the Kraken. Drain its health bar to break through. Deeper Krakens get nastier: more lightning columns at once, rock obstacles, roaming sharks, and it <b>summons mini-squids</b> that chase you down — keep moving, and let your cannon or dolphins freeze them.</p>
     </div>
     <div class="g-sec">
       <h3>💎 The Treasure</h3>
@@ -380,6 +380,10 @@ const CONFIG = {
   bossWhirlSpawn: 0.9,// seconds between whirlpool appearances
   whirlSelfO2: 9,     // oxygen YOU lose if caught in a whirlpool
   bossSharkO2: 12,    // oxygen lost to a shark bite during a boss fight
+  bossMiniMax: 4,     // max summoned mini-squids chasing you at once
+  bossMiniSpawn: 3.0, // seconds between Kraken summons (faster on later bosses)
+  bossMiniSpeed: 1.7, // how fast a mini-squid homes in on you
+  bossMiniO2: 9,      // oxygen lost when a mini-squid reaches you
   bossBubbleMax: 2,   // max air bubbles present at once in a boss fight
   bossBubbleSpawn: 3.6,// seconds between new air bubbles popping up
   bossTouchO2: 16,    // oxygen lost if the Kraken catches you
@@ -404,7 +408,7 @@ const state = {
   dolphin: null, dolphinCd: 0,
   mode: 'dive', boss: null, whirls: [], rocks: [], jellies: [], stingFlash: 0, bossSharks: [],
   chestOpened: false, portal: null, hintT: 0,
-  hasOrca: false, orca: null, orcaCd: 0, cannons: [], orcaImg: null, orcaImgs: [],
+  hasOrca: false, orca: null, orcaCd: 0, cannons: [], orcaImg: null, orcaImgs: [], minis: [], miniCd: 0,
 };
 
 // ── persistence (works on the real site; harmless if blocked) ──
@@ -697,6 +701,7 @@ function setupBoss(L){
   state.bubbleCd=CONFIG.bossBubbleSpawn*0.5;
   state.dolphin=null; state.dolphinCd=2.6;
   state.orca=null; state.cannons=[]; state.orcaCd=CONFIG.orcaIntervalBoss*0.6;
+  state.minis=[]; state.miniCd=3.0;
   state.ping=null; state.reveal=0; state.stingFlash=0;
   state.habName='THE KRAKEN'; state.bannerT=0;
 }
@@ -803,6 +808,30 @@ function updateBoss(dt){
     } else {
       sh.face=sh.dir;
       sh.x=((sh.x+sh.dir*sh.speed*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
+    }
+  }
+  // the Kraken summons mini-squids that home in on you
+  if(!state.minis) state.minis=[];
+  state.miniCd-=dt;
+  const maxMini=CONFIG.bossMiniMax + (b.num>=4?2:0);
+  if(state.miniCd<=0 && state.minis.length<maxMini && b.stun<=0){
+    state.minis.push({x:b.x, y:b.y, stun:0, t:Math.random()*6, face:1});
+    state.miniCd=Math.max(1.1, CONFIG.bossMiniSpawn - b.num*0.28);
+    state.stingFlash=Math.max(state.stingFlash,0.3);
+  }
+  for(let i=state.minis.length-1;i>=0;i--){ const mq=state.minis[i]; mq.t+=dt;
+    if(mq.stun>0){ mq.stun=Math.max(0,mq.stun-dt); }
+    else {
+      const dx=state.whale.col-mq.x, dy=state.whale.row-mq.y, d=Math.hypot(dx,dy)||1;
+      mq.x += (dx/d)*CONFIG.bossMiniSpeed*dt;
+      mq.y += (dy/d)*CONFIG.bossMiniSpeed*dt;
+      mq.face = dx>=0?1:-1;
+    }
+    if(Math.hypot(mq.x-state.whale.col, mq.y-state.whale.row)<0.6 && state.invuln<=0){
+      state.o2-=CONFIG.bossMiniO2*state.tier.sweepMul; state.invuln=CONFIG.invuln; state.stingFlash=0.6; sfxSwept();
+      const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
+      state.minis.splice(i,1);   // pops on impact — the Kraken summons more
+      if(state.o2<=0){ state.o2=0; gameOver(); }
     }
   }
   // lightning: telegraph several columns (more on tougher bosses), then strike them
@@ -979,6 +1008,7 @@ function updateOrca(dt){
         state.stingFlash=0.6; state.cannons.splice(i,1); continue;
       }
       if(state.bossSharks) for(const sh of state.bossSharks){ if(sh.row===c.row && Math.abs(sh.x-c.x)<0.55) sh.stun=CONFIG.cannonStun; }
+      if(state.minis) for(const mq of state.minis){ if(Math.abs(mq.x-c.x)<0.55 && Math.abs(mq.y-c.row)<0.7) mq.stun=CONFIG.cannonStun; }
     } else {
       const lane=state.lanes.find(l=>l.row===c.row);
       if(lane && lane.active){ for(const b of lane.blocks){ let dx=Math.abs(b.x-c.x); dx=Math.min(dx,CONFIG.COLS-dx); if(dx<0.55) b.stun=Math.max(b.stun,CONFIG.cannonStun); } }
@@ -1353,6 +1383,24 @@ function drawDecor(H,w,h){
   }
   ctx.restore();
 }
+function drawMini(mq){
+  const X=mq.x*CW+CW/2, Y=mq.y*CH+CH/2, sz=Math.min(CW,CH)*0.5, T=mq.t||0, stunned=mq.stun>0;
+  ctx.save(); ctx.translate(X,Y); if(mq.face<0) ctx.scale(-1,1);
+  // tentacles
+  ctx.strokeStyle=stunned?'#7d8794':'#dfe3ec'; ctx.lineWidth=Math.max(1.5,sz*0.12); ctx.lineCap='round';
+  for(let i=-1;i<=1;i++){ const wig=stunned?0:Math.sin(T*8+i)*sz*0.14;
+    ctx.beginPath(); ctx.moveTo(-sz*0.05,i*sz*0.12); ctx.quadraticCurveTo(-sz*0.4,i*sz*0.16+wig,-sz*0.62,i*sz*0.2+wig); ctx.stroke(); }
+  // mantle
+  ctx.fillStyle=stunned?'#9aa3ad':'#eef0f6'; ctx.strokeStyle=stunned?'#5a626b':'#b6bcc8'; ctx.lineWidth=Math.max(1,sz*0.06);
+  ctx.beginPath(); ctx.moveTo(sz*0.52,0);
+  ctx.quadraticCurveTo(sz*0.06,-sz*0.34,-sz*0.12,-sz*0.16);
+  ctx.quadraticCurveTo(-sz*0.22,0,-sz*0.12,sz*0.16);
+  ctx.quadraticCurveTo(sz*0.06,sz*0.34,sz*0.52,0); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // glowing eye
+  ctx.fillStyle='#2a2f3a'; ctx.beginPath(); ctx.arc(sz*0.08,-sz*0.03,sz*0.13,0,Math.PI*2); ctx.fill();
+  if(!stunned){ ctx.fillStyle='#ff5a6e'; ctx.beginPath(); ctx.arc(sz*0.1,-sz*0.05,sz*0.06,0,Math.PI*2); ctx.fill(); }
+  ctx.restore();
+}
 function drawOrca(o){
   const X=o.x*CW+CW/2, Y=rowY(o.row)+CH/2, sz=Math.min(CW,CH);
   const im=(state.orcaImgs && state.orcaImgs.length) ? state.orcaImgs[o.imgIdx||0] : state.orcaImg;
@@ -1515,6 +1563,8 @@ function renderBoss(w,h){
   }
   // roaming sharks
   if(state.bossSharks) for(const sh of state.bossSharks) drawEnemy('shark', sh.x, rowY(sh.row), sh.face||sh.dir, sh.stun>0);
+  // summoned mini-squids
+  if(state.minis) for(const mq of state.minis) drawMini(mq);
   // dolphin ally
   if(state.dolphin) drawDolphin(state.dolphin);
   // Orca cannon ally
@@ -1806,7 +1856,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v27`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v28`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
