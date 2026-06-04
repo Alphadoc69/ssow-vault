@@ -262,6 +262,10 @@
       <p>In the Abyss the water goes black. Like a real sperm whale, you <b>ping sonar</b> — an expanding ring that lights the field and <b>freezes the single nearest predator lane</b>. Moose swim at the surface, so sonar can't touch them. Time your moves to each ping.</p>
     </div>
     <div class="g-sec">
+      <h3>🦑 Kraken Boss (every 20 levels)</h3>
+      <p>At levels 20, 40, 60, 80 and 100 a giant <b>Kraken</b> blocks the trench. It chases you and hurls <b>lightning</b> down a column — dodge out of the lit lane before it strikes. Wear it down two ways: <b>lead it through the whirlpools</b> (each one sucks it in for big damage and briefly stuns it), and let the <b>dolphin allies</b> ram it as they streak past. Drain its health bar to break through.</p>
+    </div>
+    <div class="g-sec">
       <h3>💎 The Treasure</h3>
       <p>Every chest holds a gem. The deeper you dive, the richer the haul:</p>
       <div class="g-row"><span>🐚 Sand Dollar</span><span class="g-x">+0</span></div>
@@ -343,6 +347,13 @@ const CONFIG = {
   jellySpeed: 0.5,    // jellyfish drift speed (cells/sec)
   jellyChance: 0.55,  // chance a level spawns jellyfish
   rockChance: 0.5,    // chance a level has rock obstacles you must path around
+  bossEvery: 20,      // a Kraken boss appears on every Nth level
+  bossHp: 100,        // Kraken health
+  bossWhirlDmg: 14,   // damage when the Kraken is dragged through a whirlpool
+  bossDolphinDmg: 9,  // damage when a dolphin ally strikes the Kraken
+  bossTouchO2: 18,    // oxygen lost if the Kraken catches you
+  boltO2: 16,         // oxygen lost by a lightning strike
+  bossDrain: 1.6,     // oxygen drain during a boss fight (cells/sec equiv)
 };
 
 const cv = document.getElementById('game');
@@ -358,6 +369,7 @@ const state = {
   invuln: 0, t: 0, habitat: null, habName: '', bannerT: 0,
   dark: false, ping: null, pingCd: 0, reveal: 0,
   dolphin: null, dolphinCd: 0,
+  mode: 'dive', boss: null, whirls: [], rocks: [], jellies: [], stingFlash: 0,
 };
 
 // ── persistence (works on the real site; harmless if blocked) ──
@@ -383,6 +395,10 @@ function sfxGem(rich){ if(!AC)return; const t=AC.currentTime; const base=rich?66
 function sfxLevel(){ if(!AC)return; const t=AC.currentTime; [392,523,659,784].forEach((f,i)=>tone(f,t+i*0.07,0.18,'triangle',0.15)); }
 function sfxShield(){ if(!AC)return; const t=AC.currentTime; tone(880,t,0.12,'sine',0.18); tone(1320,t+0.06,0.18,'sine',0.14); }
 function sfxSting(){ if(!AC)return; const t=AC.currentTime; tone(300,t,0.1,'sawtooth',0.07); tone(190,t+0.04,0.12,'sine',0.06); }
+function sfxBolt(){ if(!AC)return; const t=AC.currentTime; tone(120,t,0.18,'square',0.16); tone(60,t,0.3,'sawtooth',0.12);
+  const buf=AC.createBuffer(1,AC.sampleRate*0.2,AC.sampleRate); const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length); const n=AC.createBufferSource(); n.buffer=buf;
+  const ng=AC.createGain(); ng.gain.setValueAtTime(0.22,t); ng.gain.exponentialRampToValueAtTime(0.001,t+0.2); n.connect(ng); ng.connect(AC.destination); n.start(t); }
 function sfxPing(){ if(!AC)return; const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
   o.type='sine'; o.frequency.setValueAtTime(1400,t); o.frequency.exponentialRampToValueAtTime(420,t+0.35);
   g.gain.setValueAtTime(0.12,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.4); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+0.42); }
@@ -471,6 +487,7 @@ const HAB={
   reef2:     {name:'CORAL GARDENS',    sub:'teeming reef',          top:[34,150,150],bot:[10,70,108],seabed:[190,160,120],decor:'coral',enemy:'shark'},
   // the final 20: dark + colossal + everything
   abyss:     {name:'THE ABYSS',        sub:'colossal squid · sonar',top:[10,22,40],  bot:[1,4,12],   seabed:[12,16,26],  decor:'biolum',dark:true, enemy:['shark','squid','colossal','bear','moose']},
+  kraken:    {name:'THE KRAKEN',       sub:'lure it into the whirlpools',top:[18,10,40],bot:[3,1,14], seabed:[20,12,34], decor:'biolum'},
 };
 const MIDPOOL=[HAB.channels, HAB.openocean, HAB.kelp, HAB.krill, HAB.reef2, HAB.arctic, HAB.channels];
 function habitatFor(L){
@@ -480,7 +497,10 @@ function habitatFor(L){
   return seq[Math.min(seq.length-1, Math.floor((L-1)/7))];            // 1–49 progression
 }
 
+function isBoss(L){ return L%20===0; }
 function setupLevel(L){
+  if(isBoss(L)){ setupBoss(L); return; }
+  state.mode='dive';
   const cfg = levelCfg(L); state.cfg = cfg; state.lanes = [];
   // habitat for this depth (set first — lanes use its predator + speed)
   state.habitat=habitatFor(L);
@@ -494,21 +514,25 @@ function setupLevel(L){
     for(let i=0;i<a;i++) activeSet.add(Math.round(i*(laneCount-1)/Math.max(1,a-1)));
     let r=0; while(activeSet.size<a){ if(!activeSet.has(r)) activeSet.add(r); r++; }
   }
+  const bottomIdx = activeSet.size ? Math.max(...activeSet) : -1;   // lane closest to the chest
   for(let r=1;r<=laneCount;r++){
     const idx=r-1;
     if(!activeSet.has(idx)){ state.lanes.push({row:r,active:false,blocks:[],dir:1,speed:0}); continue; }
+    const isBottom = idx===bottomIdx;   // the final approach to the chest — keep it fair
     let dir=(idx%2===0)?1:-1;
     // pick this lane's predator (a habitat may mix several)
     let etype = Array.isArray(hab.enemy) ? hab.enemy[Math.floor(Math.random()*hab.enemy.length)] : hab.enemy;
     const ep = ENEMY[etype] || ENEMY.squid;
-    const fast = Math.random() < CONFIG.fastLaneChance;
+    const fast = !isBottom && Math.random() < CONFIG.fastLaneChance;
     let speed=cfg.speed*(1-CONFIG.laneJitter/2+Math.random()*CONFIG.laneJitter)*ep.spd;
     if(fast) speed*=CONFIG.fastLaneMult;
-    const patrol = L>=12 && !ep.chase && Math.random()<CONFIG.patrolChance;
-    const k=Math.max(1, cfg.blocks - (Math.random()<0.4?1:0));
+    const patrol = !isBottom && L>=12 && !ep.chase && Math.random()<CONFIG.patrolChance;
+    // vary density; the bottom lane is capped + evenly spaced so there's always a clean gap to the chest
+    let k=Math.max(1, cfg.blocks - (Math.random()<0.4?1:0));
+    if(isBottom) k=Math.min(k,2);
     const spacing=CONFIG.COLS/k, start=Math.random()*spacing, blocks=[];
     for(let i=0;i<k;i++){
-      const jitter=(k>1)?(Math.random()-0.5)*spacing*0.4:0;  // uneven gaps
+      const jitter=(!isBottom && k>1)?(Math.random()-0.5)*spacing*0.4:0;  // bottom lane: even spacing
       blocks.push({x:((start+i*spacing+jitter)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS, stun:0, pinged:false});
     }
     state.lanes.push({row:r,active:true,blocks,dir,speed,fast,patrol,patrolT:2+Math.random()*2.5,enemy:etype,chase:!!ep.chase});
@@ -516,31 +540,32 @@ function setupLevel(L){
   state.chest = {row:CONFIG.ROWS-1, col:Math.floor(Math.random()*CONFIG.COLS)};
   state.whale = {row:0, col:Math.floor(CONFIG.COLS/2), facing:1, hop:0};
   state.shieldReady = state.tier.shield;   // perk resets each level
-  // air bubbles — prefer calm lanes so they're a safe breather
-  state.bubbles = [];
   const calm = state.lanes.filter(l=>!l.active).map(l=>l.row);
-  const rowsForBubbles = calm.length ? calm : state.lanes.map(l=>l.row);
-  const usedCols = new Set();
-  for(let i=0;i<CONFIG.bubblesBase;i++){
-    const row = rowsForBubbles[Math.floor(Math.random()*rowsForBubbles.length)];
-    let col, tries=0;
-    do { col = Math.floor(Math.random()*CONFIG.COLS); tries++; } while(usedCols.has(row+'-'+col) && tries<10);
-    usedCols.add(row+'-'+col);
-    state.bubbles.push({row, col, taken:false, pop:0});
-  }
-  // rock obstacles — sit on calm rows; you must path around them (never on the chest)
+  // rock obstacles FIRST — sit on calm rows; you must path around them (never on the chest)
   state.rocks=[];
+  const rockKeys=new Set();
   if(L>=4 && calm.length && Math.random()<CONFIG.rockChance){
     const nRocks=1+(Math.random()<0.5?1:0)+(L>40&&Math.random()<0.4?1:0);
-    const taken=new Set();
     for(let i=0;i<nRocks;i++){
       const row=calm[Math.floor(Math.random()*calm.length)];
       const col=Math.floor(Math.random()*CONFIG.COLS);
       const key=row+'-'+col;
-      if(taken.has(key)) continue;
+      if(rockKeys.has(key)) continue;
       if(row===state.whale.row && col===state.whale.col) continue;
-      taken.add(key); state.rocks.push({row,col});
+      rockKeys.add(key); state.rocks.push({row,col});
     }
+  }
+  // air bubbles — calm lanes, never on a rock cell
+  state.bubbles = [];
+  const rowsForBubbles = calm.length ? calm : state.lanes.map(l=>l.row);
+  const usedCols = new Set();
+  for(let i=0;i<CONFIG.bubblesBase;i++){
+    let row, col, tries=0;
+    do { row=rowsForBubbles[Math.floor(Math.random()*rowsForBubbles.length)]; col=Math.floor(Math.random()*CONFIG.COLS); tries++; }
+    while((usedCols.has(row+'-'+col) || rockKeys.has(row+'-'+col)) && tries<14);
+    if(rockKeys.has(row+'-'+col)) continue;  // gave up — skip rather than overlap
+    usedCols.add(row+'-'+col);
+    state.bubbles.push({row, col, taken:false, pop:0});
   }
   // jellyfish — drift slowly, a light sting (small O2 nip, no knockback)
   state.jellies=[];
@@ -553,11 +578,125 @@ function setupLevel(L){
     }
   }
   state.stingFlash=0;
+  // banner when entering a new habitat (compare by name)
+  if(hab.name!==state.habName){ state.habName=hab.name; state.bannerT=2.6; }
   // sonar / darkness
   state.dark=!!hab.dark;
   state.ping=null; state.pingCd=state.dark?1.0:0; state.reveal=0;
   // dolphin allies
   state.dolphin=null; state.dolphinCd=CONFIG.dolphinInterval*0.6;
+}
+
+// ── KRAKEN BOSS ──
+function setupBoss(L){
+  state.mode='boss';
+  const num = L/CONFIG.bossEvery;                  // boss 1..5
+  state.cfg = {drain:CONFIG.bossDrain};
+  state.lanes=[]; state.bubbles=[]; state.jellies=[]; state.rocks=[];
+  state.habitat=HAB.kraken; state.dark=false;
+  state.whale={row:CONFIG.ROWS-2, col:Math.floor(CONFIG.COLS/2), facing:1, hop:0};
+  state.shieldReady=state.tier.shield;
+  state.boss={
+    hp:CONFIG.bossHp, maxHp:CONFIG.bossHp, num,
+    x:(CONFIG.COLS-1)/2, y:1.1,
+    speed:0.9+num*0.16, face:1,
+    hitCd:0, dmgCd:0, stun:0,
+    boltCd:2.6, bolt:null
+  };
+  // whirlpools — the trap; lead the chasing Kraken through these
+  state.whirls=[];
+  const nW=3;
+  const used=new Set();
+  for(let i=0;i<nW;i++){
+    let row,col,tries=0;
+    do{ row=2+Math.floor(Math.random()*(CONFIG.ROWS-3)); col=Math.floor(Math.random()*CONFIG.COLS); tries++; }
+    while(used.has(row+'-'+col)&&tries<12);
+    used.add(row+'-'+col); state.whirls.push({row,col,t:Math.random()*6});
+  }
+  // a couple of air pockets to survive on
+  for(let i=0;i<2;i++) state.bubbles.push({row:CONFIG.ROWS-2, col:Math.floor(Math.random()*CONFIG.COLS), taken:false, pop:0});
+  state.dolphin=null; state.dolphinCd=2.2;
+  state.ping=null; state.reveal=0; state.stingFlash=0;
+  state.habName='THE KRAKEN'; state.bannerT=3.0;
+}
+function krakenTouch(){
+  if(state.invuln>0) return;
+  const b=state.boss;
+  if(state.shieldReady){ state.shieldReady=false; sfxShield(); state.invuln=CONFIG.invuln;
+    const v=document.getElementById('vignette'); v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),200); return; }
+  state.o2-=CONFIG.bossTouchO2*state.tier.sweepMul; sfxSwept();
+  const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
+  // shove the whale away from the Kraken
+  const dc=Math.sign(state.whale.col-b.x)||1, dr=Math.sign(state.whale.row-b.y)||1;
+  state.whale.col=clampi(state.whale.col+dc*2,0,CONFIG.COLS-1);
+  state.whale.row=clampi(state.whale.row+dr,0,CONFIG.ROWS-1);
+  state.invuln=CONFIG.invuln;
+  if(state.o2<=0){ state.o2=0; gameOver(); }
+}
+function bossDefeated(){
+  state.phase='clear'; state.clearAnim=0; sfxLevel();
+  const gem={e:'💎',xp:60,rich:true}; state.clearGem=gem; state.gems.push(gem); state.score+=gem.xp+30; sfxGem(true);
+  setTimeout(()=>{
+    state.o2=Math.min(100, state.o2+CONFIG.levelRefill+25);
+    if(state.level>=CONFIG.maxLevel){ win(); return; }
+    state.level++; if(state.level>state.best){ state.best=state.level; saveBest(); }
+    setupLevel(state.level); state.phase='play'; state.last=performance.now();
+  }, 1500);
+}
+function updateBoss(dt){
+  const b=state.boss; if(!b) return;
+  if(state.invuln>0) state.invuln=Math.max(0,state.invuln-dt);
+  if(state.bannerT>0) state.bannerT=Math.max(0,state.bannerT-dt);
+  if(state.stingFlash>0) state.stingFlash=Math.max(0,state.stingFlash-dt*3);
+  state.o2 -= CONFIG.bossDrain*state.tier.drain*dt;
+  // Kraken chases the whale (slows when stunned in a whirlpool)
+  if(b.stun>0){ b.stun=Math.max(0,b.stun-dt); }
+  else {
+    const dx=state.whale.col-b.x, dy=state.whale.row-b.y, d=Math.hypot(dx,dy)||1;
+    b.x=Math.max(0,Math.min(CONFIG.COLS-1, b.x+(dx/d)*b.speed*dt));
+    b.y=Math.max(0.6,Math.min(CONFIG.ROWS-1.6, b.y+(dy/d)*b.speed*0.8*dt));
+    b.face = dx>=0?1:-1;
+  }
+  // contact with the whale
+  if(b.hitCd>0) b.hitCd-=dt;
+  if(Math.hypot(b.x-state.whale.col,b.y-state.whale.row)<0.95 && b.hitCd<=0){ krakenTouch(); b.hitCd=1.1; }
+  // whirlpools: drag the Kraken in for big damage + a stun
+  if(b.dmgCd>0) b.dmgCd-=dt;
+  for(const wpl of state.whirls){ wpl.t+=dt;
+    if(b.dmgCd<=0 && b.stun<=0 && Math.hypot(b.x-wpl.col,b.y-wpl.row)<0.7){
+      b.hp-=CONFIG.bossWhirlDmg; b.dmgCd=0.8; b.stun=1.1; state.stingFlash=1; sfxPing();
+    }
+  }
+  // dolphin allies strike the Kraken
+  if(!state.dolphin){ state.dolphinCd-=dt;
+    if(state.dolphinCd<=0){ const row=Math.round(b.y); const dir=Math.random()<0.5?1:-1;
+      state.dolphin={row, x:(dir>0?-1.5:CONFIG.COLS+1.5), dir, hit:false}; state.dolphinCd=2.6; sfxDolphin(); }
+  } else {
+    state.dolphin.x+=state.dolphin.dir*CONFIG.dolphinSpeed*dt;
+    if(!state.dolphin.hit && Math.abs(state.dolphin.x-b.x)<0.6 && Math.abs(state.dolphin.row-b.y)<0.9){
+      b.hp-=CONFIG.bossDolphinDmg; state.dolphin.hit=true; state.stingFlash=0.6; sfxGem(false); }
+    if(state.dolphin.x<-2.5||state.dolphin.x>CONFIG.COLS+2.5) state.dolphin=null;
+  }
+  // lightning: telegraph a column, then strike it
+  b.boltCd-=dt;
+  if(!b.bolt && b.boltCd<=0){ b.bolt={col:state.whale.col, t:0, phase:'warn'}; }
+  if(b.bolt){
+    b.bolt.t+=dt;
+    if(b.bolt.phase==='warn' && b.bolt.t>0.85){
+      b.bolt.phase='strike'; b.bolt.t=0; sfxBolt();
+      if(state.whale.col===b.bolt.col && state.invuln<=0){
+        state.o2-=CONFIG.boltO2; state.invuln=CONFIG.invuln;
+        const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
+      }
+    }
+    if(b.bolt.phase==='strike' && b.bolt.t>0.22){ b.bolt=null; b.boltCd=Math.max(1.4, 2.6-b.num*0.18); }
+  }
+  // grab air pockets
+  for(const bub of state.bubbles){ if(!bub.taken && bub.row===state.whale.row && bub.col===state.whale.col){
+    bub.taken=true; bub.pop=1; state.o2=Math.min(100,state.o2+CONFIG.bubbleO2); sfxBubble(); } }
+  if(b.hp<=0){ bossDefeated(); return; }
+  if(state.o2<=0){ state.o2=0; gameOver(); }
+  if(state.whale.hop>0) state.whale.hop=Math.max(0,state.whale.hop-dt*7);
 }
 
 function rollGem(L){
@@ -585,7 +724,7 @@ function move(dr,dc){
       b.taken=true; b.pop=1; state.o2=Math.min(100, state.o2+CONFIG.bubbleO2); sfxBubble();
     }
   }
-  if(nr===state.chest.row && nc===state.chest.col){ levelComplete(); }
+  if(nr===state.chest.row && nc===state.chest.col && state.mode!=='boss'){ levelComplete(); }
 }
 function sweep(){
   if(state.phase!=='play' || state.invuln>0) return;
@@ -647,6 +786,7 @@ function startRun(){
 // ── update ──
 function update(dt){
   if(state.phase!=='play') return;
+  if(state.mode==='boss'){ updateBoss(dt); return; }
   if(state.invuln>0) state.invuln=Math.max(0,state.invuln-dt);
   if(state.bannerT>0) state.bannerT=Math.max(0,state.bannerT-dt);
   if(state.reveal>0) state.reveal=Math.max(0,state.reveal-dt*1.4);
@@ -821,50 +961,60 @@ function drawEnemy(type,x,cy,dir,stunned){
       ctx.restore();
     } else { // swimming moose (orcas hunt them in the island channels)
       ctx.save(); ctx.translate(X,Y); if(dir<0) ctx.scale(-1,1);
-      const body=stunned?'#7a6b5a':'#6b4a2e', edge=stunned?'#4f463a':'#43301d';
-      // submerged back
-      ctx.fillStyle='rgba(70,52,34,0.55)'; ctx.beginPath(); ctx.ellipse(-sz*0.12,sz*0.12,sz*0.32,sz*0.15,0,0,Math.PI*2); ctx.fill();
-      // waterline
-      if(!stunned){ ctx.strokeStyle='rgba(210,235,245,0.5)'; ctx.lineWidth=Math.max(1,sz*0.02);
-        ctx.beginPath(); ctx.moveTo(-sz*0.45,sz*0.06); ctx.lineTo(sz*0.5,sz*0.06); ctx.stroke(); }
-      // neck + head above the surface
-      ctx.fillStyle=body; ctx.strokeStyle=edge; ctx.lineWidth=Math.max(1,sz*0.03);
-      ctx.beginPath(); ctx.moveTo(sz*0.04,sz*0.08); ctx.lineTo(sz*0.16,-sz*0.18); ctx.lineTo(sz*0.30,-sz*0.16); ctx.lineTo(sz*0.22,sz*0.08); ctx.closePath(); ctx.fill(); ctx.stroke();
-      // head + long snout
-      ctx.beginPath(); ctx.ellipse(sz*0.34,-sz*0.2,sz*0.18,sz*0.1,0.3,0,Math.PI*2); ctx.fill(); ctx.stroke();
-      ctx.beginPath(); ctx.ellipse(sz*0.5,-sz*0.12,sz*0.1,sz*0.06,0.4,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      const body=stunned?'#7c6c5a':'#5e4226', edge=stunned?'#4f463a':'#3a2715', dark=stunned?'#5a4f44':'#3a2715';
+      // submerged body + wake
+      ctx.fillStyle='rgba(74,54,32,0.5)'; ctx.beginPath(); ctx.ellipse(-sz*0.18,sz*0.16,sz*0.34,sz*0.14,0,0,Math.PI*2); ctx.fill();
+      if(!stunned){ ctx.strokeStyle='rgba(210,235,245,0.45)'; ctx.lineWidth=Math.max(1,sz*0.022);
+        ctx.beginPath(); ctx.moveTo(-sz*0.5,sz*0.1); ctx.quadraticCurveTo(0,sz*0.04,sz*0.5,sz*0.1); ctx.stroke(); }
+      // neck rising from the water
+      ctx.fillStyle=body; ctx.strokeStyle=edge; ctx.lineWidth=Math.max(1,sz*0.03); ctx.lineJoin='round';
+      ctx.beginPath(); ctx.moveTo(-sz*0.02,sz*0.16); ctx.lineTo(sz*0.10,-sz*0.16); ctx.lineTo(sz*0.26,-sz*0.16); ctx.lineTo(sz*0.20,sz*0.16); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // head (forehead) + long muzzle
+      ctx.beginPath(); ctx.ellipse(sz*0.26,-sz*0.22,sz*0.15,sz*0.12,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(sz*0.30,-sz*0.30); ctx.quadraticCurveTo(sz*0.58,-sz*0.26,sz*0.58,-sz*0.12);
+      ctx.quadraticCurveTo(sz*0.56,-sz*0.02,sz*0.40,-sz*0.06); ctx.quadraticCurveTo(sz*0.30,-sz*0.12,sz*0.30,-sz*0.30); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // dewlap (the moose "bell")
+      ctx.beginPath(); ctx.moveTo(sz*0.30,-sz*0.06); ctx.quadraticCurveTo(sz*0.30,sz*0.06,sz*0.24,sz*0.06); ctx.quadraticCurveTo(sz*0.28,-sz*0.04,sz*0.26,-sz*0.10); ctx.closePath(); ctx.fillStyle=dark; ctx.fill();
       // ear
-      ctx.beginPath(); ctx.moveTo(sz*0.26,-sz*0.28); ctx.lineTo(sz*0.18,-sz*0.4); ctx.lineTo(sz*0.30,-sz*0.32); ctx.closePath(); ctx.fill(); ctx.stroke();
-      // antlers (palmate)
-      ctx.strokeStyle=stunned?'#9a9080':'#cbb083'; ctx.lineWidth=Math.max(2,sz*0.045); ctx.lineCap='round';
+      ctx.fillStyle=body; ctx.beginPath(); ctx.ellipse(sz*0.18,-sz*0.34,sz*0.06,sz*0.03,-0.6,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      // palmate antlers (broad shovels)
+      ctx.fillStyle=stunned?'#9a9080':'#d9c39a'; ctx.strokeStyle=stunned?'#7a7060':'#a98c5e'; ctx.lineWidth=Math.max(1,sz*0.02);
       for(const sgn of [-1,1]){
-        ctx.beginPath(); ctx.moveTo(sz*0.30,-sz*0.30); ctx.lineTo(sz*0.30+sgn*sz*0.16,-sz*0.46); ctx.stroke();
-        for(let p=0;p<3;p++){ ctx.beginPath(); ctx.moveTo(sz*0.30+sgn*sz*0.10,-sz*0.40); ctx.lineTo(sz*0.30+sgn*sz*(0.18+p*0.06),-sz*(0.42+p*0.05)); ctx.stroke(); }
+        ctx.beginPath(); ctx.moveTo(sz*0.24,-sz*0.32);
+        ctx.quadraticCurveTo(sz*0.24+sgn*sz*0.26,-sz*0.44, sz*0.24+sgn*sz*0.30,-sz*0.30);
+        ctx.lineTo(sz*0.24+sgn*sz*0.20,-sz*0.26); ctx.closePath(); ctx.fill(); ctx.stroke();
+        // tines
+        ctx.lineWidth=Math.max(2,sz*0.03); ctx.lineCap='round';
+        for(let p=0;p<3;p++){ ctx.beginPath(); ctx.moveTo(sz*0.24+sgn*sz*0.14,-sz*0.34);
+          ctx.lineTo(sz*0.24+sgn*sz*(0.16+p*0.07),-sz*(0.46+p*0.02)); ctx.stroke(); }
+        ctx.lineWidth=Math.max(1,sz*0.02);
       }
-      // eye + nose
-      ctx.fillStyle='#140d08'; ctx.beginPath(); ctx.arc(sz*0.34,-sz*0.22,sz*0.028,0,Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(sz*0.56,-sz*0.1,sz*0.03,0,Math.PI*2); ctx.fill();
+      // eye + nostril
+      ctx.fillStyle='#120b06'; ctx.beginPath(); ctx.arc(sz*0.28,-sz*0.24,sz*0.026,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(sz*0.54,-sz*0.13,sz*0.025,0,Math.PI*2); ctx.fill();
       ctx.restore();
     }
     if(stunned){ ctx.font=`${Math.floor(sz*0.3)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('💫',X,Y-sz*0.42); }
   }
 }
 function drawRock(k){
-  const cx=colX(k.col)+CW/2, cy=rowY(k.row)+CH/2;
-  const sz=Math.min(CW,CH);
+  const cx=colX(k.col)+CW/2, cy=rowY(k.row)+CH/2, sz=Math.min(CW,CH);
   ctx.save(); ctx.translate(cx,cy);
-  // shadow
-  ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(0,sz*0.28,sz*0.4,sz*0.12,0,0,Math.PI*2); ctx.fill();
-  // boulder cluster
-  const lumps=[[0,0,0.34,'#6b6f78'],[ -sz*0.22,sz*0.06,0.2,'#565b64'],[sz*0.2,sz*0.04,0.22,'#7a7f88']];
-  for(const L of lumps){
-    ctx.fillStyle=L[3]; ctx.strokeStyle='rgba(20,24,30,0.5)'; ctx.lineWidth=Math.max(1,sz*0.02);
-    ctx.beginPath(); ctx.ellipse(L[0],L[1],sz*L[2],sz*L[2]*0.82,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
-  }
-  // highlight + a little seaweed
-  ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.ellipse(-sz*0.08,-sz*0.1,sz*0.12,sz*0.08,0,0,Math.PI*2); ctx.fill();
-  ctx.strokeStyle='rgba(90,160,110,0.7)'; ctx.lineWidth=Math.max(1,sz*0.03); ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(sz*0.26,sz*0.18); ctx.quadraticCurveTo(sz*0.34,-sz*0.02,sz*0.28,-sz*0.2); ctx.stroke();
+  ctx.fillStyle='rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0,sz*0.32,sz*0.42,sz*0.11,0,0,Math.PI*2); ctx.fill();
+  // faceted boulder
+  const pts=[[-0.40,0.10],[-0.34,-0.20],[-0.10,-0.34],[0.20,-0.30],[0.40,-0.06],[0.34,0.22],[0.02,0.30],[-0.30,0.26]];
+  ctx.beginPath(); pts.forEach((p,i)=> i?ctx.lineTo(p[0]*sz,p[1]*sz):ctx.moveTo(p[0]*sz,p[1]*sz)); ctx.closePath();
+  ctx.fillStyle='#6a7079'; ctx.strokeStyle='#3a3f47'; ctx.lineWidth=Math.max(1,sz*0.025); ctx.fill(); ctx.stroke();
+  // lit top facet
+  ctx.beginPath(); ctx.moveTo(-0.10*sz,-0.34*sz); ctx.lineTo(0.20*sz,-0.30*sz); ctx.lineTo(0.10*sz,-0.10*sz); ctx.lineTo(-0.16*sz,-0.12*sz); ctx.closePath();
+  ctx.fillStyle='#838a93'; ctx.fill();
+  // shaded facet
+  ctx.beginPath(); ctx.moveTo(0.40*sz,-0.06*sz); ctx.lineTo(0.34*sz,0.22*sz); ctx.lineTo(0.10*sz,0.14*sz); ctx.lineTo(0.10*sz,-0.10*sz); ctx.closePath();
+  ctx.fillStyle='#52575f'; ctx.fill();
+  // cracks
+  ctx.strokeStyle='rgba(30,34,40,0.6)'; ctx.lineWidth=Math.max(1,sz*0.015);
+  ctx.beginPath(); ctx.moveTo(-0.05*sz,-0.1*sz); ctx.lineTo(0.04*sz,0.16*sz); ctx.stroke();
   ctx.restore();
 }
 function drawJelly(j){
@@ -1006,9 +1156,109 @@ function drawDolphin(d){
   ctx.strokeStyle='#2f5f7a'; ctx.lineWidth=Math.max(1,sz*0.02); ctx.beginPath(); ctx.arc(sz*0.3,-sz*0.01,sz*0.08,0.2,1.25); ctx.stroke();
   ctx.restore();
 }
+function drawWhirl(wpl){
+  const cx=colX(wpl.col)+CW/2, cy=rowY(wpl.row)+CH/2, sz=Math.min(CW,CH);
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate((wpl.t*2)%(Math.PI*2));
+  for(let s=0;s<4;s++){ const rr=sz*0.44*(1-s*0.2);
+    ctx.beginPath(); ctx.strokeStyle=`rgba(120,200,245,${0.5-s*0.1})`; ctx.lineWidth=Math.max(2,sz*0.05);
+    ctx.arc(0,0,rr,s*0.8,s*0.8+Math.PI*1.5); ctx.stroke(); }
+  ctx.fillStyle='rgba(6,20,40,0.7)'; ctx.beginPath(); ctx.arc(0,0,sz*0.1,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+function drawKraken(b,w,h){
+  const cx=b.x*CW+CW/2, cy=b.y*CH+CH/2, sz=Math.min(CW,CH)*1.7, T=state.t||0;
+  const stunned=b.stun>0;
+  ctx.save(); ctx.translate(cx,cy);
+  // menacing glow
+  const gl=ctx.createRadialGradient(0,0,2,0,0,sz*1.1);
+  gl.addColorStop(0, stunned?'rgba(150,170,190,0.3)':'rgba(150,60,200,0.4)'); gl.addColorStop(1,'rgba(150,60,200,0)');
+  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(0,0,sz*1.1,0,Math.PI*2); ctx.fill();
+  if(b.face<0) ctx.scale(-1,1);
+  const body=stunned?'#6b7480':'#5a2a7a', edge=stunned?'#444c55':'#3a1652';
+  // tentacles
+  ctx.strokeStyle=body; ctx.lineWidth=Math.max(3,sz*0.09); ctx.lineCap='round';
+  for(let i=0;i<7;i++){ const a=(-0.9 + i*0.3); const wig=stunned?0:Math.sin(T*4+i)*sz*0.16;
+    ctx.beginPath(); ctx.moveTo(0,sz*0.1);
+    ctx.quadraticCurveTo(Math.cos(a)*sz*0.5, sz*0.4+wig, Math.cos(a)*sz*0.8, sz*0.7+wig*0.6); ctx.stroke(); }
+  // mantle / head
+  ctx.fillStyle=body; ctx.strokeStyle=edge; ctx.lineWidth=Math.max(2,sz*0.04);
+  ctx.beginPath(); ctx.moveTo(0,-sz*0.55);
+  ctx.quadraticCurveTo(sz*0.42,-sz*0.4,sz*0.34,sz*0.12);
+  ctx.quadraticCurveTo(0,sz*0.3,-sz*0.34,sz*0.12);
+  ctx.quadraticCurveTo(-sz*0.42,-sz*0.4,0,-sz*0.55); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // glowing eyes
+  for(const sgn of [-1,1]){
+    ctx.fillStyle='#1a0c22'; ctx.beginPath(); ctx.ellipse(sgn*sz*0.16,-sz*0.06,sz*0.12,sz*0.09,0,0,Math.PI*2); ctx.fill();
+    if(!stunned){ ctx.fillStyle='#ffd23a'; ctx.beginPath(); ctx.ellipse(sgn*sz*0.16,-sz*0.06,sz*0.05,sz*0.07,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#1a0c22'; ctx.fillRect(sgn*sz*0.16-sz*0.012,-sz*0.13,sz*0.024,sz*0.14); }
+  }
+  if(stunned){ ctx.font=`${Math.floor(sz*0.4)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('💫',0,-sz*0.75); }
+  ctx.restore();
+}
+function drawBolt(col,w,h){
+  const x=colX(col)+CW/2;
+  ctx.save(); ctx.strokeStyle='rgba(255,255,255,0.95)'; ctx.lineWidth=Math.max(3,CW*0.12); ctx.lineCap='round';
+  ctx.shadowColor='rgba(150,200,255,0.9)'; ctx.shadowBlur=18;
+  ctx.beginPath(); let y=0; ctx.moveTo(x,0);
+  while(y<h){ y+=h/7; ctx.lineTo(x+(Math.random()*2-1)*CW*0.3, y); }
+  ctx.stroke(); ctx.restore();
+}
+function renderBoss(w,h){
+  const H=HAB.kraken, b=state.boss;
+  for(let r=0;r<CONFIG.ROWS;r++){ const t=r/(CONFIG.ROWS-1);
+    const cr=Math.round(H.top[0]+(H.bot[0]-H.top[0])*t), cg=Math.round(H.top[1]+(H.bot[1]-H.top[1])*t), cb=Math.round(H.top[2]+(H.bot[2]-H.top[2])*t);
+    ctx.fillStyle=`rgb(${cr},${cg},${cb})`; ctx.fillRect(0,rowY(r),w,CH+1); }
+  // whirlpools
+  for(const wpl of state.whirls) drawWhirl(wpl);
+  // air pockets
+  for(const bub of state.bubbles){ if(!bub.taken) drawBubble(bub); }
+  // lightning telegraph / strike
+  if(b && b.bolt){
+    const x=colX(b.bolt.col);
+    if(b.bolt.phase==='warn'){ const a=0.18+0.18*Math.sin(state.t*30); ctx.fillStyle=`rgba(255,225,120,${a.toFixed(3)})`; ctx.fillRect(x,0,CW,h); }
+    else { ctx.fillStyle='rgba(180,210,255,0.18)'; ctx.fillRect(0,0,w,h); drawBolt(b.bolt.col,w,h); }
+  }
+  // dolphin ally
+  if(state.dolphin) drawDolphin(state.dolphin);
+  // the Kraken
+  if(b) drawKraken(b,w,h);
+  // whale
+  if(state.phase!=='idle') drawWhale();
+  // sting / impact flash
+  if(state.stingFlash>0){ ctx.fillStyle=`rgba(150,80,220,${(0.2*state.stingFlash).toFixed(3)})`; ctx.fillRect(0,0,w,h); }
+  // boss HP bar
+  if(b){
+    const bw=w*0.7, bx=(w-bw)/2, by=8, bh=Math.max(7,CH*0.12);
+    ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(bx-2,by-2,bw+4,bh+4);
+    ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.fillRect(bx,by,bw,bh);
+    const frac=Math.max(0,b.hp/b.maxHp);
+    const grd=ctx.createLinearGradient(bx,0,bx+bw,0); grd.addColorStop(0,'#ff5a7a'); grd.addColorStop(1,'#b06bff');
+    ctx.fillStyle=grd; ctx.fillRect(bx,by,bw*frac,bh);
+    ctx.font=`600 ${Math.max(9,Math.floor(CW*0.18))}px 'DM Mono',monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle='#fff'; ctx.fillText(`THE KRAKEN  ·  BOSS ${b.num}/5`, w/2, by+bh/2);
+  }
+  // clearing celebration (gem rise)
+  if(state.phase==='clear' && state.clearGem){
+    state.clearAnim=Math.min(1,state.clearAnim+0.025);
+    ctx.save(); ctx.globalAlpha=1-state.clearAnim*0.3; ctx.font=`${Math.floor(CW*0.9)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('💎', w/2, h*0.5 - state.clearAnim*CH); ctx.restore();
+  }
+  // entry banner
+  if(state.bannerT>0){
+    const a=Math.min(1,state.bannerT/0.7);
+    ctx.save(); ctx.globalAlpha=a; ctx.textAlign='center';
+    ctx.fillStyle='rgba(8,2,18,0.55)'; ctx.fillRect(0,h*0.34,w,h*0.24);
+    ctx.fillStyle='#fff'; ctx.font=`${Math.floor(CW*0.55)}px 'Bebas Neue',sans-serif`; ctx.textBaseline='middle';
+    ctx.fillText('🦑 THE KRAKEN', w/2, h*0.42);
+    ctx.font=`${Math.max(9,Math.floor(CW*0.2))}px 'DM Mono',monospace`; ctx.fillStyle='rgba(220,210,255,0.85)';
+    ctx.fillText('lure it into the whirlpools · dolphins strike · dodge the lightning', w/2, h*0.50);
+    ctx.restore();
+  }
+}
 function render(){
   const w=cv.clientWidth, h=cv.clientHeight;
   ctx.clearRect(0,0,w,h);
+  if(state.mode==='boss'){ renderBoss(w,h); return; }
   const H=state.habitat||HAB.tropical;
   // depth gradient from the current habitat's palette
   for(let r=0;r<CONFIG.ROWS;r++){
@@ -1218,7 +1468,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v7`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v8`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
