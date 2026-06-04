@@ -238,6 +238,7 @@
       <div class="g-row"><span>🦈 <b>Sharks</b></span><span class="g-x">warm shallows — tropical, reef &amp; coastal</span></div>
       <div class="g-row"><span>🐻‍❄️ <b>Polar Bears</b></span><span class="g-x">Arctic ice — they ambush whales here</span></div>
       <div class="g-row"><span>🦑 <b>Giant Squid</b></span><span class="g-x">the deep &amp; dark — a sperm whale's nemesis</span></div>
+      <div class="g-row"><span>👁️ <b>Colossal Squid</b></span><span class="g-x">the Abyss — bigger, beaked, shrugs off your sonar</span></div>
     </div>
     <div class="g-sec">
       <h3>🫧 Air Bubbles</h3>
@@ -319,6 +320,10 @@ const CONFIG = {
   pingInterval: 2.6,  // seconds between sonar pings on dark levels
   pingSpeed: 7,       // sonar ring expansion (cells/sec)
   stunTime: 1.7,      // seconds a squid is stunned by sonar
+  darkInner: 0.45,    // lit radius around whale on dark levels (cells) — smaller = harder
+  darkOuter: 1.25,    // fade-to-black radius (cells)
+  darkReveal: 0.72,   // how much a sonar ping lightens the dark (0–1)
+  patrolChance: 0.28, // chance a deep lane reverses direction (back-and-forth)
   dolphinInterval: 7, // seconds between dolphin ally runs
   dolphinStun: 3.0,   // seconds squid are stunned in a lane a dolphin clears
   dolphinSpeed: 9,    // dolphin streak speed (cells/sec)
@@ -433,7 +438,7 @@ const HABITATS=[
   {name:'KRILL FIELDS',      sub:'sub-polar feeding',     top:[30,96,128],  bot:[8,44,76],   seabed:[40,60,80],    decor:'krill', enemy:'squid', espd:1.0},
   {name:'ARCTIC ICE',        sub:'polar bears hunt here', top:[120,182,212],bot:[28,74,116], seabed:[150,170,190], decor:'ice',   enemy:'bear',  espd:0.95},
   {name:'ANTARCTIC DEEP',    sub:'polar cold · sonar on',  top:[34,70,110],  bot:[6,22,54],   seabed:[40,55,80],   decor:'ice',    dark:true, enemy:'squid', espd:1.0},
-  {name:'THE ABYSS',         sub:'the deep · sonar on',    top:[10,22,40],   bot:[1,4,12],    seabed:[12,16,26],   decor:'biolum', dark:true, enemy:'squid', espd:1.05},
+  {name:'THE ABYSS',         sub:'colossal squid · sonar', top:[10,22,40],   bot:[1,4,12],    seabed:[12,16,26],   decor:'biolum', dark:true, enemy:'colossal', espd:1.08, hitBonus:0.10, stunMult:0.55},
 ];
 function habitatFor(L){ return HABITATS[Math.min(HABITATS.length-1, Math.floor((L-1)/7))]; }
 
@@ -454,13 +459,20 @@ function setupLevel(L){
   for(let r=1;r<=laneCount;r++){
     const idx=r-1;
     if(!activeSet.has(idx)){ state.lanes.push({row:r,active:false,blocks:[],dir:1,speed:0}); continue; }
-    const dir=(idx%2===0)?1:-1;
+    let dir=(idx%2===0)?1:-1;
     const fast = Math.random() < CONFIG.fastLaneChance;
     let speed=cfg.speed*(1-CONFIG.laneJitter/2+Math.random()*CONFIG.laneJitter)*(state.habitat?state.habitat.espd:1);
     if(fast) speed*=CONFIG.fastLaneMult;
-    const k=cfg.blocks, spacing=CONFIG.COLS/k, start=Math.random()*spacing, blocks=[];
-    for(let i=0;i<k;i++) blocks.push({x:(start+i*spacing)%CONFIG.COLS, stun:0, pinged:false});
-    state.lanes.push({row:r,active:true,blocks,dir,speed,fast});
+    // patrol lanes reverse direction now and then (more variety as it gets deeper)
+    const patrol = L>=12 && Math.random()<CONFIG.patrolChance;
+    // vary how many predators are in this lane so no two lanes feel the same
+    const k=Math.max(1, cfg.blocks - (Math.random()<0.4?1:0));
+    const spacing=CONFIG.COLS/k, start=Math.random()*spacing, blocks=[];
+    for(let i=0;i<k;i++){
+      const jitter=(k>1)?(Math.random()-0.5)*spacing*0.4:0;  // uneven gaps
+      blocks.push({x:((start+i*spacing+jitter)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS, stun:0, pinged:false});
+    }
+    state.lanes.push({row:r,active:true,blocks,dir,speed,fast,patrol,patrolT:2+Math.random()*2.5});
   }
   state.chest = {row:CONFIG.ROWS-1, col:Math.floor(Math.random()*CONFIG.COLS)};
   state.whale = {row:0, col:Math.floor(CONFIG.COLS/2), facing:1, hop:0};
@@ -565,6 +577,7 @@ function update(dt){
   state.o2 -= state.cfg.drain*state.tier.drain*dt;
   // move squid (frozen ones hold still)
   for(const lane of state.lanes){ if(!lane.active) continue;
+    if(lane.patrol){ lane.patrolT-=dt; if(lane.patrolT<=0){ lane.dir*=-1; lane.patrolT=2+Math.random()*2.5; } }
     for(const b of lane.blocks){
       if(b.stun>0){ b.stun=Math.max(0,b.stun-dt); continue; }
       b.x=((b.x+lane.dir*lane.speed*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
@@ -582,7 +595,7 @@ function update(dt){
         for(const b of lane.blocks){
           let dx=Math.abs(b.x-wx); dx=Math.min(dx,CONFIG.COLS-dx);
           const dist=Math.hypot(dx,dyr);
-          if(!b.pinged && dist<=state.ping.r){ b.stun=CONFIG.stunTime; b.pinged=true; }
+          if(!b.pinged && dist<=state.ping.r){ b.stun=CONFIG.stunTime*(state.habitat.stunMult||1); b.pinged=true; }
         }
       }
       if(state.ping.r > CONFIG.COLS+CONFIG.ROWS){
@@ -600,7 +613,7 @@ function update(dt){
         const lane=act[Math.floor(Math.random()*act.length)];
         const dir=Math.random()<0.5?1:-1;
         state.dolphin={row:lane.row, x:(dir>0?-1.5:CONFIG.COLS+1.5), dir};
-        for(const b of lane.blocks) b.stun=Math.max(b.stun, CONFIG.dolphinStun);
+        for(const b of lane.blocks) b.stun=Math.max(b.stun, CONFIG.dolphinStun*(state.habitat.stunMult||1));
         sfxDolphin();
       }
       state.dolphinCd=CONFIG.dolphinInterval;
@@ -609,7 +622,7 @@ function update(dt){
     state.dolphin.x += state.dolphin.dir*CONFIG.dolphinSpeed*dt;
     if(state.dolphin.x < -2.5 || state.dolphin.x > CONFIG.COLS+2.5) state.dolphin=null;
   }
-  const hitR=Math.max(0.45, CONFIG.hitRadius+state.tier.hit);
+  const hitR=Math.max(0.45, CONFIG.hitRadius+state.tier.hit+(state.habitat.hitBonus||0));
   const lane=state.lanes.find(l=>l.row===state.whale.row);
   if(state.invuln<=0 && lane && lane.active){
     for(const b of lane.blocks){
@@ -632,23 +645,33 @@ function drawEnemy(type,x,cy,dir,stunned){
     const X=(x+off)*CW+CW/2; const Y=cy+CH/2;
     if(X<-CW||X>w+CW) continue;
     const sz=Math.min(CW,CH);
-    if(type==='squid'){
+    if(type==='squid' || type==='colossal'){
+      const big = type==='colossal';
+      const scale = big?1.28:1.0;
       // whirlpool swirl behind (stops when stunned)
       ctx.save(); ctx.translate(X,Y); ctx.rotate(stunned?0:(T*1.7*(dir<0?-1:1))%(Math.PI*2));
-      for(let s=0;s<3;s++){ const rr=sz*0.52*(1-s*0.24);
-        ctx.beginPath(); ctx.strokeStyle=stunned?`rgba(150,170,190,${0.18-s*0.05})`:`rgba(120,210,245,${0.30-s*0.07})`; ctx.lineWidth=2;
+      for(let s=0;s<3;s++){ const rr=sz*0.52*scale*(1-s*0.24);
+        ctx.beginPath(); ctx.strokeStyle=stunned?`rgba(150,170,190,${0.18-s*0.05})`:(big?`rgba(150,120,210,${0.30-s*0.07})`:`rgba(120,210,245,${0.30-s*0.07})`); ctx.lineWidth=2;
         ctx.arc(0,0,rr,s*0.7,s*0.7+Math.PI*1.45); ctx.stroke(); }
       ctx.restore();
-      ctx.save(); ctx.translate(X,Y); if(dir<0) ctx.scale(-1,1);
-      ctx.strokeStyle=stunned?'#6a7480':'#c0436a'; ctx.lineWidth=Math.max(2,sz*0.05); ctx.lineCap='round';
-      for(let i=-2;i<=2;i++){ const wig=stunned?0:Math.sin(T*6+i)*sz*0.10;
-        ctx.beginPath(); ctx.moveTo(-sz*0.05,i*sz*0.05); ctx.quadraticCurveTo(-sz*0.30,i*sz*0.07+wig,-sz*0.50,i*sz*0.10+wig); ctx.stroke(); }
-      ctx.fillStyle=stunned?'#7d8794':'#dc5a82'; ctx.strokeStyle=stunned?'#454e59':'#7a2440'; ctx.lineWidth=Math.max(1,sz*0.03);
-      ctx.beginPath(); ctx.moveTo(sz*0.44,0);
-      ctx.quadraticCurveTo(sz*0.06,-sz*0.23,-sz*0.10,-sz*0.12); ctx.quadraticCurveTo(-sz*0.17,0,-sz*0.10,sz*0.12);
-      ctx.quadraticCurveTo(sz*0.06,sz*0.23,sz*0.44,0); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.fillStyle='#160d1c'; ctx.beginPath(); ctx.arc(sz*0.05,-sz*0.02,sz*0.08,0,Math.PI*2); ctx.fill();
-      if(!stunned){ ctx.fillStyle='#ffd25a'; ctx.beginPath(); ctx.arc(sz*0.07,-sz*0.04,sz*0.032,0,Math.PI*2); ctx.fill(); }
+      ctx.save(); ctx.translate(X,Y); ctx.scale(scale,scale); if(dir<0) ctx.scale(-1,1);
+      const tcol = stunned?'#6a7480':(big?'#8a3a6a':'#c0436a');
+      ctx.strokeStyle=tcol; ctx.lineWidth=Math.max(2,sz*0.05); ctx.lineCap='round';
+      const arms = big?3:2;
+      for(let i=-arms;i<=arms;i++){ const wig=stunned?0:Math.sin(T*6+i)*sz*0.10;
+        ctx.beginPath(); ctx.moveTo(-sz*0.05,i*sz*0.045); ctx.quadraticCurveTo(-sz*0.30,i*sz*0.06+wig,-sz*0.52,i*sz*0.09+wig); ctx.stroke();
+        if(big && !stunned){ // claws / hooks on the tips
+          ctx.beginPath(); ctx.moveTo(-sz*0.52,i*sz*0.09+wig); ctx.lineTo(-sz*0.58,i*sz*0.09+wig-sz*0.04); ctx.stroke(); }
+      }
+      ctx.fillStyle=stunned?'#7d8794':(big?'#9a2f72':'#dc5a82'); ctx.strokeStyle=stunned?'#454e59':(big?'#5a1842':'#7a2440'); ctx.lineWidth=Math.max(1,sz*0.03);
+      ctx.beginPath(); ctx.moveTo(sz*0.46,0);
+      ctx.quadraticCurveTo(sz*0.06,-sz*0.24,-sz*0.10,-sz*0.12); ctx.quadraticCurveTo(-sz*0.17,0,-sz*0.10,sz*0.12);
+      ctx.quadraticCurveTo(sz*0.06,sz*0.24,sz*0.46,0); ctx.closePath(); ctx.fill(); ctx.stroke();
+      if(big && !stunned){ // beak
+        ctx.fillStyle='#1c0e18'; ctx.beginPath(); ctx.moveTo(sz*0.12,0); ctx.lineTo(sz*0.0,-sz*0.05); ctx.lineTo(sz*0.0,sz*0.05); ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle='#160d1c'; ctx.beginPath(); ctx.arc(sz*0.05,-sz*0.02,sz*(big?0.10:0.08),0,Math.PI*2); ctx.fill();
+      if(!stunned){ ctx.fillStyle=big?'#ff5a7a':'#ffd25a'; ctx.beginPath(); ctx.arc(sz*0.07,-sz*0.04,sz*(big?0.04:0.032),0,Math.PI*2); ctx.fill(); }
       ctx.restore();
     } else if(type==='shark'){
       ctx.save(); ctx.translate(X,Y); if(dir<0) ctx.scale(-1,1);
@@ -860,8 +883,8 @@ function render(){
   // darkness + sonar (echolocation zones)
   if(state.dark && state.phase!=='idle'){
     const wx=colX(state.whale.col)+CW/2, wy=rowY(state.whale.row)+CH/2 - state.whale.hop*CH*0.18;
-    const baseA=0.94*(1-(state.reveal||0)*0.88);
-    const g=ctx.createRadialGradient(wx,wy,CW*0.7, wx,wy,CW*2.1);
+    const baseA=0.96*(1-(state.reveal||0)*CONFIG.darkReveal);
+    const g=ctx.createRadialGradient(wx,wy,CW*CONFIG.darkInner, wx,wy,CW*CONFIG.darkOuter);
     g.addColorStop(0,'rgba(1,4,10,0)'); g.addColorStop(1,`rgba(1,4,10,${baseA.toFixed(3)})`);
     ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
     if(state.ping){
