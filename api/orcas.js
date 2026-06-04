@@ -74,11 +74,12 @@ export default async function handler(req, res) {
       });
     }
     const nfts = data.nfts || [];
-    const first = nfts[0] || null;
+    const images = nfts.map(n => n.display_image_url || n.image_url || '').filter(Boolean);
     const result = {
       owns: nfts.length > 0,
       count: nfts.length,
-      image: first ? (first.display_image_url || first.image_url || '') : '',
+      image: images[0] || '',   // kept for backward-compatibility
+      images: images.slice(0, 60),
     };
     await redis(['SET', cacheKey, JSON.stringify(result), 'EX', String(CACHE_TTL)]);
     res.setHeader('X-Cache', 'MISS');
