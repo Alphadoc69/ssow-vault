@@ -83,6 +83,19 @@
   .reward-items{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; max-width:300px; margin:0.6rem auto 1rem; font-size:1.5rem;}
   .reward-items .ri{display:flex; align-items:center; gap:4px; font-size:0.85rem; color:#eafff6;
     background:rgba(255,210,90,0.08); border:1px solid rgba(255,210,90,0.25); border-radius:8px; padding:6px 10px;}
+  #overlayWin{justify-content:flex-start; padding-top:14px; overflow-y:auto;}
+  .win-scene{position:relative; width:300px; height:232px; margin:0.5rem auto 0.9rem;}
+  .win-table{position:absolute; left:50%; top:96px; transform:translate(-50%,-50%); width:236px; height:150px; border-radius:50%;
+    background:radial-gradient(ellipse at 50% 36%, #4a3618, #241803 76%);
+    border:3px solid #caa24a; box-shadow:0 0 36px rgba(202,162,74,0.32), inset 0 6px 26px rgba(0,0,0,0.6);}
+  .win-crown{position:absolute; left:150px; top:90px; transform:translate(-50%,-50%); font-size:2.9rem; z-index:3;
+    filter:drop-shadow(0 0 16px rgba(255,210,90,0.95)); animation:bob 2s ease-in-out infinite;}
+  .win-seat{position:absolute; transform:translate(-50%,-50%); width:34px; height:34px; border-radius:50%;
+    border:2px solid rgba(202,162,74,0.7); background:#08202e; display:flex; align-items:center; justify-content:center;
+    font-size:1.2rem; object-fit:cover; z-index:2;}
+  .win-seat.you{width:52px; height:52px; border-color:var(--cyan); box-shadow:0 0 16px var(--cyan); z-index:4;}
+  .you-tag{position:absolute; transform:translate(-50%,-50%); font-family:var(--font-display); font-size:0.72rem;
+    letter-spacing:0.14em; color:var(--cyan); z-index:4;}
   .overlay h2{font-family:var(--font-display); font-size:2.2rem; letter-spacing:0.1em; color:#fff; line-height:1; margin-bottom:0.5rem;}
   .overlay h2.cyan{color:var(--cyan-lt);}
   .overlay p{font-size:0.7rem; letter-spacing:0.08em; line-height:1.7; color:var(--text); max-width:300px; margin-bottom:0.4rem;}
@@ -265,6 +278,27 @@
       <div class="reward-items" id="rewardItems"></div>
       <button class="btn" id="rewardBtn">Collect &amp; Dive On ▼</button>
     </div>
+
+    <div class="overlay hidden" id="overlayWin">
+      <h2 class="cyan" style="font-size:1.6rem;line-height:1.15;text-align:center">A SEAT AT THE TABLE</h2>
+      <p class="small" id="winSub" style="margin:0.3rem 0 0.1rem;text-align:center">Congratulations — you conquered all 100 levels of the Trench.</p>
+      <div class="win-scene">
+        <div class="win-table"></div>
+        <div class="win-crown">👑</div>
+        <div class="win-seat" style="left:150px;top:24px">🐋</div>
+        <div class="win-seat" style="left:60px;top:50px">🐳</div>
+        <div class="win-seat" style="left:240px;top:50px">🐋</div>
+        <div class="win-seat" style="left:38px;top:108px">🐳</div>
+        <div class="win-seat" style="left:262px;top:108px">🐋</div>
+        <div class="win-seat" style="left:86px;top:160px">🐳</div>
+        <div class="win-seat" style="left:214px;top:160px">🐋</div>
+        <img class="win-seat you" id="winWhale" style="left:150px;top:182px" alt="you">
+        <div class="you-tag" style="left:150px;top:210px">YOU</div>
+      </div>
+      <div class="runline" id="winRun"></div>
+      <button class="btn" id="winAgainBtn">Dive Again</button>
+      <button class="btn2" id="winMenuBtn">Menu / Change Whale</button>
+    </div>
   </div>
 
   <div class="pad" id="pad">
@@ -439,6 +473,10 @@ const CONFIG = {
   bossMiniSpawn: 3.0, // seconds between Kraken summons (faster on later bosses)
   bossMiniSpeed: 2.2, // how fast a mini-squid homes in on you
   bossMiniO2: 9,      // oxygen lost when a mini-squid reaches you
+  bossInkSpawn: 5.0,  // seconds between the Kraken's ink squirts
+  bossInkLife: 4.2,   // how long an ink cloud lingers
+  bossInkO2: 4,       // oxygen nipped per tick while you're inside the ink
+  bossInkMax: 3,      // most ink clouds at once
   // Wealthy Whales — XP multiplier, pearls, per-run upgrades
   xpBase: 0.20,       // +20% XP for owning a Wealthy Whale
   xpPer: 0.03,        // +3% per extra whale
@@ -471,7 +509,7 @@ const state = {
   level: 1, score: 0, o2: 100, best: 1,
   lanes: [], chest: {row:0,col:0}, whale: {row:0,col:3,facing:1,hop:0},
   gems: [], cfg: null, last: 0, clearAnim: 0, clearGem: null,
-  skinImg: null, skinId: null, bubbles: [],
+  skinImg: null, skinId: null, bubbles: [], lightningImmune: false, shrug: 0,
   invuln: 0, t: 0, habitat: null, habName: '', bannerT: 0,
   dark: false, ping: null, pingCd: 0, reveal: 0,
   dolphin: null, dolphinCd: 0,
@@ -554,6 +592,10 @@ function whalePower(traits){
   if(m['eyes'] && /(Laser|Green Lasers|Ego Death|Cyborg|VR)/i.test(m['eyes'])) p+=10;
   p += Object.keys(m).length*2;
   return Math.max(1,Math.min(100,Math.round(p)));
+}
+function whaleHasLightning(nft){
+  if(!nft || !Array.isArray(nft.traits)) return false;
+  return nft.traits.some(t=> t && /light?ni?ng|thunder|storm|electric/i.test(String(t.value||'')));
 }
 function tierForNft(nft){
   const id=String(nft.identifier||nft.token_id||'');
@@ -788,6 +830,7 @@ function setupBoss(L){
   state.dolphin=null; state.dolphinCd=2.6;
   state.orca=null; state.cannons=[]; state.orcaCd=CONFIG.orcaIntervalBoss*0.6;
   state.minis=[]; state.miniCd=3.0;
+  state.inks=[]; state.inkCd=4.0;
   state.ping=null; state.reveal=0; state.stingFlash=0;
   state.habName='THE KRAKEN'; state.bannerT=0;
 }
@@ -938,6 +981,24 @@ function updateBoss(dt){
       if(state.o2<=0){ state.o2=0; gameOver(); }
     }
   }
+  // the Kraken squirts ink — dark clouds that drift up and sting/blind you
+  if(!state.inks) state.inks=[];
+  state.inkCd-=dt;
+  if(state.inkCd<=0 && state.inks.length<CONFIG.bossInkMax && b.stun<=0){
+    state.inks.push({x:b.x, y:b.y, r:0.5, t:0, nipCd:0, drift:(Math.random()-0.5)*0.4});
+    state.inkCd=Math.max(2.2, CONFIG.bossInkSpawn - b.num*0.35);
+    sfxSwept();
+  }
+  for(let i=state.inks.length-1;i>=0;i--){ const ink=state.inks[i]; ink.t+=dt;
+    ink.r=Math.min(1.7, ink.r+dt*1.3);            // bloom outward
+    ink.y -= dt*0.5; ink.x += ink.drift*dt;        // drift up and sideways
+    ink.nipCd=Math.max(0,ink.nipCd-dt);
+    if(ink.t>CONFIG.bossInkLife){ state.inks.splice(i,1); continue; }
+    if(Math.hypot(ink.x-state.whale.col, ink.y-state.whale.row) < ink.r*0.8 && ink.nipCd<=0 && state.invuln<=0){
+      state.o2-=CONFIG.bossInkO2*state.tier.sweepMul; ink.nipCd=0.8; state.stingFlash=0.4;
+      if(state.o2<=0){ state.o2=0; gameOver(); }
+    }
+  }
   // lightning: telegraph several columns (more on tougher bosses), then strike them
   b.boltCd-=dt;
   if(!b.bolt && b.boltCd<=0){
@@ -951,8 +1012,13 @@ function updateBoss(dt){
     if(b.bolt.phase==='warn' && b.bolt.t>0.95){
       b.bolt.phase='strike'; b.bolt.t=0; sfxBolt();
       if(b.bolt.cols.includes(state.whale.col) && state.invuln<=0){
-        state.o2-=CONFIG.boltO2; state.invuln=CONFIG.invuln;
-        const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
+        if(state.lightningImmune){
+          state.invuln=CONFIG.invuln; state.shrug=0.5; sfxBolt();
+        } else {
+          state.o2-=CONFIG.boltO2; state.invuln=CONFIG.invuln;
+          const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
+          if(state.o2<=0){ state.o2=0; gameOver(); }
+        }
       }
     }
     if(b.bolt.phase==='strike' && b.bolt.t>0.22){ b.bolt=null; b.boltCd=Math.max(1.2, 2.3-b.num*0.2); }
@@ -1054,15 +1120,14 @@ function levelComplete(){
 }
 function win(){
   state.phase='over'; sfxLevel();
+  const got=state.runPearls;
   bankPearls();
   if(state.level>state.best){ state.best=state.level; saveBest(); }
-  const richTrail = state.gems.slice(-14).map(g=>g.e).join(' ');
   const diver = state.skinId ? `${state.tier.name} #${state.skinId}` : state.tier.name;
-  document.getElementById('overTitle').textContent='🏆 YOU CONQUERED THE TRENCH';
-  document.getElementById('overRun').textContent = `${diver} · cleared all ${CONFIG.maxLevel} levels · Score ${state.score}`;
-  document.getElementById('overGems').textContent = richTrail || '💎';
-  document.getElementById('overBest').textContent = `Best dive: Lv.${state.best}`;
-  document.getElementById('overlayOver').classList.remove('hidden');
+  const wimg=document.getElementById('winWhale');
+  if(wimg && state.skinImg && state.skinImg.src) wimg.src=state.skinImg.src;
+  document.getElementById('winRun').textContent = `${diver} · all ${CONFIG.maxLevel} levels cleared · Score ${state.score}${got?` · ${got} pearls`:''}`;
+  document.getElementById('overlayWin').classList.remove('hidden');
 }
 function gameOver(){
   // Revive upgrade: resurface once instead of dying
@@ -1407,14 +1472,19 @@ function drawPearl(p){
 function drawBubble(b){
   const T=state.t||0;
   const cx=colX(b.col)+CW/2, cy=rowY(b.row)+CH/2 + Math.sin(T*3+b.col)*CH*0.05;
-  const R=CW*0.19;
+  const R=CW*0.26;
   ctx.save(); ctx.translate(cx,cy);
-  const offs=[[0,0,R],[-R*0.85,-R*0.5,R*0.55],[R*0.75,-R*0.35,R*0.5]];
-  for(const o of offs){
-    ctx.beginPath(); ctx.fillStyle='rgba(150,225,250,0.22)'; ctx.strokeStyle='rgba(200,245,255,0.85)'; ctx.lineWidth=1.5;
-    ctx.arc(o[0],o[1],o[2],0,Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.fillStyle='rgba(255,255,255,0.75)'; ctx.arc(o[0]-o[2]*0.3,o[1]-o[2]*0.3,o[2]*0.22,0,Math.PI*2); ctx.fill();
-  }
+  // soft glow
+  const gl=ctx.createRadialGradient(0,0,1,0,0,R*1.5);
+  gl.addColorStop(0,'rgba(150,225,250,0.22)'); gl.addColorStop(1,'rgba(150,225,250,0)');
+  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(0,0,R*1.5,0,Math.PI*2); ctx.fill();
+  // the bubble
+  const body=ctx.createRadialGradient(-R*0.3,-R*0.35,1,0,0,R);
+  body.addColorStop(0,'rgba(220,250,255,0.35)'); body.addColorStop(0.75,'rgba(150,225,250,0.16)'); body.addColorStop(1,'rgba(120,210,245,0.30)');
+  ctx.fillStyle=body; ctx.strokeStyle='rgba(205,245,255,0.9)'; ctx.lineWidth=Math.max(1.5,R*0.09);
+  ctx.beginPath(); ctx.arc(0,0,R,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  // highlight
+  ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(-R*0.32,-R*0.34,R*0.2,0,Math.PI*2); ctx.fill();
   ctx.restore();
 }
 function drawPortal(p){
@@ -1515,6 +1585,20 @@ function drawDecor(H,w,h){
     for(let i=0;i<26;i++){ const x=(i*71+Math.sin(T*0.4+i)*20)%w; const y=((i*61)%(h-CH))+CH*0.5+Math.sin(T*0.6+i)*6;
       const a=0.3+0.3*Math.sin(T*2+i); ctx.fillStyle=`rgba(120,235,210,${a})`; ctx.beginPath(); ctx.arc(x,y,2.2,0,Math.PI*2); ctx.fill(); }
   }
+  ctx.restore();
+}
+function drawInk(ink){
+  const cx=colX(ink.x)+CW/2, cy=rowY(ink.y)+CH/2, R=ink.r*Math.min(CW,CH);
+  const fade = ink.t<0.4 ? ink.t/0.4 : Math.max(0, 1-(ink.t-(CONFIG.bossInkLife-1))/1);
+  const a=Math.min(0.92, Math.max(0,fade))*0.92;
+  ctx.save(); ctx.translate(cx,cy);
+  const g=ctx.createRadialGradient(0,0,1,0,0,R);
+  g.addColorStop(0,`rgba(8,4,20,${a})`); g.addColorStop(0.6,`rgba(20,10,38,${(a*0.8).toFixed(3)})`); g.addColorStop(1,'rgba(20,10,38,0)');
+  ctx.fillStyle=g;
+  // a few overlapping blobs for an organic cloud
+  const T=state.t||0;
+  for(let i=0;i<4;i++){ const ang=i*1.8+T*0.3, rr=R*(0.55+0.18*i);
+    ctx.beginPath(); ctx.arc(Math.cos(ang)*R*0.25, Math.sin(ang)*R*0.25, rr, 0, Math.PI*2); ctx.fill(); }
   ctx.restore();
 }
 function drawMini(mq){
@@ -1706,8 +1790,18 @@ function renderBoss(w,h){
   if(state.cannons) for(const c of state.cannons) drawCannon(c);
   // the Kraken
   if(b) drawKraken(b,w,h);
+  // ink clouds (drawn over the arena so they blind you, but under your own whale)
+  if(state.inks) for(const ink of state.inks) drawInk(ink);
   // whale
   if(state.phase!=='idle') drawWhale();
+  // lightning shrug — cyan ring when a lightning-proof whale is struck
+  if(state.shrug>0){ state.shrug=Math.max(0,state.shrug-0.016);
+    const wx=colX(state.whale.col)+CW/2, wy=rowY(state.whale.row)+CH/2, rr=Math.min(CW,CH)*(0.5+(0.5-state.shrug));
+    ctx.strokeStyle=`rgba(120,235,255,${(state.shrug*1.6).toFixed(3)})`; ctx.lineWidth=Math.max(2,CW*0.06);
+    ctx.beginPath(); ctx.arc(wx,wy,rr,0,Math.PI*2); ctx.stroke();
+    ctx.fillStyle=`rgba(180,245,255,${state.shrug.toFixed(3)})`; ctx.font=`700 ${Math.floor(CW*0.4)}px 'DM Mono',monospace`;
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('⚡', wx, wy-rr-CW*0.2);
+  }
   // sting / impact flash
   if(state.stingFlash>0){ ctx.fillStyle=`rgba(150,80,220,${(0.2*state.stingFlash).toFixed(3)})`; ctx.fillRect(0,0,w,h); }
   // boss HP bar
@@ -1834,7 +1928,7 @@ function render(){
   if(state.phase==='play' && state.tier.key!=='common'){
     ctx.font=`600 ${Math.max(9,Math.floor(CW*0.20))}px 'DM Mono',monospace`;
     ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle=state.tier.color;
-    ctx.fillText(state.tier.name + (state.shieldReady?'  🛡':''), 8, 7);
+    ctx.fillText(state.tier.name + (state.shieldReady?'  🛡':'') + (state.lightningImmune?'  ⚡':''), 8, 7);
   }
   // pearls collected this run (top-center): a real pearl + the count
   if(state.hasWealthy && state.phase==='play'){
@@ -1959,6 +2053,12 @@ document.getElementById('menuBtn').addEventListener('click',()=>{
   document.getElementById('overlayOver').classList.add('hidden');
   document.getElementById('overlayStart').classList.remove('hidden');
 });
+document.getElementById('winAgainBtn').addEventListener('click',()=>{ document.getElementById('overlayWin').classList.add('hidden'); diveStart(); });
+document.getElementById('winMenuBtn').addEventListener('click',()=>{
+  state.phase='idle';
+  document.getElementById('overlayWin').classList.add('hidden');
+  document.getElementById('overlayStart').classList.remove('hidden');
+});
 const guide=document.getElementById('guide');
 document.getElementById('guideBtn').addEventListener('click',()=>guide.classList.add('open'));
 document.getElementById('guideClose').addEventListener('click',()=>guide.classList.remove('open'));
@@ -1992,25 +2092,25 @@ function rankOf(nft){
   const r=(window.WHALE_TRAITS && window.WHALE_TRAITS[id] && window.WHALE_TRAITS[id].rank)|0;
   return r>0 ? r : (9000 + (100 - whalePower(nft.traits)));  // estimated whales sort after ranked ones
 }
-function showChosen(url,id,tier){
+function showChosen(url,id,tier,lit){
   document.getElementById('chosen').style.display='flex';
   document.getElementById('chosenImg').src=url;
   document.getElementById('chosenName').textContent=`${tier.name} #${id}`;
   document.getElementById('chosenName').style.color=tier.color;
-  document.getElementById('chosenPerk').textContent=tier.perk;
+  document.getElementById('chosenPerk').textContent=tier.perk + (lit?' · ⚡ lightning-proof':'');
 }
-function selectWhale(url,id,tier){
+function selectWhale(url,id,tier,lit){
   const img=new Image(); img.crossOrigin='anonymous'; img.src=url;
-  state.skinImg=img; state.skinId=id; state.tier=tier;
-  try{ localStorage.setItem('trench_solo_skin', JSON.stringify({url,id,tier:tier.key})); }catch(e){}
-  showChosen(url,id,tier);
+  state.skinImg=img; state.skinId=id; state.tier=tier; state.lightningImmune=!!lit;
+  try{ localStorage.setItem('trench_solo_skin', JSON.stringify({url,id,tier:tier.key,lit:!!lit})); }catch(e){}
+  showChosen(url,id,tier,!!lit);
   setW('');
   closePicker();
 }
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v36`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v37`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
@@ -2030,7 +2130,7 @@ function openPicker(){
     c.appendChild(img); c.appendChild(meta);
     c.addEventListener('click',()=>{
       pickerGrid.querySelectorAll('.pcard').forEach(x=>x.classList.remove('sel')); c.classList.add('sel');
-      selectWhale(url,id,tier);
+      selectWhale(url,id,tier, whaleHasLightning(n));
     });
     pickerGrid.appendChild(c);
   });
@@ -2192,7 +2292,7 @@ document.getElementById('rewardBtn').addEventListener('click',continueAfterBoss)
 try{
   const lw=localStorage.getItem('trench_solo_wallet'); if(lw) wInput.value=lw;
   const sk=JSON.parse(localStorage.getItem('trench_solo_skin')||'null');
-  if(sk&&sk.url){ const img=new Image(); img.crossOrigin='anonymous'; img.src=sk.url; state.skinImg=img; state.skinId=sk.id; state.tier=TIERS[sk.tier]||TIERS.common; showChosen(sk.url,sk.id,state.tier); }
+  if(sk&&sk.url){ const img=new Image(); img.crossOrigin='anonymous'; img.src=sk.url; state.skinImg=img; state.skinId=sk.id; state.tier=TIERS[sk.tier]||TIERS.common; state.lightningImmune=!!sk.lit; showChosen(sk.url,sk.id,state.tier,!!sk.lit); }
   if(localStorage.getItem('trench_solo_orca')==='1'){ state.hasOrca=true;
     let imgs=[]; try{ imgs=JSON.parse(localStorage.getItem('trench_solo_orca_imgs')||'[]'); }catch(e){}
     showOrcaBadge(imgs, parseInt(localStorage.getItem('trench_solo_orca_count'))||imgs.length||1); }
@@ -2210,6 +2310,7 @@ try{
 try{ const q=new URLSearchParams(location.search);
   const oq=q.get('orca'); if(oq){ state.hasOrca=true; showOrcaBadge('', parseInt(oq)||1); }
   if(q.get('wealthy')==='1'){ state.hasWealthy=true; state.wealthyCount=5; state.xpMult=1+Math.min(CONFIG.xpCap,CONFIG.xpBase+CONFIG.xpPer*4); state.pearls=50; showWealthyBadge([],5); }
+  if(q.get('win')==='1'){ state.level=CONFIG.maxLevel; state.score=9999; state.runPearls=120; document.body.classList.add('playing'); setTimeout(win,250); }
 }catch(e){}
 
 window.addEventListener('resize',resize);
