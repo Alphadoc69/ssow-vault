@@ -104,8 +104,8 @@
   .orca-badge{display:flex; flex-direction:column; gap:7px; margin-top:8px; padding:8px;
     border:1px solid rgba(120,220,255,0.32); border-radius:7px; background:rgba(40,90,120,0.18); text-align:left;}
   #orcaName{font-family:var(--font-display); font-size:0.95rem; letter-spacing:0.05em; color:#bfefff;}
-  .orca-thumbs{display:flex; gap:6px; flex-wrap:wrap; max-height:96px; overflow-y:auto;}
-  .orca-thumb{width:40px; height:40px; border-radius:6px; object-fit:cover; flex:0 0 auto;
+  .orca-thumbs{display:flex; gap:5px; flex-wrap:wrap; justify-content:center;}
+  .orca-thumb{width:34px; height:34px; border-radius:6px; object-fit:cover; flex:0 0 auto;
     background:#08202e; border:1px solid rgba(120,220,255,0.35);}
   #changeBtn{flex:0 0 auto; background:transparent; border:1px solid rgba(91,200,232,0.3); color:var(--cyan-lt);
     font-family:var(--font-mono); font-size:0.55rem; letter-spacing:0.1em; text-transform:uppercase; padding:7px 10px; border-radius:5px; cursor:pointer;}
@@ -1799,7 +1799,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v23`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v24`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
