@@ -235,9 +235,10 @@
     <div class="g-sec">
       <h3>🦈 Predators by Habitat</h3>
       <p>Different depths, different hunters — all of them patrol the lanes inside swirling currents. Touch one and it knocks you back toward the surface and costs air. Time your moves through the gaps.</p>
-      <div class="g-row"><span>🦈 <b>Sharks</b></span><span class="g-x">warm shallows — tropical, reef &amp; coastal</span></div>
+      <div class="g-row"><span>🦈 <b>Sharks</b></span><span class="g-x">warm shallows — they chase you when you're close</span></div>
       <div class="g-row"><span>🐻‍❄️ <b>Polar Bears</b></span><span class="g-x">Arctic ice — they ambush whales here</span></div>
-      <div class="g-row"><span>🦑 <b>Giant Squid</b></span><span class="g-x">the deep &amp; dark — a sperm whale's nemesis</span></div>
+      <div class="g-row"><span>🫎 <b>Moose</b></span><span class="g-x">island channels — orcas hunt them in open water</span></div>
+      <div class="g-row"><span>🦑 <b>Giant Squid</b></span><span class="g-x">the deep — pale ghosts, a sperm whale's nemesis</span></div>
       <div class="g-row"><span>👁️ <b>Colossal Squid</b></span><span class="g-x">the Abyss — bigger, beaked, shrugs off your sonar</span></div>
     </div>
     <div class="g-sec">
@@ -320,10 +321,12 @@ const CONFIG = {
   pingInterval: 2.6,  // seconds between sonar pings on dark levels
   pingSpeed: 7,       // sonar ring expansion (cells/sec)
   stunTime: 1.7,      // seconds a squid is stunned by sonar
-  darkInner: 0.45,    // lit radius around whale on dark levels (cells) — smaller = harder
-  darkOuter: 1.25,    // fade-to-black radius (cells)
-  darkReveal: 0.72,   // how much a sonar ping lightens the dark (0–1)
+  darkInner: 0.2,     // lit radius around whale on dark levels (cells) — tiny
+  darkOuter: 0.95,    // fade-to-black radius (cells) ≈ 2 rows of visibility
+  darkReveal: 0.5,    // how much a sonar ping lightens the dark (0–1)
+  darkFromLevel: 81,  // dark echolocation zone = the last 20 levels
   patrolChance: 0.28, // chance a deep lane reverses direction (back-and-forth)
+  chaseMult: 0.7,     // chasing sharks move at this fraction of lane speed
   dolphinInterval: 7, // seconds between dolphin ally runs
   dolphinStun: 3.0,   // seconds squid are stunned in a lane a dolphin clears
   dolphinSpeed: 9,    // dolphin streak speed (cells/sec)
@@ -339,7 +342,7 @@ const state = {
   lanes: [], chest: {row:0,col:0}, whale: {row:0,col:3,facing:1,hop:0},
   gems: [], cfg: null, last: 0, clearAnim: 0, clearGem: null,
   skinImg: null, skinId: null, bubbles: [],
-  invuln: 0, t: 0, habitat: null, habIdx: -1, bannerT: 0,
+  invuln: 0, t: 0, habitat: null, habName: '', bannerT: 0,
   dark: false, ping: null, pingCd: 0, reveal: 0,
   dolphin: null, dolphinCd: 0,
 };
@@ -429,24 +432,45 @@ function levelCfg(L){
   };
 }
 
+// ── ENEMIES — per-type properties (speed, hitbox bonus, stun resistance, chasing) ──
+const ENEMY={
+  shark:   {spd:1.12, hit:0,    stun:1.0,  chase:true},
+  squid:   {spd:1.0,  hit:0,    stun:1.0},
+  colossal:{spd:1.08, hit:0.10, stun:0.55},
+  bear:    {spd:0.95, hit:0,    stun:1.0},
+  moose:   {spd:0.92, hit:0.04, stun:1.0},
+};
+const ALL_ENEMIES=['shark','squid','colossal','bear','moose'];
+
 // ── HABITATS — the water changes as you dive deeper / progress ──
-// each spans ~7 levels; top/bot are the water gradient (RGB), seabed tint, and a decor style.
-const HABITATS=[
-  {name:'TROPICAL NURSERY', sub:'warm calving shallows', top:[46,158,176], bot:[12,74,116], seabed:[200,186,130], decor:'coral', enemy:'shark', espd:1.12},
-  {name:'CORAL REEFS',       sub:'subtropical shelf',     top:[30,138,150], bot:[10,62,104], seabed:[180,150,110], decor:'coral', enemy:'shark', espd:1.12},
-  {name:'COASTAL KELP',      sub:'nearshore forests',     top:[36,116,108], bot:[14,58,72],  seabed:[70,80,50],    decor:'kelp',  enemy:'shark', espd:1.08},
-  {name:'KRILL FIELDS',      sub:'sub-polar feeding',     top:[30,96,128],  bot:[8,44,76],   seabed:[40,60,80],    decor:'krill', enemy:'squid', espd:1.0},
-  {name:'ARCTIC ICE',        sub:'polar bears hunt here', top:[120,182,212],bot:[28,74,116], seabed:[150,170,190], decor:'ice',   enemy:'bear',  espd:0.95},
-  {name:'ANTARCTIC DEEP',    sub:'polar cold · sonar on',  top:[34,70,110],  bot:[6,22,54],   seabed:[40,55,80],   decor:'ice',    dark:true, enemy:'squid', espd:1.0},
-  {name:'THE ABYSS',         sub:'colossal squid · sonar', top:[10,22,40],   bot:[1,4,12],    seabed:[12,16,26],   decor:'biolum', dark:true, enemy:'colossal', espd:1.08, hitBonus:0.10, stunMult:0.55},
-];
-function habitatFor(L){ return HABITATS[Math.min(HABITATS.length-1, Math.floor((L-1)/7))]; }
+const HAB={
+  tropical:  {name:'TROPICAL NURSERY',sub:'warm calving shallows', top:[46,158,176],bot:[12,74,116],seabed:[200,186,130],decor:'coral',enemy:'shark'},
+  coral:     {name:'CORAL REEFS',      sub:'subtropical shelf',     top:[30,138,150],bot:[10,62,104],seabed:[180,150,110],decor:'coral',enemy:'shark'},
+  kelp:      {name:'COASTAL KELP',     sub:'nearshore forests',     top:[36,116,108],bot:[14,58,72], seabed:[70,80,50],  decor:'kelp', enemy:'shark'},
+  krill:     {name:'KRILL FIELDS',     sub:'sub-polar feeding',     top:[30,96,128], bot:[8,44,76],  seabed:[40,60,80],  decor:'krill',enemy:'squid'},
+  arctic:    {name:'ARCTIC ICE',       sub:'polar bears hunt here', top:[120,182,212],bot:[28,74,116],seabed:[150,170,190],decor:'ice',enemy:'bear'},
+  antarctic: {name:'ANTARCTIC DEEP',   sub:'polar cold',            top:[34,80,120], bot:[8,34,72],  seabed:[40,55,80],  decor:'ice',  enemy:'squid'},
+  twilight:  {name:'TWILIGHT ZONE',    sub:'the fading light',      top:[18,46,76],  bot:[4,16,40],  seabed:[24,30,46],  decor:'biolum',enemy:'squid'},
+  // mid-game wild waters (50–80)
+  channels:  {name:'ISLAND CHANNELS',  sub:'orcas hunt moose here', top:[40,120,120],bot:[16,64,76], seabed:[90,90,60],  decor:'kelp', enemy:'moose'},
+  openocean: {name:'OPEN OCEAN',       sub:'the blue between',      top:[26,92,140], bot:[6,38,84],  seabed:[30,48,76],  decor:'krill',enemy:['shark','squid']},
+  reef2:     {name:'CORAL GARDENS',    sub:'teeming reef',          top:[34,150,150],bot:[10,70,108],seabed:[190,160,120],decor:'coral',enemy:'shark'},
+  // the final 20: dark + colossal + everything
+  abyss:     {name:'THE ABYSS',        sub:'colossal squid · sonar',top:[10,22,40],  bot:[1,4,12],   seabed:[12,16,26],  decor:'biolum',dark:true, enemy:['shark','squid','colossal','bear','moose']},
+};
+const MIDPOOL=[HAB.channels, HAB.openocean, HAB.kelp, HAB.krill, HAB.reef2, HAB.arctic, HAB.channels];
+function habitatFor(L){
+  if(L>=CONFIG.darkFromLevel) return HAB.abyss;                       // last 20 levels
+  if(L>=50) return MIDPOOL[Math.floor((L-50)/4) % MIDPOOL.length];    // 50–80 rotating wild waters
+  const seq=[HAB.tropical,HAB.coral,HAB.kelp,HAB.krill,HAB.arctic,HAB.antarctic,HAB.twilight];
+  return seq[Math.min(seq.length-1, Math.floor((L-1)/7))];            // 1–49 progression
+}
 
 function setupLevel(L){
   const cfg = levelCfg(L); state.cfg = cfg; state.lanes = [];
   // habitat for this depth (set first — lanes use its predator + speed)
-  const hIdx=Math.min(HABITATS.length-1, Math.floor((L-1)/7));
-  state.habitat=HABITATS[hIdx];
+  state.habitat=habitatFor(L);
+  const hab=state.habitat;
   const laneCount = CONFIG.ROWS-2;            // rows 1 .. ROWS-2 are lanes
   // spread the danger lanes evenly so there are calm "rest" rows between them (a fair Frogger median)
   const activeSet = new Set();
@@ -460,19 +484,20 @@ function setupLevel(L){
     const idx=r-1;
     if(!activeSet.has(idx)){ state.lanes.push({row:r,active:false,blocks:[],dir:1,speed:0}); continue; }
     let dir=(idx%2===0)?1:-1;
+    // pick this lane's predator (a habitat may mix several)
+    let etype = Array.isArray(hab.enemy) ? hab.enemy[Math.floor(Math.random()*hab.enemy.length)] : hab.enemy;
+    const ep = ENEMY[etype] || ENEMY.squid;
     const fast = Math.random() < CONFIG.fastLaneChance;
-    let speed=cfg.speed*(1-CONFIG.laneJitter/2+Math.random()*CONFIG.laneJitter)*(state.habitat?state.habitat.espd:1);
+    let speed=cfg.speed*(1-CONFIG.laneJitter/2+Math.random()*CONFIG.laneJitter)*ep.spd;
     if(fast) speed*=CONFIG.fastLaneMult;
-    // patrol lanes reverse direction now and then (more variety as it gets deeper)
-    const patrol = L>=12 && Math.random()<CONFIG.patrolChance;
-    // vary how many predators are in this lane so no two lanes feel the same
+    const patrol = L>=12 && !ep.chase && Math.random()<CONFIG.patrolChance;
     const k=Math.max(1, cfg.blocks - (Math.random()<0.4?1:0));
     const spacing=CONFIG.COLS/k, start=Math.random()*spacing, blocks=[];
     for(let i=0;i<k;i++){
       const jitter=(k>1)?(Math.random()-0.5)*spacing*0.4:0;  // uneven gaps
       blocks.push({x:((start+i*spacing+jitter)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS, stun:0, pinged:false});
     }
-    state.lanes.push({row:r,active:true,blocks,dir,speed,fast,patrol,patrolT:2+Math.random()*2.5});
+    state.lanes.push({row:r,active:true,blocks,dir,speed,fast,patrol,patrolT:2+Math.random()*2.5,enemy:etype,chase:!!ep.chase});
   }
   state.chest = {row:CONFIG.ROWS-1, col:Math.floor(Math.random()*CONFIG.COLS)};
   state.whale = {row:0, col:Math.floor(CONFIG.COLS/2), facing:1, hop:0};
@@ -489,10 +514,10 @@ function setupLevel(L){
     usedCols.add(row+'-'+col);
     state.bubbles.push({row, col, taken:false, pop:0});
   }
-  // banner when entering a new habitat
-  if(hIdx!==state.habIdx){ state.habIdx=hIdx; state.bannerT=2.6; }
+  // banner when entering a new habitat (compare by name)
+  if(hab.name!==state.habName){ state.habName=hab.name; state.bannerT=2.6; }
   // sonar / darkness
-  state.dark=!!state.habitat.dark;
+  state.dark=!!hab.dark;
   state.ping=null; state.pingCd=state.dark?1.0:0; state.reveal=0;
   // dolphin allies
   state.dolphin=null; state.dolphinCd=CONFIG.dolphinInterval*0.6;
@@ -561,7 +586,7 @@ function gameOver(){
 function startRun(){
   resumeAudio();
   state.level=1; state.score=0; state.o2=100; state.gems=[];
-  state.invuln=0; state.habIdx=-1;
+  state.invuln=0; state.habName='';
   if(state.best<1) state.best=1;
   setupLevel(1); state.phase='play'; state.last=performance.now();
   document.getElementById('overlayStart').classList.add('hidden');
@@ -575,12 +600,19 @@ function update(dt){
   if(state.bannerT>0) state.bannerT=Math.max(0,state.bannerT-dt);
   if(state.reveal>0) state.reveal=Math.max(0,state.reveal-dt*1.4);
   state.o2 -= state.cfg.drain*state.tier.drain*dt;
-  // move squid (frozen ones hold still)
+  // move predators (frozen ones hold still)
   for(const lane of state.lanes){ if(!lane.active) continue;
     if(lane.patrol){ lane.patrolT-=dt; if(lane.patrolT<=0){ lane.dir*=-1; lane.patrolT=2+Math.random()*2.5; } }
+    const chasing = lane.chase && Math.abs(lane.row-state.whale.row)<=2;  // sharks home in when you're near their lane
     for(const b of lane.blocks){
       if(b.stun>0){ b.stun=Math.max(0,b.stun-dt); continue; }
-      b.x=((b.x+lane.dir*lane.speed*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
+      if(chasing){
+        const d=state.whale.col-b.x;
+        const dir=Math.abs(d)<0.05?0:Math.sign(d);
+        b.x=Math.max(0,Math.min(CONFIG.COLS-1, b.x + dir*lane.speed*CONFIG.chaseMult*dt));
+      } else {
+        b.x=((b.x+lane.dir*lane.speed*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
+      }
     }
   }
   // sonar: on dark levels, periodic ping reveals the field and stuns nearby squid
@@ -595,7 +627,7 @@ function update(dt){
         for(const b of lane.blocks){
           let dx=Math.abs(b.x-wx); dx=Math.min(dx,CONFIG.COLS-dx);
           const dist=Math.hypot(dx,dyr);
-          if(!b.pinged && dist<=state.ping.r){ b.stun=CONFIG.stunTime*(state.habitat.stunMult||1); b.pinged=true; }
+          if(!b.pinged && dist<=state.ping.r){ b.stun=CONFIG.stunTime*((ENEMY[lane.enemy]||ENEMY.squid).stun); b.pinged=true; }
         }
       }
       if(state.ping.r > CONFIG.COLS+CONFIG.ROWS){
@@ -613,7 +645,7 @@ function update(dt){
         const lane=act[Math.floor(Math.random()*act.length)];
         const dir=Math.random()<0.5?1:-1;
         state.dolphin={row:lane.row, x:(dir>0?-1.5:CONFIG.COLS+1.5), dir};
-        for(const b of lane.blocks) b.stun=Math.max(b.stun, CONFIG.dolphinStun*(state.habitat.stunMult||1));
+        for(const b of lane.blocks) b.stun=Math.max(b.stun, CONFIG.dolphinStun*((ENEMY[lane.enemy]||ENEMY.squid).stun));
         sfxDolphin();
       }
       state.dolphinCd=CONFIG.dolphinInterval;
@@ -622,8 +654,8 @@ function update(dt){
     state.dolphin.x += state.dolphin.dir*CONFIG.dolphinSpeed*dt;
     if(state.dolphin.x < -2.5 || state.dolphin.x > CONFIG.COLS+2.5) state.dolphin=null;
   }
-  const hitR=Math.max(0.45, CONFIG.hitRadius+state.tier.hit+(state.habitat.hitBonus||0));
   const lane=state.lanes.find(l=>l.row===state.whale.row);
+  const hitR=Math.max(0.45, CONFIG.hitRadius+state.tier.hit+((lane&&ENEMY[lane.enemy])?ENEMY[lane.enemy].hit:0));
   if(state.invuln<=0 && lane && lane.active){
     for(const b of lane.blocks){
       if(b.stun>0) continue;                          // stunned squid can't catch you
@@ -651,11 +683,11 @@ function drawEnemy(type,x,cy,dir,stunned){
       // whirlpool swirl behind (stops when stunned)
       ctx.save(); ctx.translate(X,Y); ctx.rotate(stunned?0:(T*1.7*(dir<0?-1:1))%(Math.PI*2));
       for(let s=0;s<3;s++){ const rr=sz*0.52*scale*(1-s*0.24);
-        ctx.beginPath(); ctx.strokeStyle=stunned?`rgba(150,170,190,${0.18-s*0.05})`:(big?`rgba(150,120,210,${0.30-s*0.07})`:`rgba(120,210,245,${0.30-s*0.07})`); ctx.lineWidth=2;
+        ctx.beginPath(); ctx.strokeStyle=stunned?`rgba(150,170,190,${0.18-s*0.05})`:(big?`rgba(225,228,240,${0.32-s*0.07})`:`rgba(205,222,240,${0.30-s*0.07})`); ctx.lineWidth=2;
         ctx.arc(0,0,rr,s*0.7,s*0.7+Math.PI*1.45); ctx.stroke(); }
       ctx.restore();
       ctx.save(); ctx.translate(X,Y); ctx.scale(scale,scale); if(dir<0) ctx.scale(-1,1);
-      const tcol = stunned?'#6a7480':(big?'#8a3a6a':'#c0436a');
+      const tcol = stunned?'#6a7480':(big?'#d6dae6':'#e2e6ee');
       ctx.strokeStyle=tcol; ctx.lineWidth=Math.max(2,sz*0.05); ctx.lineCap='round';
       const arms = big?3:2;
       for(let i=-arms;i<=arms;i++){ const wig=stunned?0:Math.sin(T*6+i)*sz*0.10;
@@ -663,15 +695,15 @@ function drawEnemy(type,x,cy,dir,stunned){
         if(big && !stunned){ // claws / hooks on the tips
           ctx.beginPath(); ctx.moveTo(-sz*0.52,i*sz*0.09+wig); ctx.lineTo(-sz*0.58,i*sz*0.09+wig-sz*0.04); ctx.stroke(); }
       }
-      ctx.fillStyle=stunned?'#7d8794':(big?'#9a2f72':'#dc5a82'); ctx.strokeStyle=stunned?'#454e59':(big?'#5a1842':'#7a2440'); ctx.lineWidth=Math.max(1,sz*0.03);
+      ctx.fillStyle=stunned?'#9aa3ad':(big?'#f2f4f9':'#e7eaf1'); ctx.strokeStyle=stunned?'#5a626b':(big?'#c2c8d4':'#b6bcc8'); ctx.lineWidth=Math.max(1,sz*0.03);
       ctx.beginPath(); ctx.moveTo(sz*0.46,0);
       ctx.quadraticCurveTo(sz*0.06,-sz*0.24,-sz*0.10,-sz*0.12); ctx.quadraticCurveTo(-sz*0.17,0,-sz*0.10,sz*0.12);
       ctx.quadraticCurveTo(sz*0.06,sz*0.24,sz*0.46,0); ctx.closePath(); ctx.fill(); ctx.stroke();
-      if(big && !stunned){ // beak
-        ctx.fillStyle='#1c0e18'; ctx.beginPath(); ctx.moveTo(sz*0.12,0); ctx.lineTo(sz*0.0,-sz*0.05); ctx.lineTo(sz*0.0,sz*0.05); ctx.closePath(); ctx.fill();
+      if(big && !stunned){ // dark beak
+        ctx.fillStyle='#2a1822'; ctx.beginPath(); ctx.moveTo(sz*0.12,0); ctx.lineTo(sz*0.0,-sz*0.05); ctx.lineTo(sz*0.0,sz*0.05); ctx.closePath(); ctx.fill();
       }
-      ctx.fillStyle='#160d1c'; ctx.beginPath(); ctx.arc(sz*0.05,-sz*0.02,sz*(big?0.10:0.08),0,Math.PI*2); ctx.fill();
-      if(!stunned){ ctx.fillStyle=big?'#ff5a7a':'#ffd25a'; ctx.beginPath(); ctx.arc(sz*0.07,-sz*0.04,sz*(big?0.04:0.032),0,Math.PI*2); ctx.fill(); }
+      ctx.fillStyle='#2a2f3a'; ctx.beginPath(); ctx.arc(sz*0.05,-sz*0.02,sz*(big?0.10:0.08),0,Math.PI*2); ctx.fill();
+      if(!stunned){ ctx.fillStyle=big?'#ff5a6e':'#ffcf4a'; ctx.beginPath(); ctx.arc(sz*0.07,-sz*0.04,sz*(big?0.045:0.034),0,Math.PI*2); ctx.fill(); }
       ctx.restore();
     } else if(type==='shark'){
       ctx.save(); ctx.translate(X,Y); if(dir<0) ctx.scale(-1,1);
@@ -694,7 +726,7 @@ function drawEnemy(type,x,cy,dir,stunned){
       ctx.fillStyle='#10181f'; ctx.beginPath(); ctx.arc(sz*0.3,-sz*0.04,sz*0.03,0,Math.PI*2); ctx.fill();
       if(!stunned){ ctx.strokeStyle='#2a323a'; ctx.lineWidth=Math.max(1,sz*0.02); ctx.beginPath(); ctx.moveTo(sz*0.48,sz*0.03); ctx.lineTo(sz*0.34,sz*0.08); ctx.stroke(); }
       ctx.restore();
-    } else { // bear (swimming polar bear)
+    } else if(type==='bear'){ // swimming polar bear
       ctx.save(); ctx.translate(X,Y); if(dir<0) ctx.scale(-1,1);
       const body=stunned?'#cdd6db':'#eef3f6', edge=stunned?'#9aa6ad':'#c2ccd2';
       ctx.fillStyle=body; ctx.strokeStyle=edge; ctx.lineWidth=Math.max(1,sz*0.03);
@@ -712,6 +744,32 @@ function drawEnemy(type,x,cy,dir,stunned){
       // little waterline splashes
       if(!stunned){ ctx.strokeStyle='rgba(210,235,245,0.6)'; ctx.lineWidth=Math.max(1,sz*0.02);
         ctx.beginPath(); ctx.moveTo(-sz*0.4,sz*0.18); ctx.lineTo(sz*0.4,sz*0.18); ctx.stroke(); }
+      ctx.restore();
+    } else { // swimming moose (orcas hunt them in the island channels)
+      ctx.save(); ctx.translate(X,Y); if(dir<0) ctx.scale(-1,1);
+      const body=stunned?'#7a6b5a':'#6b4a2e', edge=stunned?'#4f463a':'#43301d';
+      // submerged back
+      ctx.fillStyle='rgba(70,52,34,0.55)'; ctx.beginPath(); ctx.ellipse(-sz*0.12,sz*0.12,sz*0.32,sz*0.15,0,0,Math.PI*2); ctx.fill();
+      // waterline
+      if(!stunned){ ctx.strokeStyle='rgba(210,235,245,0.5)'; ctx.lineWidth=Math.max(1,sz*0.02);
+        ctx.beginPath(); ctx.moveTo(-sz*0.45,sz*0.06); ctx.lineTo(sz*0.5,sz*0.06); ctx.stroke(); }
+      // neck + head above the surface
+      ctx.fillStyle=body; ctx.strokeStyle=edge; ctx.lineWidth=Math.max(1,sz*0.03);
+      ctx.beginPath(); ctx.moveTo(sz*0.04,sz*0.08); ctx.lineTo(sz*0.16,-sz*0.18); ctx.lineTo(sz*0.30,-sz*0.16); ctx.lineTo(sz*0.22,sz*0.08); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // head + long snout
+      ctx.beginPath(); ctx.ellipse(sz*0.34,-sz*0.2,sz*0.18,sz*0.1,0.3,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(sz*0.5,-sz*0.12,sz*0.1,sz*0.06,0.4,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      // ear
+      ctx.beginPath(); ctx.moveTo(sz*0.26,-sz*0.28); ctx.lineTo(sz*0.18,-sz*0.4); ctx.lineTo(sz*0.30,-sz*0.32); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // antlers (palmate)
+      ctx.strokeStyle=stunned?'#9a9080':'#cbb083'; ctx.lineWidth=Math.max(2,sz*0.045); ctx.lineCap='round';
+      for(const sgn of [-1,1]){
+        ctx.beginPath(); ctx.moveTo(sz*0.30,-sz*0.30); ctx.lineTo(sz*0.30+sgn*sz*0.16,-sz*0.46); ctx.stroke();
+        for(let p=0;p<3;p++){ ctx.beginPath(); ctx.moveTo(sz*0.30+sgn*sz*0.10,-sz*0.40); ctx.lineTo(sz*0.30+sgn*sz*(0.18+p*0.06),-sz*(0.42+p*0.05)); ctx.stroke(); }
+      }
+      // eye + nose
+      ctx.fillStyle='#140d08'; ctx.beginPath(); ctx.arc(sz*0.34,-sz*0.22,sz*0.028,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(sz*0.56,-sz*0.1,sz*0.03,0,Math.PI*2); ctx.fill();
       ctx.restore();
     }
     if(stunned){ ctx.font=`${Math.floor(sz*0.3)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('💫',X,Y-sz*0.42); }
@@ -839,7 +897,7 @@ function drawDolphin(d){
 function render(){
   const w=cv.clientWidth, h=cv.clientHeight;
   ctx.clearRect(0,0,w,h);
-  const H=state.habitat||HABITATS[0];
+  const H=state.habitat||HAB.tropical;
   // depth gradient from the current habitat's palette
   for(let r=0;r<CONFIG.ROWS;r++){
     const t=r/(CONFIG.ROWS-1);
@@ -858,10 +916,9 @@ function render(){
   // lane separators
   ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
   for(let r=1;r<CONFIG.ROWS;r++){ ctx.beginPath(); ctx.moveTo(0,rowY(r)); ctx.lineTo(w,rowY(r)); ctx.stroke(); }
-  // habitat predator (squid / shark / polar bear) in whirlpool/lane currents
-  const enemyType=(state.habitat&&state.habitat.enemy)||'squid';
+  // predators — each lane draws its own kind (sharks, squid, colossal, bears, moose)
   for(const lane of state.lanes){ if(!lane.active) continue;
-    for(const b of lane.blocks) drawEnemy(enemyType,b.x,rowY(lane.row),lane.dir,b.stun>0);
+    for(const b of lane.blocks) drawEnemy(lane.enemy||'squid',b.x,rowY(lane.row),lane.dir,b.stun>0);
   }
   // air bubbles
   for(const b of state.bubbles){ if(!b.taken) drawBubble(b); }
@@ -1043,7 +1100,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v5`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v6`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
