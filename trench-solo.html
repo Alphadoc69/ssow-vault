@@ -100,10 +100,12 @@
   .chosen-info{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;}
   #chosenName{font-family:var(--font-display); font-size:1rem; letter-spacing:0.05em; color:#fff;}
   .chosen-perk{font-size:0.5rem; letter-spacing:0.04em; color:var(--dim); line-height:1.4;}
-  .orca-badge{display:flex; align-items:center; gap:10px; margin-top:8px; padding:8px;
+  .orca-badge{display:flex; flex-direction:column; gap:7px; margin-top:8px; padding:8px;
     border:1px solid rgba(120,220,255,0.32); border-radius:7px; background:rgba(40,90,120,0.18); text-align:left;}
-  .orca-badge img{width:42px; height:42px; border-radius:7px; object-fit:cover; flex:0 0 auto; background:#08202e;}
   #orcaName{font-family:var(--font-display); font-size:0.95rem; letter-spacing:0.05em; color:#bfefff;}
+  .orca-thumbs{display:flex; gap:6px; flex-wrap:wrap; max-height:96px; overflow-y:auto;}
+  .orca-thumb{width:40px; height:40px; border-radius:6px; object-fit:cover; flex:0 0 auto;
+    background:#08202e; border:1px solid rgba(120,220,255,0.35);}
   #changeBtn{flex:0 0 auto; background:transparent; border:1px solid rgba(91,200,232,0.3); color:var(--cyan-lt);
     font-family:var(--font-mono); font-size:0.55rem; letter-spacing:0.1em; text-transform:uppercase; padding:7px 10px; border-radius:5px; cursor:pointer;}
 
@@ -197,8 +199,8 @@
           <button id="changeBtn">Change</button>
         </div>
         <div class="orca-badge" id="orcaBadge" style="display:none">
-          <img id="orcaImg" alt="" />
-          <div class="chosen-info"><span id="orcaName">🐳 Security Orca</span><span class="chosen-perk" id="orcaPerk">cannon ally — fires in dives &amp; boss fights</span></div>
+          <span id="orcaName">🐳 Security Orca</span>
+          <div class="orca-thumbs" id="orcaThumbs"></div>
         </div>
       </div>
 
@@ -398,7 +400,7 @@ const state = {
   dolphin: null, dolphinCd: 0,
   mode: 'dive', boss: null, whirls: [], rocks: [], jellies: [], stingFlash: 0, bossSharks: [],
   chestOpened: false, portal: null, hintT: 0,
-  hasOrca: false, orca: null, orcaCd: 0, cannons: [], orcaImg: null,
+  hasOrca: false, orca: null, orcaCd: 0, cannons: [], orcaImg: null, orcaImgs: [],
 };
 
 // ── persistence (works on the real site; harmless if blocked) ──
@@ -952,7 +954,9 @@ function updateOrca(dt){
     else { const act=state.lanes.filter(l=>l.active); if(act.length) row=act[Math.floor(Math.random()*act.length)].row; }
     if(row!==null){
       const startX = dir>0 ? -1.2 : CONFIG.COLS+0.2;
-      state.orca={row,dir,x:startX,t:0};
+      state.orcaTurn=((state.orcaTurn||0)+1);
+      const idx = (state.orcaImgs && state.orcaImgs.length) ? state.orcaTurn % state.orcaImgs.length : 0;
+      state.orca={row,dir,x:startX,t:0,imgIdx:idx};
       state.cannons.push({row,dir,x:startX+dir*0.6,speed:CONFIG.cannonSpeed});
       sfxCannon();
       state.orcaCd = boss?CONFIG.orcaIntervalBoss:CONFIG.orcaIntervalDive;
@@ -1343,7 +1347,7 @@ function drawDecor(H,w,h){
 }
 function drawOrca(o){
   const X=o.x*CW+CW/2, Y=rowY(o.row)+CH/2, sz=Math.min(CW,CH);
-  const im=state.orcaImg;
+  const im=(state.orcaImgs && state.orcaImgs.length) ? state.orcaImgs[o.imgIdx||0] : state.orcaImg;
   // if we have the actual NFT image, show it (clipped to a glowing disc + a cannon)
   if(im && im.complete && im.naturalWidth>0){
     const r=sz*0.4;
@@ -1794,7 +1798,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v20`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v22`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
@@ -1824,17 +1828,23 @@ function closePicker(){ picker.classList.remove('open'); }
 document.getElementById('pickerClose').addEventListener('click',closePicker);
 document.getElementById('changeBtn').addEventListener('click',openPicker);
 
-function setOrcaImg(url){
-  if(url){ const im=new Image(); im.crossOrigin='anonymous'; im.src=url; state.orcaImg=im; }
-  else state.orcaImg=null;
+function setOrcaImgs(urls){
+  state.orcaImgs = (urls||[]).map(u=>{ const im=new Image(); im.crossOrigin='anonymous'; im.src=u; return im; });
+  state.orcaImg = state.orcaImgs[0] || null;   // first one as default
 }
-function showOrcaBadge(img,count){
+function showOrcaBadge(images,count){
   const box=document.getElementById('orcaBadge'); if(!box) return;
   box.style.display='flex';
-  const im=document.getElementById('orcaImg');
-  if(img){ im.style.display='block'; im.src=img; } else { im.style.display='none'; }
-  document.getElementById('orcaName').textContent=`🐳 Security Orca${count>1?` ×${count}`:''}`;
-  setOrcaImg(img);
+  document.getElementById('orcaName').textContent=`🐳 Security Orca${count>1?`s ×${count}`:''} — cannon ally`;
+  const wrap=document.getElementById('orcaThumbs'); wrap.innerHTML='';
+  if(images && images.length){
+    images.forEach(u=>{ const im=document.createElement('img'); im.className='orca-thumb'; im.loading='lazy'; im.src=u; wrap.appendChild(im); });
+  } else {
+    const ph=document.createElement('div'); ph.className='orca-thumb';
+    ph.style.cssText+='display:flex;align-items:center;justify-content:center;font-size:20px;'; ph.textContent='🐳';
+    wrap.appendChild(ph);
+  }
+  setOrcaImgs(images||[]);
 }
 async function checkOrca(wallet){
   try{
@@ -1842,15 +1852,16 @@ async function checkOrca(wallet){
     const data=await res.json();
     if(res.ok && data.owns){
       state.hasOrca=true;
+      const imgs=data.images||(data.image?[data.image]:[]);
       try{ localStorage.setItem('trench_solo_orca','1');
-        localStorage.setItem('trench_solo_orca_img', data.image||'');
-        localStorage.setItem('trench_solo_orca_count', String(data.count||1)); }catch(e){}
-      showOrcaBadge(data.image||'', data.count||1);
+        localStorage.setItem('trench_solo_orca_imgs', JSON.stringify(imgs));
+        localStorage.setItem('trench_solo_orca_count', String(data.count||imgs.length||1)); }catch(e){}
+      showOrcaBadge(imgs, data.count||imgs.length||1);
       return true;
     }
     state.hasOrca=false;
     document.getElementById('orcaBadge').style.display='none';
-    try{ localStorage.removeItem('trench_solo_orca'); localStorage.removeItem('trench_solo_orca_img'); localStorage.removeItem('trench_solo_orca_count'); }catch(e){}
+    try{ localStorage.removeItem('trench_solo_orca'); localStorage.removeItem('trench_solo_orca_imgs'); localStorage.removeItem('trench_solo_orca_count'); }catch(e){}
   }catch(e){ /* leave ally state as-is on network hiccup */ }
   return false;
 }
@@ -1877,7 +1888,11 @@ try{
   const sk=JSON.parse(localStorage.getItem('trench_solo_skin')||'null');
   if(sk&&sk.url){ const img=new Image(); img.crossOrigin='anonymous'; img.src=sk.url; state.skinImg=img; state.skinId=sk.id; state.tier=TIERS[sk.tier]||TIERS.common; showChosen(sk.url,sk.id,state.tier); }
   if(localStorage.getItem('trench_solo_orca')==='1'){ state.hasOrca=true;
-    showOrcaBadge(localStorage.getItem('trench_solo_orca_img')||'', parseInt(localStorage.getItem('trench_solo_orca_count'))||1); }
+    let imgs=[]; try{ imgs=JSON.parse(localStorage.getItem('trench_solo_orca_imgs')||'[]'); }catch(e){}
+    showOrcaBadge(imgs, parseInt(localStorage.getItem('trench_solo_orca_count'))||imgs.length||1); }
+  // quietly refresh Orca ownership + art in the background if we know the wallet
+  const savedWallet=localStorage.getItem('trench_solo_wallet');
+  if(savedWallet && savedWallet.startsWith('0x')) checkOrca(savedWallet);
 }catch(e){}
 // ?orca=1 forces the ally on for testing
 try{ if(new URLSearchParams(location.search).get('orca')==='1'){ state.hasOrca=true; showOrcaBadge('',1); } }catch(e){}
