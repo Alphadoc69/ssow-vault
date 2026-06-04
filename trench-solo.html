@@ -230,7 +230,7 @@
   <div class="guide-body">
     <div class="g-sec">
       <h3>🐋 The Dive</h3>
-      <p>Guide your whale down to the treasure chest on the seabed. Your <b>oxygen</b> drains constantly <i>and</i> every move costs a breath — so pick your path, don't thrash around. Crack the chest open and a <b>water portal</b> tears open near the surface: swim to it to descend to the next level. Cracking the chest tops up your air, so go grab it. 100 levels down.</p>
+      <p>Guide your whale down to the treasure chest on the seabed. Your <b>oxygen</b> drains constantly <i>and</i> every move costs a breath — so pick your path, don't thrash around. Crack the chest open and a <b>water portal</b> tears open right beside it: step into the portal to descend to the next level. Cracking the chest tops up your air too. 100 levels down.</p>
     </div>
     <div class="g-sec">
       <h3>🦈 Predators by Habitat</h3>
@@ -844,13 +844,15 @@ function openTreasure(){
   state.chestOpened=true;
   state.o2=Math.min(100, state.o2+CONFIG.chestRefill);
   sfxGem(true);
-  // a water portal tears open — race to it to descend further
+  // a water portal tears open right beside the chest — step into it to descend
   const blocked=new Set((state.rocks||[]).map(k=>k.row+'-'+k.col));
   blocked.add(state.chest.row+'-'+state.chest.col);
-  let row,col,tries=0;
-  do{ row=Math.floor(Math.random()*3); col=Math.floor(Math.random()*CONFIG.COLS); tries++; }   // opens up near the surface
-  while(blocked.has(row+'-'+col) && tries<16);
-  state.portal={row,col,t:0};
+  const neighbors=[[0,-1],[0,1],[-1,0],[-1,-1],[-1,1]]
+    .map(([dr,dc])=>({row:state.chest.row+dr, col:state.chest.col+dc}))
+    .filter(c=>c.row>=0 && c.row<CONFIG.ROWS && c.col>=0 && c.col<CONFIG.COLS && !blocked.has(c.row+'-'+c.col));
+  const spot = neighbors.length ? neighbors[Math.floor(Math.random()*neighbors.length)]
+                                : {row:Math.max(0,state.chest.row-1), col:state.chest.col};
+  state.portal={row:spot.row, col:spot.col, t:0};
   state.hintT=2.4;
 }
 function sweep(){
@@ -1672,7 +1674,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v15`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v16`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
