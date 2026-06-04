@@ -178,7 +178,7 @@
 
     <div class="overlay" id="overlayStart">
       <h2 class="cyan">SOLO DIVE</h2>
-      <p class="small">Slip through the currents, reach the chest, dive deeper. 100 levels down.</p>
+      <p class="small">Crack the chest, ride the portal, dive deeper. 100 levels down.</p>
 
       <div class="wallet-box">
         <p class="wallet-title">Dive as your own whale</p>
@@ -230,7 +230,7 @@
   <div class="guide-body">
     <div class="g-sec">
       <h3>🐋 The Dive</h3>
-      <p>Guide your whale down through the depths to the treasure chest on the seabed. Your <b>oxygen</b> drains the whole time — reach the chest before it runs out. Clear a level and you refill, then plunge deeper. 100 levels down.</p>
+      <p>Guide your whale down to the treasure chest on the seabed. Your <b>oxygen</b> drains constantly <i>and</i> every move costs a breath — so pick your path, don't thrash around. Crack the chest open and a <b>water portal</b> tears open near the surface: swim to it to descend to the next level. Cracking the chest tops up your air, so go grab it. 100 levels down.</p>
     </div>
     <div class="g-sec">
       <h3>🦈 Predators by Habitat</h3>
@@ -321,6 +321,8 @@ const CONFIG = {
   maxDrain: 5.2,
   sweepPenalty: 22,   // oxygen lost when caught by a squid
   levelRefill: 40,    // oxygen regained on clearing a level
+  moveO2: 1.3,        // oxygen spent on every move — every hop counts
+  chestRefill: 32,    // oxygen regained the moment you crack the treasure open
   hitRadius: 0.55,    // how close a squid must be to catch you (cells)
   knockbackRows: 3,   // rows pushed back toward the surface when caught
   laneJitter: 0.55,   // per-lane speed variation (higher = more varied)
@@ -377,6 +379,7 @@ const state = {
   dark: false, ping: null, pingCd: 0, reveal: 0,
   dolphin: null, dolphinCd: 0,
   mode: 'dive', boss: null, whirls: [], rocks: [], jellies: [], stingFlash: 0, bossSharks: [],
+  chestOpened: false, portal: null, hintT: 0,
 };
 
 // ── persistence (works on the real site; harmless if blocked) ──
@@ -545,6 +548,7 @@ function setupLevel(L){
     state.lanes.push({row:r,active:true,blocks,dir,speed,fast,patrol,patrolT:2+Math.random()*2.5,enemy:etype,chase:!!ep.chase});
   }
   state.chest = {row:CONFIG.ROWS-1, col:Math.floor(Math.random()*CONFIG.COLS)};
+  state.chestOpened=false; state.portal=null; state.hintT=0;
   state.whale = {row:0, col:Math.floor(CONFIG.COLS/2), facing:1, hop:0};
   state.shieldReady = state.tier.shield;   // perk resets each level
   const calm = state.lanes.filter(l=>!l.active).map(l=>l.row);
@@ -820,13 +824,34 @@ function move(dr,dc){
   state.whale.row=nr; state.whale.col=nc; state.whale.hop=1;
   if(dc<0) state.whale.facing=-1; else if(dc>0) state.whale.facing=1;
   sfxMove();
+  // every move costs a breath (dive mode)
+  if(state.mode!=='boss'){
+    state.o2 -= CONFIG.moveO2;
+    if(state.o2<=0){ state.o2=0; gameOver(); return; }
+  }
   // grab an air bubble?
   for(const b of state.bubbles){
     if(!b.taken && b.row===nr && b.col===nc){
       b.taken=true; b.pop=1; state.o2=Math.min(100, state.o2+CONFIG.bubbleO2); sfxBubble();
     }
   }
-  if(nr===state.chest.row && nc===state.chest.col && state.mode!=='boss'){ levelComplete(); }
+  if(state.mode!=='boss'){
+    if(!state.chestOpened && nr===state.chest.row && nc===state.chest.col){ openTreasure(); }
+    else if(state.chestOpened && state.portal && nr===state.portal.row && nc===state.portal.col){ levelComplete(); }
+  }
+}
+function openTreasure(){
+  state.chestOpened=true;
+  state.o2=Math.min(100, state.o2+CONFIG.chestRefill);
+  sfxGem(true);
+  // a water portal tears open — race to it to descend further
+  const blocked=new Set((state.rocks||[]).map(k=>k.row+'-'+k.col));
+  blocked.add(state.chest.row+'-'+state.chest.col);
+  let row,col,tries=0;
+  do{ row=Math.floor(Math.random()*3); col=Math.floor(Math.random()*CONFIG.COLS); tries++; }   // opens up near the surface
+  while(blocked.has(row+'-'+col) && tries<16);
+  state.portal={row,col,t:0};
+  state.hintT=2.4;
 }
 function sweep(){
   if(state.phase!=='play' || state.invuln>0) return;
@@ -1152,6 +1177,25 @@ function drawBubble(b){
   }
   ctx.restore();
 }
+function drawPortal(p){
+  const cx=colX(p.col)+CW/2, cy=rowY(p.row)+CH/2, sz=Math.min(CW,CH), T=p.t||0;
+  ctx.save(); ctx.translate(cx,cy);
+  // outer glow
+  const gl=ctx.createRadialGradient(0,0,1,0,0,sz*0.62);
+  gl.addColorStop(0,'rgba(120,240,255,0.55)'); gl.addColorStop(0.6,'rgba(90,150,255,0.3)'); gl.addColorStop(1,'rgba(90,150,255,0)');
+  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(0,0,sz*0.62,0,Math.PI*2); ctx.fill();
+  // swirling rings
+  ctx.rotate((T*3)%(Math.PI*2));
+  for(let s=0;s<4;s++){ const rr=sz*0.42*(1-s*0.2);
+    ctx.beginPath(); ctx.strokeStyle=`rgba(${150+s*20},${230-s*10},255,${0.85-s*0.16})`; ctx.lineWidth=Math.max(2,sz*0.06);
+    ctx.arc(0,0,rr,s*0.9,s*0.9+Math.PI*1.55); ctx.stroke(); }
+  // bright core
+  ctx.rotate(-(T*3)%(Math.PI*2));
+  const core=ctx.createRadialGradient(0,0,1,0,0,sz*0.16);
+  core.addColorStop(0,'#ffffff'); core.addColorStop(1,'rgba(150,240,255,0.2)');
+  ctx.fillStyle=core; ctx.beginPath(); ctx.arc(0,0,sz*0.16,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
 function drawChest(open){
   const x=colX(state.chest.col), y=rowY(state.chest.row);
   const cx=x+CW/2, cy=y+CH/2;
@@ -1435,8 +1479,10 @@ function render(){
   for(const b of state.bubbles){ if(!b.taken) drawBubble(b); }
   // dolphin ally
   if(state.dolphin) drawDolphin(state.dolphin);
-  // chest
-  drawChest(state.phase==='clear');
+  // chest (shows open once looted)
+  drawChest(state.chestOpened || state.phase==='clear');
+  // water portal — appears after the treasure is opened
+  if(state.portal){ state.portal.t=(state.portal.t||0)+0.05; drawPortal(state.portal); }
   // clearing gem rise
   if(state.phase==='clear' && state.clearGem){
     state.clearAnim=Math.min(1,state.clearAnim+0.03);
@@ -1474,6 +1520,16 @@ function render(){
     ctx.font=`600 ${Math.max(8,Math.floor(CW*0.17))}px 'DM Mono',monospace`;
     ctx.textAlign='right'; ctx.textBaseline='top'; ctx.fillStyle='rgba(220,245,255,0.5)';
     ctx.fillText(state.habitat.name, w-8, 7);
+  }
+  // portal hint
+  if(state.hintT>0){
+    state.hintT=Math.max(0,state.hintT-0.016);
+    const a=Math.min(1,state.hintT/0.6);
+    ctx.save(); ctx.globalAlpha=a; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle='rgba(2,10,22,0.55)'; ctx.fillRect(0,h*0.12,w,h*0.10);
+    ctx.fillStyle='#7fe9ff'; ctx.font=`${Math.floor(CW*0.34)}px 'DM Mono',monospace`;
+    ctx.fillText('🌀 Treasure! Reach the portal', w/2, h*0.17);
+    ctx.restore();
   }
   // habitat entry banner
   if(state.bannerT>0 && state.habitat){
@@ -1616,7 +1672,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v14`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v15`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
