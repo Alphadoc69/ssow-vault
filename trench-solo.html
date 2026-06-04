@@ -411,11 +411,11 @@ const CONFIG = {
   speedRamp: 0.055,   // + per level
   maxSpeed: 3.40,     // higher cap so deep levels keep getting faster (less repetitive)
   baseBlocks: 1,      // predators per active lane at lvl 1
-  blockEvery: 8,      // +1 predator per lane every N levels
+  blockEvery: 6,      // +1 predator per lane every N levels
   maxBlocks: 3,       // max 3 per lane — keeps gaps threadable
   baseActive: 2,      // active (dangerous) lanes at lvl 1
-  activeEvery: 6,     // +1 active lane every N levels
-  maxActive: 3,       // max 3 danger lanes — guarantees a rest row between every one
+  activeEvery: 5,     // +1 active lane every N levels
+  maxActive: 4,       // max danger lanes (board still leaves rest rows)
   baseDrain: 2.2,     // oxygen lost per second
   drainRamp: 0.035,   // + per level
   maxDrain: 5.2,
@@ -458,8 +458,8 @@ const CONFIG = {
   maxLevel: 100,      // the Trench bottoms out here — clear it to win
   jellyStingO2: 7,    // oxygen lost brushing a jellyfish (a sting, not a hit)
   jellySpeed: 0.5,    // jellyfish drift speed (cells/sec)
-  jellyChance: 0.55,  // chance a level spawns jellyfish
-  rockChance: 0.5,    // chance a level has rock obstacles you must path around
+  jellyChance: 0.70,  // chance a level spawns jellyfish
+  rockChance: 0.65,   // chance a level has rock obstacles you must path around
   bossEvery: 20,      // a Kraken boss appears on every Nth level
   bossHp: 125,        // base Kraken health (grows with each boss)
   bossWhirlDmg: 15,   // damage when the Kraken is dragged through a whirlpool
@@ -473,10 +473,9 @@ const CONFIG = {
   bossMiniSpawn: 3.0, // seconds between Kraken summons (faster on later bosses)
   bossMiniSpeed: 2.2, // how fast a mini-squid homes in on you
   bossMiniO2: 9,      // oxygen lost when a mini-squid reaches you
-  bossInkSpawn: 5.0,  // seconds between the Kraken's ink squirts
-  bossInkLife: 4.2,   // how long an ink cloud lingers
-  bossInkO2: 4,       // oxygen nipped per tick while you're inside the ink
-  bossInkMax: 3,      // most ink clouds at once
+  bossInkSpawn: 3.4,  // seconds between the Kraken's ink-ball throws (faster on deeper bosses)
+  bossInkO2: 8,       // oxygen lost from a direct ink-ball hit
+  bossInkLife: 1.2,   // how long an ink splat lingers where a ball lands
   // Wealthy Whales — XP multiplier, pearls, per-run upgrades
   xpBase: 0.20,       // +20% XP for owning a Wealthy Whale
   xpPer: 0.03,        // +3% per extra whale
@@ -527,35 +526,41 @@ function saveBest(){ try{ localStorage.setItem('trench_solo_best', String(state.
 // ── audio (synth, no files) ──
 let AC=null;
 function resumeAudio(){ try{ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended')AC.resume(); }catch(e){} }
-function tone(f,t,dur,type='sine',vol=0.18){ if(!AC)return; const o=AC.createOscillator(),g=AC.createGain();
-  o.type=type; o.frequency.setValueAtTime(f,t); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+0.01);
-  g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+dur+0.02); }
-function sfxMove(){ if(!AC)return; const t=AC.currentTime; tone(520,t,0.07,'triangle',0.10); }
-function sfxSwept(){ if(!AC)return; const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
-  o.type='sawtooth'; o.frequency.setValueAtTime(440,t); o.frequency.exponentialRampToValueAtTime(90,t+0.4);
-  g.gain.setValueAtTime(0.2,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.45); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+0.47);
-  // noise whoosh
-  const buf=AC.createBuffer(1,AC.sampleRate*0.35,AC.sampleRate); const d=buf.getChannelData(0);
-  for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length); const n=AC.createBufferSource(); n.buffer=buf;
-  const ng=AC.createGain(); ng.gain.setValueAtTime(0.18,t); ng.gain.exponentialRampToValueAtTime(0.001,t+0.35); n.connect(ng); ng.connect(AC.destination); n.start(t); }
-function sfxGem(rich){ if(!AC)return; const t=AC.currentTime; const base=rich?660:520;
-  [0,0.08,0.16].forEach((d,i)=> tone(base*Math.pow(1.26,i),t+d,0.16,'sine',0.16)); }
-function sfxLevel(){ if(!AC)return; const t=AC.currentTime; [392,523,659,784].forEach((f,i)=>tone(f,t+i*0.07,0.18,'triangle',0.15)); }
-function sfxShield(){ if(!AC)return; const t=AC.currentTime; tone(880,t,0.12,'sine',0.18); tone(1320,t+0.06,0.18,'sine',0.14); }
-function sfxSting(){ if(!AC)return; const t=AC.currentTime; tone(300,t,0.1,'sawtooth',0.07); tone(190,t+0.04,0.12,'sine',0.06); }
-function sfxBolt(){ if(!AC)return; const t=AC.currentTime; tone(120,t,0.18,'square',0.16); tone(60,t,0.3,'sawtooth',0.12);
-  const buf=AC.createBuffer(1,AC.sampleRate*0.2,AC.sampleRate); const d=buf.getChannelData(0);
-  for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length); const n=AC.createBufferSource(); n.buffer=buf;
-  const ng=AC.createGain(); ng.gain.setValueAtTime(0.22,t); ng.gain.exponentialRampToValueAtTime(0.001,t+0.2); n.connect(ng); ng.connect(AC.destination); n.start(t); }
-function sfxCannon(){ if(!AC)return; const t=AC.currentTime; tone(180,t,0.08,'square',0.14); tone(90,t+0.02,0.16,'triangle',0.12); }
-function sfxPing(){ if(!AC)return; const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
-  o.type='sine'; o.frequency.setValueAtTime(1400,t); o.frequency.exponentialRampToValueAtTime(420,t+0.35);
-  g.gain.setValueAtTime(0.12,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.4); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+0.42); }
-function sfxDolphin(){ if(!AC)return; const t=AC.currentTime; [900,1300,1700,1400].forEach((f,i)=>tone(f,t+i*0.05,0.08,'sine',0.12)); }
-function sfxBubble(){ if(!AC)return; const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
-  o.type='sine'; o.frequency.setValueAtTime(500,t); o.frequency.exponentialRampToValueAtTime(1050,t+0.18);
-  g.gain.setValueAtTime(0.16,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.2); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+0.22); }
-function sfxOver(){ if(!AC)return; const t=AC.currentTime; [330,247,165].forEach((f,i)=>tone(f,t+i*0.13,0.3,'sine',0.16)); }
+function voice(f0,f1,t,dur,type,vol,filterHz){ if(!AC)return;
+  const o=AC.createOscillator(); o.type=type||'sine';
+  o.frequency.setValueAtTime(f0,t); if(f1&&f1!==f0) o.frequency.exponentialRampToValueAtTime(Math.max(1,f1),t+dur*0.9);
+  const g=AC.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(vol,t+0.012); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  if(filterHz){ const lp=AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.setValueAtTime(filterHz,t); o.connect(lp); lp.connect(g); }
+  else o.connect(g);
+  g.connect(AC.destination); o.start(t); o.stop(t+dur+0.04);
+}
+function tone(f,t,dur,type='sine',vol=0.18){ voice(f,f,t,dur,type,vol,3200); }   // soft fallback
+function noise(t,dur,vol,filterHz){ if(!AC)return; const len=Math.max(1,Math.floor(AC.sampleRate*dur));
+  const buf=AC.createBuffer(1,len,AC.sampleRate); const d=buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len); const n=AC.createBufferSource(); n.buffer=buf;
+  const g=AC.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  if(filterHz){ const lp=AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=filterHz; n.connect(lp); lp.connect(g);} else n.connect(g);
+  g.connect(AC.destination); n.start(t); n.stop(t+dur+0.02); }
+
+function sfxMove(){ if(!AC)return; const t=AC.currentTime; voice(360,300,t,0.06,'sine',0.05,1400); }   // soft tick
+function sfxSwept(){ if(!AC)return; const t=AC.currentTime;        // muffled whoosh-thud (not a buzzer)
+  voice(360,90,t,0.34,'sine',0.16,900); noise(t,0.3,0.12,1100); }
+function sfxGem(rich){ if(!AC)return; const t=AC.currentTime; const base=rich?720:560;  // bubbly marimba bloop
+  voice(base*0.55, base, t, 0.13, 'triangle', 0.16, 2600);
+  voice(base*1.5, base*1.5, t+0.03, 0.16, 'sine', rich?0.09:0.05, 3200);
+  if(rich) voice(base*2, base*2.5, t+0.07, 0.2, 'sine', 0.07, 4200); }
+function sfxLevel(){ if(!AC)return; const t=AC.currentTime;        // happy little marimba run + warm thump
+  [523,659,784,1047].forEach((f,i)=> voice(f,f,t+i*0.08,0.26,'triangle',0.13,2600));
+  voice(150,110,t,0.34,'sine',0.10); }
+function sfxShield(){ if(!AC)return; const t=AC.currentTime; voice(740,740,t,0.14,'sine',0.15,4200); voice(1110,1110,t+0.05,0.22,'sine',0.10,4600); }
+function sfxSting(){ if(!AC)return; const t=AC.currentTime; voice(280,150,t,0.14,'sine',0.08,900); }
+function sfxBolt(){ if(!AC)return; const t=AC.currentTime; voice(150,60,t,0.22,'square',0.13,1400); noise(t,0.18,0.16,2200); }
+function sfxCannon(){ if(!AC)return; const t=AC.currentTime; voice(220,90,t,0.12,'triangle',0.13,1200); noise(t,0.07,0.10,1800); }  // soft "pop"
+function sfxPing(){ if(!AC)return; const t=AC.currentTime; voice(1300,440,t,0.36,'sine',0.11,5000); }
+function sfxDolphin(){ if(!AC)return; const t=AC.currentTime; [900,1300,1700,1400].forEach((f,i)=>voice(f,f,t+i*0.05,0.08,'sine',0.10,5200)); }
+function sfxBubble(){ if(!AC)return; const t=AC.currentTime; voice(430,1000,t,0.12,'sine',0.13,3400); voice(1200,1700,t+0.004,0.05,'sine',0.05,5200); }  // cute pop
+function sfxOver(){ if(!AC)return; const t=AC.currentTime; [392,294,196].forEach((f,i)=>voice(f,f*0.95,t+i*0.14,0.34,'sine',0.14,1800)); }  // gentle wah-down
+function sfxInk(){ if(!AC)return; const t=AC.currentTime; voice(260,90,t,0.2,'sine',0.13,700); noise(t,0.14,0.10,1100); }  // wet splorp
 
 // ── difficulty ──
 const clampf=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -703,7 +708,7 @@ function setupLevel(L){
   state.rocks=[];
   const rockKeys=new Set();
   if(L>=4 && calm.length && Math.random()<CONFIG.rockChance){
-    const nRocks=1+(Math.random()<0.5?1:0)+(L>40&&Math.random()<0.4?1:0);
+    const nRocks=2+(Math.random()<0.6?1:0)+(L>30&&Math.random()<0.5?1:0)+(L>60&&Math.random()<0.5?1:0);
     for(let i=0;i<nRocks;i++){
       const row=calm[Math.floor(Math.random()*calm.length)];
       const col=Math.floor(Math.random()*CONFIG.COLS);
@@ -834,7 +839,7 @@ function setupBoss(L){
   state.dolphin=null; state.dolphinCd=2.6;
   state.orca=null; state.cannons=[]; state.orcaCd=CONFIG.orcaIntervalBoss*0.6;
   state.minis=[]; state.miniCd=3.0;
-  state.inks=[]; state.inkCd=4.0;
+  state.inks=[]; state.inkBalls=[]; state.inkCd=3.5;
   state.ping=null; state.reveal=0; state.stingFlash=0;
   state.habName='THE KRAKEN'; state.bannerT=0;
 }
@@ -985,24 +990,32 @@ function updateBoss(dt){
       if(state.o2<=0){ state.o2=0; gameOver(); }
     }
   }
-  // the Kraken squirts ink — dark clouds that drift up and sting/blind you
+  // the Kraken hurls ink BALLS straight at you — aimed projectiles, not an arena-wide cloud
+  if(!state.inkBalls) state.inkBalls=[];
   if(!state.inks) state.inks=[];
   state.inkCd-=dt;
-  if(state.inkCd<=0 && state.inks.length<CONFIG.bossInkMax && b.stun<=0){
-    state.inks.push({x:b.x, y:b.y, r:0.5, t:0, nipCd:0, drift:(Math.random()-0.5)*0.4});
-    state.inkCd=Math.max(2.2, CONFIG.bossInkSpawn - b.num*0.35);
-    sfxSwept();
+  if(state.inkCd<=0 && state.inkBalls.length<3 && b.stun<=0){
+    const dx=state.whale.col-b.x, dy=state.whale.row-b.y, d=Math.hypot(dx,dy)||1;
+    const spd=(2.7+b.num*0.22);
+    state.inkBalls.push({x:b.x, y:b.y, vx:dx/d*spd, vy:dy/d*spd, t:0});
+    state.inkCd=Math.max(1.3, CONFIG.bossInkSpawn - b.num*0.32);
+    sfxInk();
   }
-  for(let i=state.inks.length-1;i>=0;i--){ const ink=state.inks[i]; ink.t+=dt;
-    ink.r=Math.min(1.7, ink.r+dt*1.3);            // bloom outward
-    ink.y -= dt*0.5; ink.x += ink.drift*dt;        // drift up and sideways
-    ink.nipCd=Math.max(0,ink.nipCd-dt);
-    if(ink.t>CONFIG.bossInkLife){ state.inks.splice(i,1); continue; }
-    if(Math.hypot(ink.x-state.whale.col, ink.y-state.whale.row) < ink.r*0.8 && ink.nipCd<=0 && state.invuln<=0){
-      state.o2-=CONFIG.bossInkO2*state.tier.sweepMul; ink.nipCd=0.8; state.stingFlash=0.4;
-      if(state.o2<=0){ state.o2=0; gameOver(); }
+  for(let i=state.inkBalls.length-1;i>=0;i--){ const bl=state.inkBalls[i]; bl.t+=dt;
+    bl.x+=bl.vx*dt*SPD; bl.y+=bl.vy*dt*SPD;
+    const hit = Math.hypot(bl.x-state.whale.col, bl.y-state.whale.row)<0.55;
+    const off = bl.x<-1.2||bl.x>CONFIG.COLS+1.2||bl.y<-1.2||bl.y>CONFIG.ROWS+1.2;
+    if(hit || bl.t>2.4 || off){
+      state.inks.push({x:bl.x, y:bl.y, r:0.85, t:0, life:1.2});   // small local splat
+      if(hit && state.invuln<=0){
+        state.o2-=CONFIG.bossInkO2*state.tier.sweepMul; state.invuln=CONFIG.invuln; state.stingFlash=0.5;
+        const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
+        if(state.o2<=0){ state.o2=0; gameOver(); }
+      }
+      state.inkBalls.splice(i,1);
     }
   }
+  for(let i=state.inks.length-1;i>=0;i--){ const ink=state.inks[i]; ink.t+=dt; if(ink.t>ink.life) state.inks.splice(i,1); }
   // lightning: telegraph several columns (more on tougher bosses), then strike them
   b.boltCd-=dt;
   if(!b.bolt && b.boltCd<=0){
@@ -1593,16 +1606,31 @@ function drawDecor(H,w,h){
 }
 function drawInk(ink){
   const cx=colX(ink.x)+CW/2, cy=rowY(ink.y)+CH/2, R=ink.r*Math.min(CW,CH);
-  const fade = ink.t<0.4 ? ink.t/0.4 : Math.max(0, 1-(ink.t-(CONFIG.bossInkLife-1))/1);
-  const a=Math.min(0.92, Math.max(0,fade))*0.92;
+  const life=ink.life||CONFIG.bossInkLife||1.2;
+  const fade = ink.t<0.18 ? ink.t/0.18 : Math.max(0, 1-(ink.t-(life-0.6))/0.6);
+  const a=Math.min(0.92, Math.max(0,fade))*0.9;
   ctx.save(); ctx.translate(cx,cy);
   const g=ctx.createRadialGradient(0,0,1,0,0,R);
   g.addColorStop(0,`rgba(8,4,20,${a})`); g.addColorStop(0.6,`rgba(20,10,38,${(a*0.8).toFixed(3)})`); g.addColorStop(1,'rgba(20,10,38,0)');
   ctx.fillStyle=g;
-  // a few overlapping blobs for an organic cloud
   const T=state.t||0;
-  for(let i=0;i<4;i++){ const ang=i*1.8+T*0.3, rr=R*(0.55+0.18*i);
-    ctx.beginPath(); ctx.arc(Math.cos(ang)*R*0.25, Math.sin(ang)*R*0.25, rr, 0, Math.PI*2); ctx.fill(); }
+  for(let i=0;i<4;i++){ const ang=i*1.8+T*0.3, rr=R*(0.55+0.16*i);
+    ctx.beginPath(); ctx.arc(Math.cos(ang)*R*0.22, Math.sin(ang)*R*0.22, rr, 0, Math.PI*2); ctx.fill(); }
+  ctx.restore();
+}
+function drawInkBall(bl){
+  const cx=colX(bl.x)+CW/2, cy=rowY(bl.y)+CH/2, r=Math.min(CW,CH)*0.2;
+  ctx.save();
+  // wispy trail behind the ball
+  const tx=cx-bl.vx*CW*0.12, ty=cy-bl.vy*CH*0.12;
+  const tg=ctx.createRadialGradient(tx,ty,1,tx,ty,r*1.6);
+  tg.addColorStop(0,'rgba(20,10,38,0.5)'); tg.addColorStop(1,'rgba(20,10,38,0)');
+  ctx.fillStyle=tg; ctx.beginPath(); ctx.arc(tx,ty,r*1.6,0,Math.PI*2); ctx.fill();
+  // the ink ball
+  const g=ctx.createRadialGradient(cx-r*0.3,cy-r*0.3,1,cx,cy,r);
+  g.addColorStop(0,'#3a2c52'); g.addColorStop(1,'#0a0418');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(150,130,200,0.6)'; ctx.beginPath(); ctx.arc(cx-r*0.3,cy-r*0.3,r*0.25,0,Math.PI*2); ctx.fill();
   ctx.restore();
 }
 function drawMini(mq){
@@ -1794,8 +1822,9 @@ function renderBoss(w,h){
   if(state.cannons) for(const c of state.cannons) drawCannon(c);
   // the Kraken
   if(b) drawKraken(b,w,h);
-  // ink clouds (drawn over the arena so they blind you, but under your own whale)
+  // ink: small splats where balls landed (local blind), then the flying ink balls
   if(state.inks) for(const ink of state.inks) drawInk(ink);
+  if(state.inkBalls) for(const bl of state.inkBalls) drawInkBall(bl);
   // whale
   if(state.phase!=='idle') drawWhale();
   // lightning shrug — cyan ring when a lightning-proof whale is struck
@@ -2114,7 +2143,7 @@ function selectWhale(url,id,tier,lit){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v38`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v39`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
