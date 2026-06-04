@@ -362,6 +362,7 @@ const CONFIG = {
   orcaIntervalDive: 8,// seconds between Orca cannon runs in normal levels
   orcaIntervalBoss: 5,// seconds between Orca cannon runs in boss fights
   cannonSpeed: 11,    // Orca cannonball speed (cells/sec)
+  orcaSwimSpeed: 6,   // how fast the Orca crosses the row
   cannonStun: 2.4,    // seconds an enemy is frozen by a cannonball
   cannonBossDmg: 9,   // damage a cannonball deals to the Kraken
   cannonBossStun: 1.4,// seconds the Kraken is frozen by a cannonball
@@ -371,7 +372,7 @@ const CONFIG = {
   jellyChance: 0.55,  // chance a level spawns jellyfish
   rockChance: 0.5,    // chance a level has rock obstacles you must path around
   bossEvery: 20,      // a Kraken boss appears on every Nth level
-  bossHp: 110,        // base Kraken health (grows with each boss)
+  bossHp: 125,        // base Kraken health (grows with each boss)
   bossWhirlDmg: 15,   // damage when the Kraken is dragged through a whirlpool
   bossDolphinDmg: 7,  // damage when a dolphin ally strikes the Kraken
   bossDolphinStun: 1, // seconds the Kraken is frozen when a dolphin rams it
@@ -383,7 +384,9 @@ const CONFIG = {
   bossBubbleSpawn: 3.6,// seconds between new air bubbles popping up
   bossTouchO2: 16,    // oxygen lost if the Kraken catches you
   boltO2: 16,         // oxygen lost by a lightning strike
-  bossDrain: 1.6,     // oxygen drain during a boss fight (cells/sec equiv)
+  bossDrain: 1.6,     // starting oxygen drain during a boss fight
+  bossDrainRamp: 0.07,// extra drain added per second the fight drags on
+  bossDrainMax: 6,    // cap on boss oxygen drain (cells/sec equiv)
 };
 
 const cv = document.getElementById('game');
@@ -659,7 +662,7 @@ function setupBoss(L){
     hp, maxHp:hp, num,
     x:(CONFIG.COLS-1)/2, y:1.1,
     speed:0.85+num*0.14, face:1,
-    hitCd:0, stun:0, boltCd:3.0, bolt:null,
+    hitCd:0, stun:0, boltCd:2.2, bolt:null,
     intro:true, introT:9                            // fight is paused on a readable intro card
   };
   // whirlpools spawn/disappear dynamically during the fight
@@ -727,7 +730,11 @@ function updateBoss(dt){
   if(b.intro){ b.introT-=dt; if(b.introT<=0) b.intro=false; return; }
   if(state.invuln>0) state.invuln=Math.max(0,state.invuln-dt);
   if(state.stingFlash>0) state.stingFlash=Math.max(0,state.stingFlash-dt*3);
-  state.o2 -= CONFIG.bossDrain*state.tier.drain*dt;
+  // oxygen drains faster the longer the fight goes — finish it
+  b.fightT=(b.fightT||0)+dt;
+  const ramp=CONFIG.bossDrainRamp*(1+0.12*(b.num-1));
+  const drain=Math.min(CONFIG.bossDrainMax, CONFIG.bossDrain + ramp*b.fightT);
+  state.o2 -= drain*state.tier.drain*dt;
   // Kraken chases the whale (holds still while stunned)
   if(b.stun>0){ b.stun=Math.max(0,b.stun-dt); }
   else {
@@ -815,7 +822,7 @@ function updateBoss(dt){
         const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
       }
     }
-    if(b.bolt.phase==='strike' && b.bolt.t>0.22){ b.bolt=null; b.boltCd=Math.max(1.6, 3.0-b.num*0.18); }
+    if(b.bolt.phase==='strike' && b.bolt.t>0.22){ b.bolt=null; b.boltCd=Math.max(1.2, 2.3-b.num*0.2); }
   }
   // air pockets keep popping up around the arena
   state.bubbleCd-=dt;
@@ -945,8 +952,8 @@ function updateOrca(dt){
   if(!state.hasOrca) return;
   const boss = state.mode==='boss';
   if(!state.cannons) state.cannons=[];
-  // visible orca fades out after firing
-  if(state.orca){ state.orca.t+=dt; state.orca.x+=state.orca.dir*2.4*dt; if(state.orca.t>1.2) state.orca=null; }
+  // the orca swims the full width of its row, then exits
+  if(state.orca){ state.orca.x += state.orca.dir*CONFIG.orcaSwimSpeed*dt; if(state.orca.x<-2 || state.orca.x>CONFIG.COLS+2) state.orca=null; }
   // fire on a timer
   state.orcaCd-=dt;
   if(state.orcaCd<=0 && state.cannons.length===0){
@@ -1799,7 +1806,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v24`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v27`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
