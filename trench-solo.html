@@ -283,25 +283,31 @@ const CONFIG = {
   COLS: 7,            // grid width
   ROWS: 8,            // grid height (row 0 = surface, last row = seabed/chest)
   baseSpeed: 0.58,    // squid speed at lvl 1 (cells/sec)
-  speedRamp: 0.045,   // + per level
-  maxSpeed: 2.80,
+  speedRamp: 0.05,    // + per level
+  maxSpeed: 3.40,     // higher cap so deep levels keep getting faster (less repetitive)
   baseBlocks: 1,      // squids per active lane at lvl 1
   blockEvery: 10,     // +1 squid per lane every N levels
   maxBlocks: 4,
   baseActive: 2,      // active (dangerous) lanes at lvl 1
   activeEvery: 8,     // +1 active lane every N levels
-  maxActive: 6,
+  maxActive: 5,       // never fill all 6 lanes — always leave ≥1 rest row
   baseDrain: 2.2,     // oxygen lost per second
   drainRamp: 0.035,   // + per level
   maxDrain: 5.2,
-  sweepPenalty: 20,   // oxygen lost when caught by a squid
+  sweepPenalty: 22,   // oxygen lost when caught by a squid
   levelRefill: 40,    // oxygen regained on clearing a level
   hitRadius: 0.55,    // how close a squid must be to catch you (cells)
-  laneJitter: 0.35,   // per-lane speed variation
+  knockbackRows: 3,   // rows pushed back toward the surface when caught
+  laneJitter: 0.55,   // per-lane speed variation (higher = more varied)
+  fastLaneChance: 0.25, // chance a lane is a fast "rip current"
+  fastLaneMult: 1.5,
   holdRepeat: 90,     // ms between hops when a pad button is held (lower = faster)
   bubbleO2: 16,       // oxygen restored per air bubble
   bubblesBase: 2,     // air bubbles per level
-  invuln: 0.7,        // seconds of safety after a squid hit (no chain hits)
+  invuln: 0.5,        // seconds of safety after a squid hit (no chain hits)
+  pingInterval: 2.6,  // seconds between sonar pings on dark levels
+  pingSpeed: 7,       // sonar ring expansion (cells/sec)
+  stunTime: 1.7,      // seconds a squid is stunned by sonar
 };
 
 const cv = document.getElementById('game');
@@ -315,6 +321,7 @@ const state = {
   gems: [], cfg: null, last: 0, clearAnim: 0, clearGem: null,
   skinImg: null, skinId: null, bubbles: [],
   invuln: 0, t: 0, habitat: null, habIdx: -1, bannerT: 0,
+  dark: false, ping: null, pingCd: 0, reveal: 0,
 };
 
 // ── persistence (works on the real site; harmless if blocked) ──
@@ -339,6 +346,9 @@ function sfxGem(rich){ if(!AC)return; const t=AC.currentTime; const base=rich?66
   [0,0.08,0.16].forEach((d,i)=> tone(base*Math.pow(1.26,i),t+d,0.16,'sine',0.16)); }
 function sfxLevel(){ if(!AC)return; const t=AC.currentTime; [392,523,659,784].forEach((f,i)=>tone(f,t+i*0.07,0.18,'triangle',0.15)); }
 function sfxShield(){ if(!AC)return; const t=AC.currentTime; tone(880,t,0.12,'sine',0.18); tone(1320,t+0.06,0.18,'sine',0.14); }
+function sfxPing(){ if(!AC)return; const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(1400,t); o.frequency.exponentialRampToValueAtTime(420,t+0.35);
+  g.gain.setValueAtTime(0.12,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.4); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+0.42); }
 function sfxBubble(){ if(!AC)return; const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
   o.type='sine'; o.frequency.setValueAtTime(500,t); o.frequency.exponentialRampToValueAtTime(1050,t+0.18);
   g.gain.setValueAtTime(0.16,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.2); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+0.22); }
@@ -406,8 +416,8 @@ const HABITATS=[
   {name:'COASTAL KELP',      sub:'nearshore forests',     top:[36,116,108], bot:[14,58,72],  seabed:[70,80,50],    decor:'kelp'},
   {name:'KRILL FIELDS',      sub:'sub-polar feeding',     top:[30,96,128],  bot:[8,44,76],   seabed:[40,60,80],    decor:'krill'},
   {name:'ARCTIC ICE',        sub:'the frozen north',      top:[120,182,212],bot:[28,74,116], seabed:[150,170,190], decor:'ice'},
-  {name:'ANTARCTIC DEEP',    sub:'polar cold',            top:[58,112,162], bot:[8,30,72],   seabed:[60,80,110],   decor:'ice'},
-  {name:'THE ABYSS',         sub:'the deep trench',       top:[12,28,48],   bot:[2,6,16],    seabed:[14,18,30],    decor:'biolum'},
+  {name:'ANTARCTIC DEEP',    sub:'polar cold · sonar on',  top:[34,70,110],  bot:[6,22,54],   seabed:[40,55,80],   decor:'ice',    dark:true},
+  {name:'THE ABYSS',         sub:'the deep · sonar on',    top:[10,22,40],   bot:[1,4,12],    seabed:[12,16,26],   decor:'biolum', dark:true},
 ];
 function habitatFor(L){ return HABITATS[Math.min(HABITATS.length-1, Math.floor((L-1)/7))]; }
 
@@ -426,10 +436,12 @@ function setupLevel(L){
     const idx=r-1;
     if(!activeSet.has(idx)){ state.lanes.push({row:r,active:false,blocks:[],dir:1,speed:0}); continue; }
     const dir=(idx%2===0)?1:-1;
-    const speed=cfg.speed*(1-CONFIG.laneJitter/2+Math.random()*CONFIG.laneJitter);
+    const fast = Math.random() < CONFIG.fastLaneChance;
+    let speed=cfg.speed*(1-CONFIG.laneJitter/2+Math.random()*CONFIG.laneJitter);
+    if(fast) speed*=CONFIG.fastLaneMult;
     const k=cfg.blocks, spacing=CONFIG.COLS/k, start=Math.random()*spacing, blocks=[];
-    for(let i=0;i<k;i++) blocks.push((start+i*spacing)%CONFIG.COLS);
-    state.lanes.push({row:r,active:true,blocks,dir,speed});
+    for(let i=0;i<k;i++) blocks.push({x:(start+i*spacing)%CONFIG.COLS, stun:0, pinged:false});
+    state.lanes.push({row:r,active:true,blocks,dir,speed,fast});
   }
   state.chest = {row:CONFIG.ROWS-1, col:Math.floor(Math.random()*CONFIG.COLS)};
   state.whale = {row:0, col:Math.floor(CONFIG.COLS/2), facing:1, hop:0};
@@ -450,6 +462,9 @@ function setupLevel(L){
   const hIdx=Math.min(HABITATS.length-1, Math.floor((L-1)/7));
   state.habitat=HABITATS[hIdx];
   if(hIdx!==state.habIdx){ state.habIdx=hIdx; state.bannerT=2.6; }
+  // sonar / darkness
+  state.dark=!!state.habitat.dark;
+  state.ping=null; state.pingCd=state.dark?1.0:0; state.reveal=0;
 }
 
 function rollGem(L){
@@ -488,7 +503,7 @@ function sweep(){
   }
   state.o2 -= CONFIG.sweepPenalty*state.tier.sweepMul; sfxSwept();
   v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
-  state.whale.row=Math.max(0, state.whale.row-1);   // knocked back just one row
+  state.whale.row=Math.max(0, state.whale.row-CONFIG.knockbackRows);   // knocked back toward the surface
   state.invuln=CONFIG.invuln;
   if(state.o2<=0){ state.o2=0; gameOver(); }
 }
@@ -527,17 +542,42 @@ function update(dt){
   if(state.phase!=='play') return;
   if(state.invuln>0) state.invuln=Math.max(0,state.invuln-dt);
   if(state.bannerT>0) state.bannerT=Math.max(0,state.bannerT-dt);
+  if(state.reveal>0) state.reveal=Math.max(0,state.reveal-dt*1.4);
   state.o2 -= state.cfg.drain*state.tier.drain*dt;
+  // move squid (frozen ones hold still)
   for(const lane of state.lanes){ if(!lane.active) continue;
-    for(let i=0;i<lane.blocks.length;i++){
-      lane.blocks[i]=((lane.blocks[i]+lane.dir*lane.speed*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
+    for(const b of lane.blocks){
+      if(b.stun>0){ b.stun=Math.max(0,b.stun-dt); continue; }
+      b.x=((b.x+lane.dir*lane.speed*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
+    }
+  }
+  // sonar: on dark levels, periodic ping reveals the field and stuns nearby squid
+  if(state.dark){
+    state.pingCd-=dt;
+    if(state.pingCd<=0 && !state.ping){ state.ping={r:0}; state.pingCd=CONFIG.pingInterval; state.reveal=1; sfxPing(); }
+    if(state.ping){
+      state.ping.r += CONFIG.pingSpeed*dt;
+      const wx=state.whale.col, wy=state.whale.row;
+      for(const lane of state.lanes){ if(!lane.active) continue;
+        const dyr=lane.row-wy;
+        for(const b of lane.blocks){
+          let dx=Math.abs(b.x-wx); dx=Math.min(dx,CONFIG.COLS-dx);
+          const dist=Math.hypot(dx,dyr);
+          if(!b.pinged && dist<=state.ping.r){ b.stun=CONFIG.stunTime; b.pinged=true; }
+        }
+      }
+      if(state.ping.r > CONFIG.COLS+CONFIG.ROWS){
+        state.ping=null;
+        for(const lane of state.lanes){ for(const b of lane.blocks) b.pinged=false; }
+      }
     }
   }
   const hitR=Math.max(0.45, CONFIG.hitRadius+state.tier.hit);
   const lane=state.lanes.find(l=>l.row===state.whale.row);
   if(state.invuln<=0 && lane && lane.active){
     for(const b of lane.blocks){
-      let d=Math.abs(b-state.whale.col); d=Math.min(d,CONFIG.COLS-d);
+      if(b.stun>0) continue;                          // stunned squid can't catch you
+      let d=Math.abs(b.x-state.whale.col); d=Math.min(d,CONFIG.COLS-d);
       if(d<hitR){ sweep(); break; }
     }
   }
@@ -549,40 +589,44 @@ function update(dt){
 function rowY(r){ return r*CH; }
 function colX(c){ return c*CW; }
 
-function drawSquid(x,cy,dir){
+function drawSquid(x,cy,dir,stunned){
   const T=state.t||0, w=cv.clientWidth;
   for(const off of [-CONFIG.COLS,0,CONFIG.COLS]){
     const X=(x+off)*CW+CW/2; const Y=cy+CH/2;
     if(X<-CW||X>w+CW) continue;
     const sz=Math.min(CW,CH);
-    // ── whirlpool swirl behind the squid ──
-    ctx.save(); ctx.translate(X,Y); ctx.rotate((T*1.7*(dir<0?-1:1))%(Math.PI*2));
+    // ── whirlpool swirl behind the squid (stops when stunned) ──
+    ctx.save(); ctx.translate(X,Y);
+    ctx.rotate(stunned ? 0 : (T*1.7*(dir<0?-1:1))%(Math.PI*2));
     for(let s=0;s<3;s++){
       const rr=sz*0.52*(1-s*0.24);
-      ctx.beginPath(); ctx.strokeStyle=`rgba(120,210,245,${0.30-s*0.07})`; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.strokeStyle=stunned?`rgba(150,170,190,${0.18-s*0.05})`:`rgba(120,210,245,${0.30-s*0.07})`; ctx.lineWidth=2;
       ctx.arc(0,0,rr, s*0.7, s*0.7+Math.PI*1.45); ctx.stroke();
     }
     ctx.restore();
     // ── giant squid ──
     ctx.save(); ctx.translate(X,Y); if(dir<0) ctx.scale(-1,1);
+    const body = stunned ? '#7d8794' : '#dc5a82';
+    const edge = stunned ? '#454e59' : '#7a2440';
     // tentacles trailing behind
-    ctx.strokeStyle='#c0436a'; ctx.lineWidth=Math.max(2,sz*0.05); ctx.lineCap='round';
+    ctx.strokeStyle=stunned?'#6a7480':'#c0436a'; ctx.lineWidth=Math.max(2,sz*0.05); ctx.lineCap='round';
     for(let i=-2;i<=2;i++){
-      const wig=Math.sin(T*6+i)*sz*0.10;
+      const wig=stunned?0:Math.sin(T*6+i)*sz*0.10;
       ctx.beginPath(); ctx.moveTo(-sz*0.05,i*sz*0.05);
       ctx.quadraticCurveTo(-sz*0.30,i*sz*0.07+wig,-sz*0.50,i*sz*0.10+wig); ctx.stroke();
     }
     // mantle
-    ctx.fillStyle='#dc5a82'; ctx.strokeStyle='#7a2440'; ctx.lineWidth=Math.max(1,sz*0.03);
+    ctx.fillStyle=body; ctx.strokeStyle=edge; ctx.lineWidth=Math.max(1,sz*0.03);
     ctx.beginPath(); ctx.moveTo(sz*0.44,0);
     ctx.quadraticCurveTo(sz*0.06,-sz*0.23,-sz*0.10,-sz*0.12);
     ctx.quadraticCurveTo(-sz*0.17,0,-sz*0.10,sz*0.12);
     ctx.quadraticCurveTo(sz*0.06,sz*0.23,sz*0.44,0);
     ctx.closePath(); ctx.fill(); ctx.stroke();
-    // eye
+    // eye (closed/dizzy when stunned)
     ctx.fillStyle='#160d1c'; ctx.beginPath(); ctx.arc(sz*0.05,-sz*0.02,sz*0.08,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#ffd25a'; ctx.beginPath(); ctx.arc(sz*0.07,-sz*0.04,sz*0.032,0,Math.PI*2); ctx.fill();
+    if(!stunned){ ctx.fillStyle='#ffd25a'; ctx.beginPath(); ctx.arc(sz*0.07,-sz*0.04,sz*0.032,0,Math.PI*2); ctx.fill(); }
     ctx.restore();
+    if(stunned){ ctx.font=`${Math.floor(sz*0.3)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('💫',X,Y-sz*0.4); }
   }
 }
 function drawBubble(b){
@@ -703,7 +747,7 @@ function render(){
   for(let r=1;r<CONFIG.ROWS;r++){ ctx.beginPath(); ctx.moveTo(0,rowY(r)); ctx.lineTo(w,rowY(r)); ctx.stroke(); }
   // giant squid (the enemy) swirling in whirlpool currents
   for(const lane of state.lanes){ if(!lane.active) continue;
-    for(const b of lane.blocks) drawSquid(b,rowY(lane.row),lane.dir);
+    for(const b of lane.blocks) drawSquid(b.x,rowY(lane.row),lane.dir,b.stun>0);
   }
   // air bubbles
   for(const b of state.bubbles){ if(!b.taken) drawBubble(b); }
@@ -720,6 +764,19 @@ function render(){
   }
   // whale
   if(state.phase!=='idle') drawWhale();
+  // darkness + sonar (echolocation zones)
+  if(state.dark && state.phase!=='idle'){
+    const wx=colX(state.whale.col)+CW/2, wy=rowY(state.whale.row)+CH/2 - state.whale.hop*CH*0.18;
+    const baseA=0.94*(1-(state.reveal||0)*0.88);
+    const g=ctx.createRadialGradient(wx,wy,CW*0.7, wx,wy,CW*2.1);
+    g.addColorStop(0,'rgba(1,4,10,0)'); g.addColorStop(1,`rgba(1,4,10,${baseA.toFixed(3)})`);
+    ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+    if(state.ping){
+      const fade=Math.max(0,1-state.ping.r/(CONFIG.COLS+CONFIG.ROWS));
+      ctx.strokeStyle=`rgba(130,225,255,${(0.6*fade).toFixed(3)})`; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.arc(wx,wy,state.ping.r*CW,0,Math.PI*2); ctx.stroke();
+    }
+  }
   // diver tier tag (top-left)
   if(state.phase==='play' && state.tier.key!=='common'){
     ctx.font=`600 ${Math.max(9,Math.floor(CW*0.20))}px 'DM Mono',monospace`;
