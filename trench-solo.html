@@ -65,7 +65,8 @@
   /* OVERLAY */
   .overlay{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
     text-align:center; padding:20px; background:rgba(2,10,22,0.90); backdrop-filter:blur(6px); border-radius:10px; z-index:5;
-    overflow-y:auto;}
+    overflow-y:auto; scrollbar-width:none;}
+  .overlay::-webkit-scrollbar{ width:0; height:0; }
   .overlay.hidden{display:none;}
   .overlay h2{font-family:var(--font-display); font-size:2.2rem; letter-spacing:0.1em; color:#fff; line-height:1; margin-bottom:0.5rem;}
   .overlay h2.cyan{color:var(--cyan-lt);}
@@ -1798,7 +1799,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v22`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v23`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
