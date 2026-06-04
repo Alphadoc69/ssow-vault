@@ -595,7 +595,11 @@ function whalePower(traits){
 }
 function whaleHasLightning(nft){
   if(!nft || !Array.isArray(nft.traits)) return false;
-  return nft.traits.some(t=> t && /light?ni?ng|thunder|storm|electric/i.test(String(t.value||'')));
+  return nft.traits.some(t=>{
+    if(!t) return false;
+    const v=String(t.value||'').trim().toLowerCase();
+    return v==='lightning' || /light?ni?ng|thunder|storm|electric/i.test(v);
+  });
 }
 function tierForNft(nft){
   const id=String(nft.identifier||nft.token_id||'');
@@ -2110,7 +2114,7 @@ function selectWhale(url,id,tier,lit){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v37`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v38`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
