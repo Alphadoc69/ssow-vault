@@ -355,7 +355,7 @@
     </div>
     <div class="g-sec">
       <h3>🐚 Wealthy Whales (NFT holders)</h3>
-      <p>Hold a <b>Wealthy Whale</b> (either Gen) and three perks unlock: a permanent <b>XP multiplier</b> on every gem, glowing <b>pearls</b> that drift through the dives (richer the deeper you go, plus a payout for beating a Kraken), and a <b>Pearl Vault</b>. Pearls bank to your wallet between runs — spend them in the shop on per-dive upgrades like slower oxygen drain, a spare shield, more air, or a one-time revive.</p>
+      <p>Hold a <b>Wealthy Whale</b> (either Gen) and three perks unlock: a permanent <b>XP multiplier</b> on every gem, glowing <b>pearls</b> that drift through the dives, and a <b>Pearl Vault</b>. Pearls you collect are <b>at risk</b> until you bank them — the deeper you dive the more they're worth (a rising multiplier), but if you run out of air you <b>lose every unbanked pearl</b>. Bank them safely by <b>surfacing</b> (the Quit button) or by <b>clearing a Kraken</b> (a checkpoint). Then spend your banked pearls in the shop on per-dive upgrades.</p>
     </div>
     <div class="g-sec">
       <h3>🐳 Security Orca (NFT holders)</h3>
@@ -567,6 +567,9 @@ function sfxOver(){ if(!AC)return; const t=AC.currentTime; [392,294,196].forEach
 function sfxInk(){ if(!AC)return; const t=AC.currentTime; voice(260,90,t,0.2,'sine',0.13,700); noise(t,0.14,0.10,1100); }  // wet splorp
 function sfxAlarm(){ if(!AC)return; const t=AC.currentTime;   // klaxon before the boss
   for(let i=0;i<3;i++){ voice(440,440,t+i*0.22,0.12,'square',0.12,1600); voice(300,300,t+i*0.22+0.11,0.11,'square',0.10,1600); } }
+function sfxJackpot(){ if(!AC)return; const t=AC.currentTime;   // legendary fanfare
+  [523,659,784,1047,1319].forEach((f,i)=> voice(f,f,t+i*0.07,0.3,'triangle',0.15,3400));
+  voice(1568,1568,t+0.35,0.5,'sine',0.10,5000); voice(160,120,t,0.5,'sine',0.12); }
 
 // ── boss music: a looping ominous bass + arpeggio, generated live ──
 let bossMusicTimer=null, bossStep=0;
@@ -902,6 +905,7 @@ function bossDefeated(){
 function continueAfterBoss(){
   document.getElementById('overlayReward').classList.add('hidden');
   if(state._bossPearls){ state.runPearls += state._bossPearls; state._bossPearls=0; }
+  bankPearls();   // a cleared Kraken is a safe checkpoint — lock in everything so far
   state.o2=Math.min(100, state.o2+CONFIG.levelRefill+25);
   if(state.level>=CONFIG.maxLevel){ win(); return; }
   state.level++; if(state.level>state.best){ state.best=state.level; saveBest(); }
@@ -1078,14 +1082,23 @@ function updateBoss(dt){
   if(state.whale.hop>0) state.whale.hop=Math.max(0,state.whale.hop-dt*7);
 }
 
+const GEM_TIERS = [
+  {e:'🐚', name:'Driftwood',  xp:0,  color:'#9bb0c0', w:26},
+  {e:'🔴', name:'COMMON',     xp:6,  color:'#ff8a8a', w:34},
+  {e:'🔵', name:'UNCOMMON',   xp:11, color:'#6fb6ff', w:20},
+  {e:'🟢', name:'RARE',       xp:18, color:'#7fe6a0', rich:true, w:11},
+  {e:'💎', name:'EPIC',       xp:30, color:'#b98cff', rich:true, bonus:true, w:4},
+  {e:'👑', name:'LEGENDARY',  xp:60, color:'#ffd24a', rich:true, jackpot:true, w:1},
+];
 function rollGem(L){
-  const r=Math.random(), t=Math.min(1,(L-1)/40);
-  if(r < 0.04 + t*0.17) return {e:'💎',xp:25,rich:true};
-  if(r < 0.14 + t*0.22) return {e:'🟢',xp:14,rich:true};
-  if(r < 0.34 + t*0.20) return {e:'🔵',xp:9};
-  if(r < 0.72)          return {e:'🔴',xp:5};
-  return {e:'🐚',xp:0};
+  const t=Math.min(1,(L-1)/60);   // deeper → rarer rolls get heavier
+  const weights = GEM_TIERS.map((g,i)=> i>=3 ? g.w*(1+t*2.4) : g.w*Math.max(0.25,1-t*0.45));
+  let tot=weights.reduce((a,b)=>a+b,0), r=Math.random()*tot;
+  for(let i=0;i<GEM_TIERS.length;i++){ r-=weights[i]; if(r<=0) return GEM_TIERS[i]; }
+  return GEM_TIERS[1];
 }
+// pearls are worth more the deeper you dive — the "risk it for more" multiplier
+function pearlMult(){ return 1 + Math.min(2, Math.floor((state.level-1)/10)*0.25); }
 
 // ── core actions ──
 function move(dr,dc){
@@ -1111,7 +1124,7 @@ function move(dr,dc){
   }
   // grab a pearl?
   if(state.pearlsList) for(const p of state.pearlsList){
-    if(!p.taken && p.row===nr && p.col===nc){ p.taken=true; state.runPearls+=p.val; sfxGem(false); }
+    if(!p.taken && p.row===nr && p.col===nc){ p.taken=true; state.runPearls+=Math.max(1,Math.round(p.val*pearlMult())); sfxGem(false); }
   }
   if(state.mode!=='boss'){
     if(!state.chestOpened && nr===state.chest.row && nc===state.chest.col){ openTreasure(); }
@@ -1148,9 +1161,15 @@ function sweep(){
   if(state.o2<=0){ state.o2=0; gameOver(); }
 }
 function levelComplete(){
-  state.phase='clear'; state.clearAnim=0; sfxLevel();
+  state.phase='clear'; state.clearAnim=0;
   const gem=rollGem(state.level); state.clearGem=gem; state.gems.push(gem);
-  state.score += Math.round(gem.xp*state.xpMult) + 10; if(gem.xp) sfxGem(gem.rich);
+  state.score += Math.round(gem.xp*state.xpMult) + 10;
+  if(gem.jackpot) sfxJackpot(); else if(gem.rich) sfxGem(true); else if(gem.xp) sfxGem(false); else sfxLevel();
+  // big rolls pay a bonus — extra score for everyone, extra pearls for holders
+  if(gem.bonus || gem.jackpot){
+    state.score += gem.jackpot?100:30;
+    if(state.hasWealthy) state.runPearls += Math.round((gem.jackpot?20:6)*pearlMult());
+  }
   setTimeout(()=>{
     state.o2=Math.min(100, state.o2+CONFIG.levelRefill);
     if(state.level>=CONFIG.maxLevel){ win(); return; }   // bottom of the Trench — you win
@@ -1178,12 +1197,13 @@ function gameOver(){
     return;
   }
   state.phase='over'; sfxOver(); stopBossMusic();
-  bankPearls();
+  const lost = (state.hasWealthy && state.runPearls>0) ? state.runPearls : 0;
+  state.runPearls=0;                       // the deep keeps your unbanked pearls
   if(state.level>state.best){ state.best=state.level; saveBest(); }
   const richTrail = state.gems.slice(-14).map(g=>g.e).join(' ');
   const diver = state.skinId ? `${state.tier.name} #${state.skinId}` : state.tier.name;
-  document.getElementById('overTitle').textContent='YOU SURFACED';
-  document.getElementById('overRun').textContent = `${diver} · reached Level ${state.level} · Score ${state.score}${state.runPearls?` · ${state.runPearls} pearls`:''}`;
+  document.getElementById('overTitle').textContent='YOU RAN OUT OF AIR';
+  document.getElementById('overRun').textContent = `${diver} · reached Level ${state.level} · Score ${state.score}${lost?` · lost ${lost} unbanked pearls to the deep`:''}`;
   document.getElementById('overGems').textContent = richTrail || '🐚';
   document.getElementById('overBest').textContent = `Best dive: Lv.${state.best}`;
   document.getElementById('overlayOver').classList.remove('hidden');
@@ -1881,9 +1901,15 @@ function renderBoss(w,h){
   }
   // clearing celebration (gem rise)
   if(state.phase==='clear' && state.clearGem){
-    state.clearAnim=Math.min(1,state.clearAnim+0.025);
-    ctx.save(); ctx.globalAlpha=1-state.clearAnim*0.3; ctx.font=`${Math.floor(CW*0.9)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('💎', w/2, h*0.5 - state.clearAnim*CH); ctx.restore();
+    state.clearAnim=Math.min(1,state.clearAnim+0.03);
+    const g=state.clearGem, a=state.clearAnim, pop=a<0.45?(0.4+a*1.33):1, y=h*0.5 - a*CH*0.7;
+    ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
+    if(g.rich){ ctx.shadowColor=g.color; ctx.shadowBlur=g.jackpot?34:22; }
+    ctx.globalAlpha=1-a*0.25; ctx.font=`${Math.floor(CW*0.95*pop)}px serif`;
+    ctx.fillText(g.e||'💎', w/2, y); ctx.shadowBlur=0;
+    if(g.xp>0){ ctx.globalAlpha=(1-a*0.4); ctx.fillStyle=g.color||'#fff';
+      ctx.font=`${Math.floor(CW*0.34)}px 'Bebas Neue',sans-serif`; ctx.fillText(g.name, w/2, y+CH*0.72); }
+    ctx.restore();
   }
   // intro card — clear, readable, paused until the player moves
   if(b && b.intro){
@@ -2004,17 +2030,20 @@ function render(){
     ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle=state.tier.color;
     ctx.fillText(state.tier.name + (state.shieldReady?'  🛡':'') + (state.lightningImmune?'  ⚡':''), 8, 7);
   }
-  // pearls collected this run (top-center): a real pearl + the count
+  // pearls collected this run (top-center): a real pearl + the at-risk count + depth multiplier
   if(state.hasWealthy && state.phase==='play'){
-    const label=String(state.runPearls);
+    const mult=pearlMult();
+    const label=String(state.runPearls) + (mult>1?`  ×${mult}`:'');
     ctx.font=`600 ${Math.max(9,Math.floor(CW*0.2))}px 'DM Mono',monospace`;
     ctx.textAlign='left'; ctx.textBaseline='middle';
     const pr=Math.max(4,CW*0.07), gap=5, tw=ctx.measureText(label).width;
-    const startX=w/2-(pr*2+gap+tw)/2, cy=7+pr;
+    const startX=w/2-(pr*2+gap+tw)/2, cy=8+pr;
     const g=ctx.createRadialGradient(startX+pr*0.65,cy-pr*0.35,1,startX+pr,cy,pr);
     g.addColorStop(0,'#ffffff'); g.addColorStop(0.7,'#d6deea'); g.addColorStop(1,'#aab6c8');
     ctx.fillStyle=g; ctx.beginPath(); ctx.arc(startX+pr,cy,pr,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#bfffe6'; ctx.fillText(label, startX+pr*2+gap, cy);
+    ctx.fillStyle=state.runPearls>0?'#ffd27a':'#bfffe6'; ctx.fillText(label, startX+pr*2+gap, cy);
+    if(state.runPearls>0){ ctx.font=`${Math.max(7,Math.floor(CW*0.12))}px 'DM Mono',monospace`; ctx.fillStyle='rgba(255,180,120,0.85)';
+      ctx.textAlign='center'; ctx.fillText('AT RISK — SURFACE TO BANK', w/2, cy+pr+Math.max(7,CW*0.13)); }
   }
   // habitat label (top-left, under the diver tag — keeps the top-right clear for Quit)
   if(state.phase!=='idle' && state.habitat){
@@ -2062,7 +2091,9 @@ function loop(now){
   if(state.phase==='play') update(dt);
   render();
   syncHUD();
-  const qb=document.getElementById('quitBtn'); if(qb) qb.style.display=(state.phase==='play'||state.phase==='clear')?'block':'none';
+  const qb=document.getElementById('quitBtn');
+  if(qb){ const show=(state.phase==='play'||state.phase==='clear'); qb.style.display=show?'block':'none';
+    if(show) qb.textContent=(state.hasWealthy && state.runPearls>0) ? `▲ Surface · bank ${state.runPearls}` : '✕ Quit'; }
   const playing = state.phase!=='idle';
   if(playing!==state._wasPlaying){ document.body.classList.toggle('playing', playing); state._wasPlaying=playing; resize(); }
   requestAnimationFrame(loop);
@@ -2185,7 +2216,7 @@ function selectWhale(url,id,tier,lit){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v40`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v41`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
