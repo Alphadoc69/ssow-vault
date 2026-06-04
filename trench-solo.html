@@ -107,6 +107,21 @@
   .orca-thumbs{display:flex; gap:5px; flex-wrap:wrap; justify-content:center;}
   .orca-thumb{width:34px; height:34px; border-radius:6px; object-fit:cover; flex:0 0 auto;
     background:#08202e; border:1px solid rgba(120,220,255,0.35);}
+  .wealthy-box{display:flex; flex-direction:column; gap:7px; margin-top:8px; padding:9px;
+    border:1px solid rgba(120,235,200,0.32); border-radius:7px; background:rgba(30,80,70,0.16); text-align:left;}
+  .wealthy-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  #wealthyName{font-family:var(--font-display); font-size:0.92rem; letter-spacing:0.04em; color:#bfffe6;}
+  .pearl-count{font-size:0.7rem; color:#eafff6; letter-spacing:0.05em; white-space:nowrap;}
+  .pearl-count b{color:#fff; font-size:0.85rem;}
+  .shop-sub{font-size:0.5rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--dim);}
+  .shop{display:grid; grid-template-columns:1fr 1fr; gap:6px;}
+  .shop-item{display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 6px; padding:6px 8px; text-align:left;
+    border:1px solid rgba(120,235,200,0.25); border-radius:6px; background:rgba(0,0,0,0.2); color:#dfeee9; cursor:pointer;}
+  .shop-item .shop-name{font-size:0.62rem; font-weight:600; color:#eafff6;}
+  .shop-item .shop-cost{font-size:0.58rem; color:#9fe7c8; margin-left:auto;}
+  .shop-item .shop-desc{flex:0 0 100%; font-size:0.5rem; color:var(--dim); line-height:1.3;}
+  .shop-item.on{border-color:#6fe0b0; background:rgba(111,224,176,0.16); box-shadow:0 0 0 1px rgba(111,224,176,0.4);}
+  .shop-item.off{opacity:0.4;}
   #changeBtn{flex:0 0 auto; background:transparent; border:1px solid rgba(91,200,232,0.3); color:var(--cyan-lt);
     font-family:var(--font-mono); font-size:0.55rem; letter-spacing:0.1em; text-transform:uppercase; padding:7px 10px; border-radius:5px; cursor:pointer;}
 
@@ -203,6 +218,12 @@
           <span id="orcaName">🐳 Security Orca</span>
           <div class="orca-thumbs" id="orcaThumbs"></div>
         </div>
+        <div class="wealthy-box" id="wealthyBox" style="display:none">
+          <div class="wealthy-head"><span id="wealthyName">🐚 Wealthy Whales</span><span class="pearl-count">🦪 <b id="pearlCount">0</b></span></div>
+          <div class="orca-thumbs" id="wealthyThumbs"></div>
+          <div class="shop-sub">spend pearls — upgrades for your next dive · <span id="shopTotal">tap upgrades to equip</span></div>
+          <div class="shop" id="shop"></div>
+        </div>
       </div>
 
       <button class="btn" id="startBtn">▼ Dive In</button>
@@ -267,6 +288,10 @@
     <div class="g-sec">
       <h3>🐬 Dolphin Allies</h3>
       <p>You're not alone down here. Pods of dolphins streak across the trench and <b>stun every predator in a lane</b> as they pass — watch for one and dart through the lane it clears.</p>
+    </div>
+    <div class="g-sec">
+      <h3>🐚 Wealthy Whales (NFT holders)</h3>
+      <p>Hold a <b>Wealthy Whale</b> (either Gen) and three perks unlock: a permanent <b>XP multiplier</b> on every gem, glowing <b>pearls</b> that drift through the dives (richer the deeper you go, plus a payout for beating a Kraken), and a <b>Pearl Vault</b>. Pearls bank to your wallet between runs — spend them in the shop on per-dive upgrades like slower oxygen drain, a spare shield, more air, or a one-time revive.</p>
     </div>
     <div class="g-sec">
       <h3>🐳 Security Orca (NFT holders)</h3>
@@ -384,6 +409,17 @@ const CONFIG = {
   bossMiniSpawn: 3.0, // seconds between Kraken summons (faster on later bosses)
   bossMiniSpeed: 1.7, // how fast a mini-squid homes in on you
   bossMiniO2: 9,      // oxygen lost when a mini-squid reaches you
+  // Wealthy Whales — XP multiplier, pearls, per-run upgrades
+  xpBase: 0.20,       // +20% XP for owning a Wealthy Whale
+  xpPer: 0.03,        // +3% per extra whale
+  xpCap: 0.50,        // capped at +50%
+  bossPearls: 8,      // base pearls for defeating a Kraken (×boss number)
+  UPGRADES: {
+    slow:    {name:'🐢 Slow Drain',  desc:'oxygen drains 25% slower this run', cost:12},
+    shield:  {name:'🛡 Spare Shield', desc:'a shield every level (absorbs one hit)', cost:10},
+    bubbles: {name:'🫧 Bubble Bloom', desc:'more air bubbles, each worth more', cost:8},
+    revive:  {name:'❤️ Revive',       desc:'resurface once instead of dying', cost:15},
+  },
   bossBubbleMax: 2,   // max air bubbles present at once in a boss fight
   bossBubbleSpawn: 3.6,// seconds between new air bubbles popping up
   bossTouchO2: 16,    // oxygen lost if the Kraken catches you
@@ -409,6 +445,8 @@ const state = {
   mode: 'dive', boss: null, whirls: [], rocks: [], jellies: [], stingFlash: 0, bossSharks: [],
   chestOpened: false, portal: null, hintT: 0,
   hasOrca: false, orca: null, orcaCd: 0, cannons: [], orcaImg: null, orcaImgs: [], minis: [], miniCd: 0,
+  hasWealthy: false, wealthyCount: 0, xpMult: 1, pearls: 0, runPearls: 0,
+  pearlsList: [], upg: {}, revived: false, wallet: '',
 };
 
 // ── persistence (works on the real site; harmless if blocked) ──
@@ -580,7 +618,7 @@ function setupLevel(L){
   state.chest = {row:CONFIG.ROWS-1, col:Math.floor(Math.random()*CONFIG.COLS)};
   state.chestOpened=false; state.portal=null; state.hintT=0;
   state.whale = {row:0, col:Math.floor(CONFIG.COLS/2), facing:1, hop:0};
-  state.shieldReady = state.tier.shield;   // perk resets each level
+  state.shieldReady = state.tier.shield || !!state.upg.shield;   // perk resets each level
   const calm = state.lanes.filter(l=>!l.active).map(l=>l.row);
   // rock obstacles FIRST — sit on calm rows; you must path around them (never on the chest)
   state.rocks=[];
@@ -600,13 +638,28 @@ function setupLevel(L){
   state.bubbles = [];
   const rowsForBubbles = calm.length ? calm : state.lanes.map(l=>l.row);
   const usedCols = new Set();
-  for(let i=0;i<CONFIG.bubblesBase;i++){
+  const nBub = CONFIG.bubblesBase + (state.upg.bubbles?2:0);
+  for(let i=0;i<nBub;i++){
     let row, col, tries=0;
     do { row=rowsForBubbles[Math.floor(Math.random()*rowsForBubbles.length)]; col=Math.floor(Math.random()*CONFIG.COLS); tries++; }
     while((usedCols.has(row+'-'+col) || rockKeys.has(row+'-'+col)) && tries<14);
     if(rockKeys.has(row+'-'+col)) continue;  // gave up — skip rather than overlap
     usedCols.add(row+'-'+col);
     state.bubbles.push({row, col, taken:false, pop:0});
+  }
+  // pearls — Wealthy Whale holders only; drift in calm water, richer the deeper you go
+  state.pearlsList=[];
+  if(state.hasWealthy){
+    const nPearls = 1 + (Math.random()<0.6?1:0);
+    const val = 1 + Math.floor((L-1)/30);   // 1 → up to 4 in the deep
+    for(let i=0;i<nPearls;i++){
+      let row,col,tries=0;
+      do { row=rowsForBubbles[Math.floor(Math.random()*rowsForBubbles.length)]; col=Math.floor(Math.random()*CONFIG.COLS); tries++; }
+      while((usedCols.has(row+'-'+col) || rockKeys.has(row+'-'+col)) && tries<14);
+      if(usedCols.has(row+'-'+col) || rockKeys.has(row+'-'+col)) continue;
+      usedCols.add(row+'-'+col);
+      state.pearlsList.push({row,col,val,taken:false,t:Math.random()*6});
+    }
   }
   // jellyfish — drift slowly, a light sting (small O2 nip, no knockback)
   state.jellies=[];
@@ -660,7 +713,7 @@ function setupBoss(L){
   state.lanes=[]; state.bubbles=[]; state.jellies=[]; state.rocks=[];
   state.habitat=HAB.kraken; state.dark=false;
   state.whale={row:CONFIG.ROWS-2, col:Math.floor(CONFIG.COLS/2), facing:1, hop:0};
-  state.shieldReady=state.tier.shield;
+  state.shieldReady=state.tier.shield || !!state.upg.shield;
   const hp=CONFIG.bossHp + (num-1)*30;             // later Krakens are tougher
   state.boss={
     hp, maxHp:hp, num,
@@ -721,7 +774,8 @@ function krakenTouch(){
 }
 function bossDefeated(){
   state.phase='clear'; state.clearAnim=0; sfxLevel();
-  const gem={e:'💎',xp:60,rich:true}; state.clearGem=gem; state.gems.push(gem); state.score+=gem.xp+30; sfxGem(true);
+  const gem={e:'💎',xp:60,rich:true}; state.clearGem=gem; state.gems.push(gem); state.score+=Math.round(gem.xp*state.xpMult)+30; sfxGem(true);
+  if(state.hasWealthy && state.boss){ state.runPearls += CONFIG.bossPearls*state.boss.num; }
   setTimeout(()=>{
     state.o2=Math.min(100, state.o2+CONFIG.levelRefill+25);
     if(state.level>=CONFIG.maxLevel){ win(); return; }
@@ -739,7 +793,7 @@ function updateBoss(dt){
   b.fightT=(b.fightT||0)+dt;
   const ramp=CONFIG.bossDrainRamp*(1+0.12*(b.num-1));
   const drain=Math.min(CONFIG.bossDrainMax, CONFIG.bossDrain + ramp*b.fightT);
-  state.o2 -= drain*state.tier.drain*dt;
+  state.o2 -= drain*state.tier.drain*(state.upg.slow?0.75:1)*dt;
   // Kraken chases the whale (holds still while stunned)
   if(b.stun>0){ b.stun=Math.max(0,b.stun-dt); }
   else {
@@ -896,8 +950,12 @@ function move(dr,dc){
   // grab an air bubble?
   for(const b of state.bubbles){
     if(!b.taken && b.row===nr && b.col===nc){
-      b.taken=true; b.pop=1; state.o2=Math.min(100, state.o2+CONFIG.bubbleO2); sfxBubble();
+      b.taken=true; b.pop=1; state.o2=Math.min(100, state.o2+CONFIG.bubbleO2*(state.upg.bubbles?1.5:1)); sfxBubble();
     }
+  }
+  // grab a pearl?
+  if(state.pearlsList) for(const p of state.pearlsList){
+    if(!p.taken && p.row===nr && p.col===nc){ p.taken=true; state.runPearls+=p.val; sfxGem(false); }
   }
   if(state.mode!=='boss'){
     if(!state.chestOpened && nr===state.chest.row && nc===state.chest.col){ openTreasure(); }
@@ -936,7 +994,7 @@ function sweep(){
 function levelComplete(){
   state.phase='clear'; state.clearAnim=0; sfxLevel();
   const gem=rollGem(state.level); state.clearGem=gem; state.gems.push(gem);
-  state.score += gem.xp + 10; if(gem.xp) sfxGem(gem.rich);
+  state.score += Math.round(gem.xp*state.xpMult) + 10; if(gem.xp) sfxGem(gem.rich);
   setTimeout(()=>{
     state.o2=Math.min(100, state.o2+CONFIG.levelRefill);
     if(state.level>=CONFIG.maxLevel){ win(); return; }   // bottom of the Trench — you win
@@ -946,6 +1004,7 @@ function levelComplete(){
 }
 function win(){
   state.phase='over'; sfxLevel();
+  bankPearls();
   if(state.level>state.best){ state.best=state.level; saveBest(); }
   const richTrail = state.gems.slice(-14).map(g=>g.e).join(' ');
   const diver = state.skinId ? `${state.tier.name} #${state.skinId}` : state.tier.name;
@@ -956,12 +1015,20 @@ function win(){
   document.getElementById('overlayOver').classList.remove('hidden');
 }
 function gameOver(){
+  // Revive upgrade: resurface once instead of dying
+  if(state.upg.revive && !state.revived){
+    state.revived=true; state.o2=55; state.invuln=2.5; sfxShield();
+    const v=document.getElementById('vignette'); v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),300);
+    state.whale.row=0; state.whale.col=Math.floor(CONFIG.COLS/2);
+    return;
+  }
   state.phase='over'; sfxOver();
+  bankPearls();
   if(state.level>state.best){ state.best=state.level; saveBest(); }
   const richTrail = state.gems.slice(-14).map(g=>g.e).join(' ');
   const diver = state.skinId ? `${state.tier.name} #${state.skinId}` : state.tier.name;
   document.getElementById('overTitle').textContent='YOU SURFACED';
-  document.getElementById('overRun').textContent = `${diver} · reached Level ${state.level} · Score ${state.score}`;
+  document.getElementById('overRun').textContent = `${diver} · reached Level ${state.level} · Score ${state.score}${state.runPearls?` · 🦪 ${state.runPearls} pearls`:''}`;
   document.getElementById('overGems').textContent = richTrail || '🐚';
   document.getElementById('overBest').textContent = `Best dive: Lv.${state.best}`;
   document.getElementById('overlayOver').classList.remove('hidden');
@@ -970,6 +1037,7 @@ function startRun(){
   resumeAudio();
   state.level=1; state.score=0; state.o2=100; state.gems=[];
   state.invuln=0; state.habName='';
+  state.runPearls=0; state.revived=false;
   if(state.best<1) state.best=1;
   setupLevel(1); state.phase='play'; state.last=performance.now();
   document.getElementById('overlayStart').classList.add('hidden');
@@ -1022,7 +1090,7 @@ function update(dt){
   if(state.invuln>0) state.invuln=Math.max(0,state.invuln-dt);
   if(state.bannerT>0) state.bannerT=Math.max(0,state.bannerT-dt);
   if(state.reveal>0) state.reveal=Math.max(0,state.reveal-dt*1.4);
-  state.o2 -= state.cfg.drain*state.tier.drain*dt;
+  state.o2 -= state.cfg.drain*state.tier.drain*(state.upg.slow?0.75:1)*dt;
   updateOrca(dt);
   // move predators (frozen ones hold still)
   for(const lane of state.lanes){ if(!lane.active) continue;
@@ -1268,6 +1336,21 @@ function drawJelly(j){
   ctx.fillStyle='rgba(210,150,240,0.55)'; ctx.strokeStyle='rgba(235,200,255,0.8)'; ctx.lineWidth=Math.max(1,sz*0.02);
   ctx.beginPath(); ctx.ellipse(0,0,R*pulse,R*0.8*pulse,0,Math.PI,0); ctx.lineTo(R*pulse,R*0.12); ctx.quadraticCurveTo(0,R*0.32,-R*pulse,R*0.12); ctx.closePath(); ctx.fill(); ctx.stroke();
   ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.ellipse(-R*0.3,-R*0.2,R*0.18,R*0.1,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+function drawPearl(p){
+  const cx=colX(p.col)+CW/2, cy=rowY(p.row)+CH/2 + Math.sin((p.t||0)*2+(state.t||0)*2)*CH*0.05, sz=Math.min(CW,CH);
+  const r=sz*(p.val>=3?0.26:0.2);
+  ctx.save(); ctx.translate(cx,cy);
+  const gl=ctx.createRadialGradient(0,0,1,0,0,r*1.7);
+  gl.addColorStop(0,'rgba(255,245,255,0.5)'); gl.addColorStop(1,'rgba(255,245,255,0)');
+  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(0,0,r*1.7,0,Math.PI*2); ctx.fill();
+  const g=ctx.createRadialGradient(-r*0.35,-r*0.35,1,0,0,r);
+  if(p.val>=3){ g.addColorStop(0,'#e7e2f5'); g.addColorStop(1,'#5b4b8a'); }   // dark/black pearl in the deep
+  else { g.addColorStop(0,'#ffffff'); g.addColorStop(1,'#cfd8e6'); }
+  ctx.fillStyle=g; ctx.strokeStyle='rgba(120,140,170,0.6)'; ctx.lineWidth=Math.max(1,sz*0.02);
+  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(-r*0.32,-r*0.32,r*0.22,0,Math.PI*2); ctx.fill();
   ctx.restore();
 }
 function drawBubble(b){
@@ -1658,6 +1741,8 @@ function render(){
   if(state.jellies) for(const j of state.jellies) drawJelly(j);
   // air bubbles
   for(const b of state.bubbles){ if(!b.taken) drawBubble(b); }
+  // pearls
+  if(state.pearlsList) for(const p of state.pearlsList){ if(!p.taken) drawPearl(p); }
   // dolphin ally
   if(state.dolphin) drawDolphin(state.dolphin);
   // Orca cannon ally
@@ -1698,6 +1783,12 @@ function render(){
     ctx.font=`600 ${Math.max(9,Math.floor(CW*0.20))}px 'DM Mono',monospace`;
     ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle=state.tier.color;
     ctx.fillText(state.tier.name + (state.shieldReady?'  🛡':''), 8, 7);
+  }
+  // pearls collected this run (top-center)
+  if(state.hasWealthy && state.phase==='play'){
+    ctx.font=`600 ${Math.max(9,Math.floor(CW*0.2))}px 'DM Mono',monospace`;
+    ctx.textAlign='center'; ctx.textBaseline='top'; ctx.fillStyle='#bfffe6';
+    ctx.fillText('🦪 '+state.runPearls, w/2, 7);
   }
   // habitat label (top-right, subtle)
   if(state.phase!=='idle' && state.habitat){
@@ -1798,8 +1889,8 @@ document.querySelectorAll('.pad button[data-dir]').forEach(b=>{
   b.addEventListener('pointerup',stopHold); b.addEventListener('pointerleave',stopHold); b.addEventListener('pointercancel',stopHold);
 });
 
-document.getElementById('startBtn').addEventListener('click',startRun);
-document.getElementById('againBtn').addEventListener('click',startRun);
+document.getElementById('startBtn').addEventListener('click',diveStart);
+document.getElementById('againBtn').addEventListener('click',diveStart);
 document.getElementById('menuBtn').addEventListener('click',()=>{
   state.phase='idle';
   document.getElementById('overlayOver').classList.add('hidden');
@@ -1856,7 +1947,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v28`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v29`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
@@ -1931,14 +2022,95 @@ async function loadWallet(){
     loadedNfts=await fetchAllNFTs(wallet);
     if(!loadedNfts.length){ setW('No SSoW whales found for that wallet.',true); return; }
     try{ localStorage.setItem('trench_solo_wallet', wallet); }catch(e){}
+    state.wallet=wallet;
     const orca=await checkOrca(wallet);
-    setW(`Loaded ${loadedNfts.length} whales — pick your diver${orca?' · 🐳 Security Orca ally unlocked!':''}`);
+    const wealthy=await checkWealthy(wallet);
+    setW(`Loaded ${loadedNfts.length} whales — pick your diver${orca?' · 🐳 Orca ally':''}${wealthy?' · 🐚 Wealthy perks':''}`);
     openPicker();
   }catch(err){ setW(err.message||'Could not load whales.',true); }
   finally{ wBtn.disabled=false; }
 }
 wBtn.addEventListener('click',loadWallet);
 wInput.addEventListener('keydown',e=>{ if(e.key==='Enter') loadWallet(); });
+
+// ── Wealthy Whales: XP multiplier, pearls, vault, per-run shop ──
+let shopSel = new Set();
+async function checkWealthy(wallet){
+  try{
+    const res=await fetch(`/api/wealthy?wallet=${encodeURIComponent(wallet)}`);
+    const data=await res.json();
+    if(res.ok && data.owns){
+      state.hasWealthy=true; state.wealthyCount=data.count||1;
+      state.xpMult = 1 + Math.min(CONFIG.xpCap, CONFIG.xpBase + CONFIG.xpPer*(state.wealthyCount-1));
+      try{ localStorage.setItem('trench_solo_wealthy', JSON.stringify({count:state.wealthyCount, images:data.images||[]})); }catch(e){}
+      showWealthyBadge(data.images||[], state.wealthyCount);
+      await loadVault(wallet);
+      return true;
+    }
+    state.hasWealthy=false; state.xpMult=1; state.wealthyCount=0;
+    const wb=document.getElementById('wealthyBox'); if(wb) wb.style.display='none';
+    try{ localStorage.removeItem('trench_solo_wealthy'); }catch(e){}
+  }catch(e){}
+  return false;
+}
+async function loadVault(wallet){
+  try{ const r=await fetch(`/api/pearls?wallet=${encodeURIComponent(wallet)}`); const d=await r.json();
+    if(r.ok && typeof d.pearls==='number') state.pearls=d.pearls; }catch(e){}
+  updateVaultUI();
+}
+async function bankPearls(){
+  if(!state.hasWealthy || !state.wallet || state.runPearls<=0) return;
+  const gained=state.runPearls; state.runPearls=0;
+  state.pearls += gained; updateVaultUI();
+  try{ const r=await fetch('/api/pearls',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet:state.wallet,action:'add',amount:gained})});
+    const d=await r.json(); if(r.ok && typeof d.pearls==='number'){ state.pearls=d.pearls; updateVaultUI(); } }catch(e){}
+}
+function showWealthyBadge(images,count){
+  const box=document.getElementById('wealthyBox'); if(!box) return;
+  box.style.display='flex';
+  document.getElementById('wealthyName').textContent=`🐚 Wealthy Whale${count>1?`s ×${count}`:''} · +${Math.round((state.xpMult-1)*100)}% XP`;
+  const wrap=document.getElementById('wealthyThumbs'); wrap.innerHTML='';
+  (images||[]).slice(0,8).forEach(u=>{ const im=document.createElement('img'); im.className='orca-thumb'; im.loading='lazy'; im.src=u; wrap.appendChild(im); });
+  buildShop();
+}
+function buildShop(){
+  const shop=document.getElementById('shop'); if(!shop) return; shop.innerHTML='';
+  Object.entries(CONFIG.UPGRADES).forEach(([key,u])=>{
+    const b=document.createElement('button'); b.className='shop-item'+(shopSel.has(key)?' on':'');
+    b.innerHTML=`<span class="shop-name">${u.name}</span><span class="shop-cost">🦪 ${u.cost}</span><span class="shop-desc">${u.desc}</span>`;
+    b.addEventListener('click',()=>toggleUpgrade(key));
+    shop.appendChild(b);
+  });
+  updateVaultUI();
+}
+function selectedTotal(){ let t=0; shopSel.forEach(k=>t+=CONFIG.UPGRADES[k].cost); return t; }
+function toggleUpgrade(key){
+  if(shopSel.has(key)) shopSel.delete(key);
+  else { if(selectedTotal()+CONFIG.UPGRADES[key].cost > state.pearls){ flashVault(); return; } shopSel.add(key); }
+  buildShop();
+}
+function flashVault(){ const el=document.getElementById('pearlCount'); if(!el)return; el.style.color='#ff6b6b'; setTimeout(()=>el.style.color='',350); }
+function updateVaultUI(){
+  const pc=document.getElementById('pearlCount'); if(pc) pc.textContent=state.pearls;
+  const tot=document.getElementById('shopTotal'); if(tot) tot.textContent= shopSel.size? `equipping ${selectedTotal()} 🦪`:'tap upgrades to equip';
+  document.querySelectorAll('.shop-item').forEach((b,i)=>{
+    const key=Object.keys(CONFIG.UPGRADES)[i]; const cost=CONFIG.UPGRADES[key].cost;
+    const affordable = shopSel.has(key) || (selectedTotal()+cost<=state.pearls);
+    b.classList.toggle('off', !affordable && !shopSel.has(key));
+  });
+}
+function commitUpgrades(){
+  state.upg={};
+  if(!state.hasWealthy || shopSel.size===0) return;
+  const total=selectedTotal();
+  if(total>state.pearls){ shopSel.clear(); buildShop(); return; }
+  shopSel.forEach(k=> state.upg[k]=true);
+  // spend (optimistic, then confirm with server)
+  state.pearls-=total; updateVaultUI();
+  if(state.wallet){ fetch('/api/pearls',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet:state.wallet,action:'spend',amount:total})})
+    .then(r=>r.json()).then(d=>{ if(typeof d.pearls==='number'){ state.pearls=d.pearls; updateVaultUI(); } }).catch(()=>{}); }
+}
+function diveStart(){ commitUpgrades(); startRun(); }
 
 // restore last wallet + chosen whale + Orca ally
 try{
@@ -1950,10 +2122,19 @@ try{
     showOrcaBadge(imgs, parseInt(localStorage.getItem('trench_solo_orca_count'))||imgs.length||1); }
   // quietly refresh Orca ownership + art in the background if we know the wallet
   const savedWallet=localStorage.getItem('trench_solo_wallet');
-  if(savedWallet && savedWallet.startsWith('0x')) checkOrca(savedWallet);
+  if(savedWallet && savedWallet.startsWith('0x')){ state.wallet=savedWallet; checkOrca(savedWallet); }
+  // restore Wealthy Whale perks, then refresh in background
+  const wj=JSON.parse(localStorage.getItem('trench_solo_wealthy')||'null');
+  if(wj && wj.count){ state.hasWealthy=true; state.wealthyCount=wj.count;
+    state.xpMult=1+Math.min(CONFIG.xpCap, CONFIG.xpBase+CONFIG.xpPer*(wj.count-1));
+    showWealthyBadge(wj.images||[], wj.count); }
+  if(savedWallet && savedWallet.startsWith('0x')) checkWealthy(savedWallet);
 }catch(e){}
-// ?orca=1 forces the ally on for testing
-try{ if(new URLSearchParams(location.search).get('orca')==='1'){ state.hasOrca=true; showOrcaBadge('',1); } }catch(e){}
+// ?orca=1 / ?wealthy=1 force allies on for testing
+try{ const q=new URLSearchParams(location.search);
+  if(q.get('orca')==='1'){ state.hasOrca=true; showOrcaBadge('',1); }
+  if(q.get('wealthy')==='1'){ state.hasWealthy=true; state.wealthyCount=5; state.xpMult=1+Math.min(CONFIG.xpCap,CONFIG.xpBase+CONFIG.xpPer*4); state.pearls=50; showWealthyBadge([],5); }
+}catch(e){}
 
 window.addEventListener('resize',resize);
 // boot
