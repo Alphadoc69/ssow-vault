@@ -163,7 +163,7 @@
     <a class="back-link" href="/thetrench">← The Trench</a>
     <p class="eyebrow">Secret Society of Whales</p>
     <h1 class="title">SOLO <span>DIVE</span></h1>
-    <p class="sub">one whale · dodge the giant squid · go deeper</p>
+    <p class="sub">one whale · dodge the predators · go deeper</p>
   </header>
 
   <div class="hud">
@@ -233,8 +233,11 @@
       <p>Guide your whale down through the depths to the treasure chest on the seabed. Your <b>oxygen</b> drains the whole time — reach the chest before it runs out. Clear a level and you refill, then plunge deeper. 100 levels down.</p>
     </div>
     <div class="g-sec">
-      <h3>🦑 The Giant Squid</h3>
-      <p>The deep belongs to the giant squid — a sperm whale's real-life nemesis. They patrol the lanes inside swirling whirlpools. Touch one and it drags you back to the surface, costing precious air. Time your moves and slip through the gaps.</p>
+      <h3>🦈 Predators by Habitat</h3>
+      <p>Different depths, different hunters — all of them patrol the lanes inside swirling currents. Touch one and it knocks you back toward the surface and costs air. Time your moves through the gaps.</p>
+      <div class="g-row"><span>🦈 <b>Sharks</b></span><span class="g-x">warm shallows — tropical, reef &amp; coastal</span></div>
+      <div class="g-row"><span>🐻‍❄️ <b>Polar Bears</b></span><span class="g-x">Arctic ice — they ambush whales here</span></div>
+      <div class="g-row"><span>🦑 <b>Giant Squid</b></span><span class="g-x">the deep &amp; dark — a sperm whale's nemesis</span></div>
     </div>
     <div class="g-sec">
       <h3>🫧 Air Bubbles</h3>
@@ -290,15 +293,15 @@
 const CONFIG = {
   COLS: 7,            // grid width
   ROWS: 8,            // grid height (row 0 = surface, last row = seabed/chest)
-  baseSpeed: 0.58,    // squid speed at lvl 1 (cells/sec)
-  speedRamp: 0.05,    // + per level
+  baseSpeed: 0.70,    // squid speed at lvl 1 (cells/sec)
+  speedRamp: 0.055,   // + per level
   maxSpeed: 3.40,     // higher cap so deep levels keep getting faster (less repetitive)
-  baseBlocks: 1,      // squids per active lane at lvl 1
-  blockEvery: 10,     // +1 squid per lane every N levels
-  maxBlocks: 4,
+  baseBlocks: 1,      // predators per active lane at lvl 1
+  blockEvery: 8,      // +1 predator per lane every N levels
+  maxBlocks: 3,       // max 3 per lane — keeps gaps threadable
   baseActive: 2,      // active (dangerous) lanes at lvl 1
-  activeEvery: 8,     // +1 active lane every N levels
-  maxActive: 4,       // never more than 4 danger lanes — always ≥2 rest rows
+  activeEvery: 6,     // +1 active lane every N levels
+  maxActive: 3,       // max 3 danger lanes — guarantees a rest row between every one
   baseDrain: 2.2,     // oxygen lost per second
   drainRamp: 0.035,   // + per level
   maxDrain: 5.2,
@@ -424,18 +427,21 @@ function levelCfg(L){
 // ── HABITATS — the water changes as you dive deeper / progress ──
 // each spans ~7 levels; top/bot are the water gradient (RGB), seabed tint, and a decor style.
 const HABITATS=[
-  {name:'TROPICAL NURSERY', sub:'warm calving shallows', top:[46,158,176], bot:[12,74,116], seabed:[200,186,130], decor:'coral'},
-  {name:'CORAL REEFS',       sub:'subtropical shelf',     top:[30,138,150], bot:[10,62,104], seabed:[180,150,110], decor:'coral'},
-  {name:'COASTAL KELP',      sub:'nearshore forests',     top:[36,116,108], bot:[14,58,72],  seabed:[70,80,50],    decor:'kelp'},
-  {name:'KRILL FIELDS',      sub:'sub-polar feeding',     top:[30,96,128],  bot:[8,44,76],   seabed:[40,60,80],    decor:'krill'},
-  {name:'ARCTIC ICE',        sub:'the frozen north',      top:[120,182,212],bot:[28,74,116], seabed:[150,170,190], decor:'ice'},
-  {name:'ANTARCTIC DEEP',    sub:'polar cold · sonar on',  top:[34,70,110],  bot:[6,22,54],   seabed:[40,55,80],   decor:'ice',    dark:true},
-  {name:'THE ABYSS',         sub:'the deep · sonar on',    top:[10,22,40],   bot:[1,4,12],    seabed:[12,16,26],   decor:'biolum', dark:true},
+  {name:'TROPICAL NURSERY', sub:'warm calving shallows', top:[46,158,176], bot:[12,74,116], seabed:[200,186,130], decor:'coral', enemy:'shark', espd:1.12},
+  {name:'CORAL REEFS',       sub:'subtropical shelf',     top:[30,138,150], bot:[10,62,104], seabed:[180,150,110], decor:'coral', enemy:'shark', espd:1.12},
+  {name:'COASTAL KELP',      sub:'nearshore forests',     top:[36,116,108], bot:[14,58,72],  seabed:[70,80,50],    decor:'kelp',  enemy:'shark', espd:1.08},
+  {name:'KRILL FIELDS',      sub:'sub-polar feeding',     top:[30,96,128],  bot:[8,44,76],   seabed:[40,60,80],    decor:'krill', enemy:'squid', espd:1.0},
+  {name:'ARCTIC ICE',        sub:'polar bears hunt here', top:[120,182,212],bot:[28,74,116], seabed:[150,170,190], decor:'ice',   enemy:'bear',  espd:0.95},
+  {name:'ANTARCTIC DEEP',    sub:'polar cold · sonar on',  top:[34,70,110],  bot:[6,22,54],   seabed:[40,55,80],   decor:'ice',    dark:true, enemy:'squid', espd:1.0},
+  {name:'THE ABYSS',         sub:'the deep · sonar on',    top:[10,22,40],   bot:[1,4,12],    seabed:[12,16,26],   decor:'biolum', dark:true, enemy:'squid', espd:1.05},
 ];
 function habitatFor(L){ return HABITATS[Math.min(HABITATS.length-1, Math.floor((L-1)/7))]; }
 
 function setupLevel(L){
   const cfg = levelCfg(L); state.cfg = cfg; state.lanes = [];
+  // habitat for this depth (set first — lanes use its predator + speed)
+  const hIdx=Math.min(HABITATS.length-1, Math.floor((L-1)/7));
+  state.habitat=HABITATS[hIdx];
   const laneCount = CONFIG.ROWS-2;            // rows 1 .. ROWS-2 are lanes
   // spread the danger lanes evenly so there are calm "rest" rows between them (a fair Frogger median)
   const activeSet = new Set();
@@ -450,7 +456,7 @@ function setupLevel(L){
     if(!activeSet.has(idx)){ state.lanes.push({row:r,active:false,blocks:[],dir:1,speed:0}); continue; }
     const dir=(idx%2===0)?1:-1;
     const fast = Math.random() < CONFIG.fastLaneChance;
-    let speed=cfg.speed*(1-CONFIG.laneJitter/2+Math.random()*CONFIG.laneJitter);
+    let speed=cfg.speed*(1-CONFIG.laneJitter/2+Math.random()*CONFIG.laneJitter)*(state.habitat?state.habitat.espd:1);
     if(fast) speed*=CONFIG.fastLaneMult;
     const k=cfg.blocks, spacing=CONFIG.COLS/k, start=Math.random()*spacing, blocks=[];
     for(let i=0;i<k;i++) blocks.push({x:(start+i*spacing)%CONFIG.COLS, stun:0, pinged:false});
@@ -471,9 +477,7 @@ function setupLevel(L){
     usedCols.add(row+'-'+col);
     state.bubbles.push({row, col, taken:false, pop:0});
   }
-  // habitat for this depth — banner when entering a new one
-  const hIdx=Math.min(HABITATS.length-1, Math.floor((L-1)/7));
-  state.habitat=HABITATS[hIdx];
+  // banner when entering a new habitat
   if(hIdx!==state.habIdx){ state.habIdx=hIdx; state.bannerT=2.6; }
   // sonar / darkness
   state.dark=!!state.habitat.dark;
@@ -622,44 +626,72 @@ function update(dt){
 function rowY(r){ return r*CH; }
 function colX(c){ return c*CW; }
 
-function drawSquid(x,cy,dir,stunned){
+function drawEnemy(type,x,cy,dir,stunned){
   const T=state.t||0, w=cv.clientWidth;
   for(const off of [-CONFIG.COLS,0,CONFIG.COLS]){
     const X=(x+off)*CW+CW/2; const Y=cy+CH/2;
     if(X<-CW||X>w+CW) continue;
     const sz=Math.min(CW,CH);
-    // ── whirlpool swirl behind the squid (stops when stunned) ──
-    ctx.save(); ctx.translate(X,Y);
-    ctx.rotate(stunned ? 0 : (T*1.7*(dir<0?-1:1))%(Math.PI*2));
-    for(let s=0;s<3;s++){
-      const rr=sz*0.52*(1-s*0.24);
-      ctx.beginPath(); ctx.strokeStyle=stunned?`rgba(150,170,190,${0.18-s*0.05})`:`rgba(120,210,245,${0.30-s*0.07})`; ctx.lineWidth=2;
-      ctx.arc(0,0,rr, s*0.7, s*0.7+Math.PI*1.45); ctx.stroke();
+    if(type==='squid'){
+      // whirlpool swirl behind (stops when stunned)
+      ctx.save(); ctx.translate(X,Y); ctx.rotate(stunned?0:(T*1.7*(dir<0?-1:1))%(Math.PI*2));
+      for(let s=0;s<3;s++){ const rr=sz*0.52*(1-s*0.24);
+        ctx.beginPath(); ctx.strokeStyle=stunned?`rgba(150,170,190,${0.18-s*0.05})`:`rgba(120,210,245,${0.30-s*0.07})`; ctx.lineWidth=2;
+        ctx.arc(0,0,rr,s*0.7,s*0.7+Math.PI*1.45); ctx.stroke(); }
+      ctx.restore();
+      ctx.save(); ctx.translate(X,Y); if(dir<0) ctx.scale(-1,1);
+      ctx.strokeStyle=stunned?'#6a7480':'#c0436a'; ctx.lineWidth=Math.max(2,sz*0.05); ctx.lineCap='round';
+      for(let i=-2;i<=2;i++){ const wig=stunned?0:Math.sin(T*6+i)*sz*0.10;
+        ctx.beginPath(); ctx.moveTo(-sz*0.05,i*sz*0.05); ctx.quadraticCurveTo(-sz*0.30,i*sz*0.07+wig,-sz*0.50,i*sz*0.10+wig); ctx.stroke(); }
+      ctx.fillStyle=stunned?'#7d8794':'#dc5a82'; ctx.strokeStyle=stunned?'#454e59':'#7a2440'; ctx.lineWidth=Math.max(1,sz*0.03);
+      ctx.beginPath(); ctx.moveTo(sz*0.44,0);
+      ctx.quadraticCurveTo(sz*0.06,-sz*0.23,-sz*0.10,-sz*0.12); ctx.quadraticCurveTo(-sz*0.17,0,-sz*0.10,sz*0.12);
+      ctx.quadraticCurveTo(sz*0.06,sz*0.23,sz*0.44,0); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='#160d1c'; ctx.beginPath(); ctx.arc(sz*0.05,-sz*0.02,sz*0.08,0,Math.PI*2); ctx.fill();
+      if(!stunned){ ctx.fillStyle='#ffd25a'; ctx.beginPath(); ctx.arc(sz*0.07,-sz*0.04,sz*0.032,0,Math.PI*2); ctx.fill(); }
+      ctx.restore();
+    } else if(type==='shark'){
+      ctx.save(); ctx.translate(X,Y); if(dir<0) ctx.scale(-1,1);
+      const body=stunned?'#8a939c':'#7d8b97', edge=stunned?'#4a525a':'#43505c';
+      // tail
+      ctx.fillStyle=body; ctx.strokeStyle=edge; ctx.lineWidth=Math.max(1,sz*0.03);
+      ctx.beginPath(); ctx.moveTo(-sz*0.34,0); ctx.lineTo(-sz*0.5,-sz*0.2); ctx.lineTo(-sz*0.42,0); ctx.lineTo(-sz*0.5,sz*0.16); ctx.closePath(); ctx.fill();
+      // body
+      ctx.beginPath(); ctx.moveTo(sz*0.48,0);
+      ctx.quadraticCurveTo(sz*0.05,-sz*0.20,-sz*0.34,-sz*0.05); ctx.quadraticCurveTo(-sz*0.45,0,-sz*0.34,sz*0.06);
+      ctx.quadraticCurveTo(sz*0.05,sz*0.20,sz*0.48,0); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // belly
+      ctx.fillStyle='rgba(235,242,248,0.5)'; ctx.beginPath(); ctx.moveTo(sz*0.32,sz*0.05); ctx.quadraticCurveTo(0,sz*0.17,-sz*0.3,sz*0.05); ctx.quadraticCurveTo(0,sz*0.11,sz*0.32,sz*0.05); ctx.fill();
+      // dorsal + pectoral fin
+      ctx.fillStyle=body; ctx.beginPath(); ctx.moveTo(sz*0.02,-sz*0.12); ctx.lineTo(-sz*0.12,-sz*0.36); ctx.lineTo(-sz*0.16,-sz*0.12); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(sz*0.04,sz*0.08); ctx.lineTo(-sz*0.06,sz*0.26); ctx.lineTo(-sz*0.14,sz*0.08); ctx.closePath(); ctx.fill();
+      // gills, eye, mouth
+      ctx.strokeStyle=edge; ctx.lineWidth=Math.max(1,sz*0.015);
+      for(let i=0;i<3;i++){ ctx.beginPath(); ctx.moveTo(sz*0.16-i*sz*0.05,-sz*0.07); ctx.lineTo(sz*0.16-i*sz*0.05,sz*0.05); ctx.stroke(); }
+      ctx.fillStyle='#10181f'; ctx.beginPath(); ctx.arc(sz*0.3,-sz*0.04,sz*0.03,0,Math.PI*2); ctx.fill();
+      if(!stunned){ ctx.strokeStyle='#2a323a'; ctx.lineWidth=Math.max(1,sz*0.02); ctx.beginPath(); ctx.moveTo(sz*0.48,sz*0.03); ctx.lineTo(sz*0.34,sz*0.08); ctx.stroke(); }
+      ctx.restore();
+    } else { // bear (swimming polar bear)
+      ctx.save(); ctx.translate(X,Y); if(dir<0) ctx.scale(-1,1);
+      const body=stunned?'#cdd6db':'#eef3f6', edge=stunned?'#9aa6ad':'#c2ccd2';
+      ctx.fillStyle=body; ctx.strokeStyle=edge; ctx.lineWidth=Math.max(1,sz*0.03);
+      // back legs/body
+      ctx.beginPath(); ctx.ellipse(-sz*0.05,sz*0.02,sz*0.34,sz*0.2,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      // head
+      ctx.beginPath(); ctx.arc(sz*0.3,-sz*0.04,sz*0.18,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      // ears
+      ctx.beginPath(); ctx.arc(sz*0.22,-sz*0.2,sz*0.055,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(sz*0.36,-sz*0.2,sz*0.055,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      // snout + nose
+      ctx.fillStyle=body; ctx.beginPath(); ctx.ellipse(sz*0.46,0,sz*0.1,sz*0.07,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='#1b1b1b'; ctx.beginPath(); ctx.arc(sz*0.54,0,sz*0.035,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(sz*0.32,-sz*0.06,sz*0.028,0,Math.PI*2); ctx.fill();
+      // little waterline splashes
+      if(!stunned){ ctx.strokeStyle='rgba(210,235,245,0.6)'; ctx.lineWidth=Math.max(1,sz*0.02);
+        ctx.beginPath(); ctx.moveTo(-sz*0.4,sz*0.18); ctx.lineTo(sz*0.4,sz*0.18); ctx.stroke(); }
+      ctx.restore();
     }
-    ctx.restore();
-    // ── giant squid ──
-    ctx.save(); ctx.translate(X,Y); if(dir<0) ctx.scale(-1,1);
-    const body = stunned ? '#7d8794' : '#dc5a82';
-    const edge = stunned ? '#454e59' : '#7a2440';
-    // tentacles trailing behind
-    ctx.strokeStyle=stunned?'#6a7480':'#c0436a'; ctx.lineWidth=Math.max(2,sz*0.05); ctx.lineCap='round';
-    for(let i=-2;i<=2;i++){
-      const wig=stunned?0:Math.sin(T*6+i)*sz*0.10;
-      ctx.beginPath(); ctx.moveTo(-sz*0.05,i*sz*0.05);
-      ctx.quadraticCurveTo(-sz*0.30,i*sz*0.07+wig,-sz*0.50,i*sz*0.10+wig); ctx.stroke();
-    }
-    // mantle
-    ctx.fillStyle=body; ctx.strokeStyle=edge; ctx.lineWidth=Math.max(1,sz*0.03);
-    ctx.beginPath(); ctx.moveTo(sz*0.44,0);
-    ctx.quadraticCurveTo(sz*0.06,-sz*0.23,-sz*0.10,-sz*0.12);
-    ctx.quadraticCurveTo(-sz*0.17,0,-sz*0.10,sz*0.12);
-    ctx.quadraticCurveTo(sz*0.06,sz*0.23,sz*0.44,0);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    // eye (closed/dizzy when stunned)
-    ctx.fillStyle='#160d1c'; ctx.beginPath(); ctx.arc(sz*0.05,-sz*0.02,sz*0.08,0,Math.PI*2); ctx.fill();
-    if(!stunned){ ctx.fillStyle='#ffd25a'; ctx.beginPath(); ctx.arc(sz*0.07,-sz*0.04,sz*0.032,0,Math.PI*2); ctx.fill(); }
-    ctx.restore();
-    if(stunned){ ctx.font=`${Math.floor(sz*0.3)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('💫',X,Y-sz*0.4); }
+    if(stunned){ ctx.font=`${Math.floor(sz*0.3)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('💫',X,Y-sz*0.42); }
   }
 }
 function drawBubble(b){
@@ -803,9 +835,10 @@ function render(){
   // lane separators
   ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
   for(let r=1;r<CONFIG.ROWS;r++){ ctx.beginPath(); ctx.moveTo(0,rowY(r)); ctx.lineTo(w,rowY(r)); ctx.stroke(); }
-  // giant squid (the enemy) swirling in whirlpool currents
+  // habitat predator (squid / shark / polar bear) in whirlpool/lane currents
+  const enemyType=(state.habitat&&state.habitat.enemy)||'squid';
   for(const lane of state.lanes){ if(!lane.active) continue;
-    for(const b of lane.blocks) drawSquid(b.x,rowY(lane.row),lane.dir,b.stun>0);
+    for(const b of lane.blocks) drawEnemy(enemyType,b.x,rowY(lane.row),lane.dir,b.stun>0);
   }
   // air bubbles
   for(const b of state.bubbles){ if(!b.taken) drawBubble(b); }
