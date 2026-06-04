@@ -398,13 +398,22 @@ function levelCfg(L){
 
 function setupLevel(L){
   const cfg = levelCfg(L); state.cfg = cfg; state.lanes = [];
-  for(let r=1;r<=CONFIG.ROWS-2;r++){
-    const idx = r-1;
-    if(idx >= cfg.active){ state.lanes.push({row:r,active:false,blocks:[],dir:1,speed:0}); continue; }
-    const dir = (r%2===0)?1:-1;
-    const speed = cfg.speed * (1 - CONFIG.laneJitter/2 + Math.random()*CONFIG.laneJitter);
-    const k = cfg.blocks, spacing = CONFIG.COLS/k, start = Math.random()*spacing, blocks=[];
-    for(let i=0;i<k;i++) blocks.push((start + i*spacing) % CONFIG.COLS);
+  const laneCount = CONFIG.ROWS-2;            // rows 1 .. ROWS-2 are lanes
+  // spread the danger lanes evenly so there are calm "rest" rows between them (a fair Frogger median)
+  const activeSet = new Set();
+  const a = Math.min(cfg.active, laneCount);
+  if(a>=laneCount){ for(let i=0;i<laneCount;i++) activeSet.add(i); }
+  else {
+    for(let i=0;i<a;i++) activeSet.add(Math.round(i*(laneCount-1)/Math.max(1,a-1)));
+    let r=0; while(activeSet.size<a){ if(!activeSet.has(r)) activeSet.add(r); r++; }
+  }
+  for(let r=1;r<=laneCount;r++){
+    const idx=r-1;
+    if(!activeSet.has(idx)){ state.lanes.push({row:r,active:false,blocks:[],dir:1,speed:0}); continue; }
+    const dir=(idx%2===0)?1:-1;
+    const speed=cfg.speed*(1-CONFIG.laneJitter/2+Math.random()*CONFIG.laneJitter);
+    const k=cfg.blocks, spacing=CONFIG.COLS/k, start=Math.random()*spacing, blocks=[];
+    for(let i=0;i<k;i++) blocks.push((start+i*spacing)%CONFIG.COLS);
     state.lanes.push({row:r,active:true,blocks,dir,speed});
   }
   state.chest = {row:CONFIG.ROWS-1, col:Math.floor(Math.random()*CONFIG.COLS)};
