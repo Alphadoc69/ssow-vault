@@ -145,12 +145,16 @@
   .pearl-count b{color:#fff; font-size:0.85rem;}
   .shop-sub{font-size:0.5rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--dim);}
   .shop{display:grid; grid-template-columns:1fr 1fr; gap:6px;}
-  .shop-item{display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 6px; padding:6px 8px; text-align:left;
+  .shop-item{position:relative; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 6px; padding:6px 8px; text-align:left;
     border:1px solid rgba(120,235,200,0.25); border-radius:6px; background:rgba(0,0,0,0.2); color:#dfeee9; cursor:pointer;}
   .shop-item .shop-name{font-size:0.62rem; font-weight:600; color:#eafff6;}
   .shop-item .shop-cost{font-size:0.58rem; color:#9fe7c8; margin-left:auto;}
   .shop-item .shop-desc{flex:0 0 100%; font-size:0.5rem; color:var(--dim); line-height:1.3;}
-  .shop-item.on{border-color:#6fe0b0; background:rgba(111,224,176,0.16); box-shadow:0 0 0 1px rgba(111,224,176,0.4);}
+  .shop-eq{display:none; flex:0 0 100%; margin-top:3px; font-size:0.5rem; font-weight:700; letter-spacing:0.08em; color:#0a1410;
+    background:#6fe0b0; border-radius:4px; padding:2px 6px; align-self:flex-start; width:fit-content;}
+  .shop-item.on{border-color:#6fe0b0; background:rgba(111,224,176,0.22); box-shadow:0 0 0 2px rgba(111,224,176,0.55);}
+  .shop-item.on .shop-name{color:#bfffe0;}
+  .shop-item.on .shop-eq{display:inline-block;}
   .shop-item.off{opacity:0.4;}
   #changeBtn{flex:0 0 auto; background:transparent; border:1px solid rgba(91,200,232,0.3); color:var(--cyan-lt);
     font-family:var(--font-mono); font-size:0.55rem; letter-spacing:0.1em; text-transform:uppercase; padding:7px 10px; border-radius:5px; cursor:pointer;}
@@ -252,7 +256,7 @@
         <div class="wealthy-box" id="wealthyBox" style="display:none">
           <div class="wealthy-head"><span id="wealthyName">🐚 Wealthy Whales</span><span class="pearl-count"><span class="pearl-ico"></span> <b id="pearlCount">0</b></span></div>
           <div class="orca-thumbs" id="wealthyThumbs"></div>
-          <div class="shop-sub">spend pearls — upgrades for your next dive · <span id="shopTotal">tap upgrades to equip</span></div>
+          <div class="shop-sub">tap to equip — stack as many as you can afford · <span id="shopTotal">tap upgrades to equip</span></div>
           <div class="shop" id="shop"></div>
         </div>
       </div>
@@ -561,6 +565,24 @@ function sfxDolphin(){ if(!AC)return; const t=AC.currentTime; [900,1300,1700,140
 function sfxBubble(){ if(!AC)return; const t=AC.currentTime; voice(430,1000,t,0.12,'sine',0.13,3400); voice(1200,1700,t+0.004,0.05,'sine',0.05,5200); }  // cute pop
 function sfxOver(){ if(!AC)return; const t=AC.currentTime; [392,294,196].forEach((f,i)=>voice(f,f*0.95,t+i*0.14,0.34,'sine',0.14,1800)); }  // gentle wah-down
 function sfxInk(){ if(!AC)return; const t=AC.currentTime; voice(260,90,t,0.2,'sine',0.13,700); noise(t,0.14,0.10,1100); }  // wet splorp
+function sfxAlarm(){ if(!AC)return; const t=AC.currentTime;   // klaxon before the boss
+  for(let i=0;i<3;i++){ voice(440,440,t+i*0.22,0.12,'square',0.12,1600); voice(300,300,t+i*0.22+0.11,0.11,'square',0.10,1600); } }
+
+// ── boss music: a looping ominous bass + arpeggio, generated live ──
+let bossMusicTimer=null, bossStep=0;
+const BOSS_BASS=[55.0,55.0,82.4,55.0, 49.0,49.0,73.4,49.0];   // low Am → Gm pulse
+const BOSS_ARP =[440,523,659,587, 392,523,622,587];
+function startBossMusic(){ if(!AC || bossMusicTimer) return; bossStep=0;
+  const stepMs=190;
+  bossMusicTimer=setInterval(()=>{
+    if(!AC){ return; } const t=AC.currentTime+0.02; const s=bossStep%8;
+    voice(BOSS_BASS[s], BOSS_BASS[s], t, 0.18, 'triangle', 0.085, 520);   // bass pulse
+    if(s%2===0) voice(BOSS_ARP[s], BOSS_ARP[s], t, 0.16, 'sine', 0.035, 2000);  // sparse arp
+    if(s===0) voice(110,82,t,0.34,'sine',0.06,400);                       // downbeat swell
+    bossStep++;
+  }, stepMs);
+}
+function stopBossMusic(){ if(bossMusicTimer){ clearInterval(bossMusicTimer); bossMusicTimer=null; } }
 
 // ── difficulty ──
 const clampf=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -842,6 +864,7 @@ function setupBoss(L){
   state.inks=[]; state.inkBalls=[]; state.inkCd=3.5;
   state.ping=null; state.reveal=0; state.stingFlash=0;
   state.habName='THE KRAKEN'; state.bannerT=0;
+  sfxAlarm(); startBossMusic();
 }
 function krakenTouch(){
   if(state.invuln>0) return;
@@ -858,7 +881,7 @@ function krakenTouch(){
   if(state.o2<=0){ state.o2=0; gameOver(); }
 }
 function bossDefeated(){
-  state.phase='over'; sfxLevel();
+  state.phase='over'; sfxLevel(); stopBossMusic();
   const num = state.boss ? state.boss.num : 1;
   // loot: gems for everyone, pearls for Wealthy Whale holders
   const gemCount = 2 + num;                          // a fat pile of gems
@@ -1136,7 +1159,7 @@ function levelComplete(){
   }, 1150);
 }
 function win(){
-  state.phase='over'; sfxLevel();
+  state.phase='over'; sfxLevel(); stopBossMusic();
   const got=state.runPearls;
   bankPearls();
   if(state.level>state.best){ state.best=state.level; saveBest(); }
@@ -1154,7 +1177,7 @@ function gameOver(){
     state.whale.row=0; state.whale.col=Math.floor(CONFIG.COLS/2);
     return;
   }
-  state.phase='over'; sfxOver();
+  state.phase='over'; sfxOver(); stopBossMusic();
   bankPearls();
   if(state.level>state.best){ state.best=state.level; saveBest(); }
   const richTrail = state.gems.slice(-14).map(g=>g.e).join(' ');
@@ -1485,6 +1508,13 @@ function drawPearl(p){
   ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill(); ctx.stroke();
   ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(-r*0.32,-r*0.32,r*0.22,0,Math.PI*2); ctx.fill();
   ctx.restore();
+}
+function drawLoadout(y){
+  const ic=[];
+  if(state.upg){ if(state.upg.slow)ic.push('🐢'); if(state.upg.bubbles)ic.push('🫧'); if(state.upg.revive&&!state.revived)ic.push('❤️'); }
+  if(!ic.length) return;
+  ctx.save(); ctx.font=`${Math.max(12,Math.floor(CW*0.3))}px serif`; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.globalAlpha=0.95; ctx.fillText(ic.join(' '), 8, y); ctx.restore();
 }
 function drawBubble(b){
   const T=state.t||0;
@@ -1837,6 +1867,7 @@ function renderBoss(w,h){
   }
   // sting / impact flash
   if(state.stingFlash>0){ ctx.fillStyle=`rgba(150,80,220,${(0.2*state.stingFlash).toFixed(3)})`; ctx.fillRect(0,0,w,h); }
+  if(state.phase==='play' && b && !b.intro) drawLoadout(8);
   // boss HP bar
   if(b){
     const bw=w*0.7, bx=(w-bw)/2, by=8, bh=Math.max(7,CH*0.12);
@@ -1857,6 +1888,16 @@ function renderBoss(w,h){
   // intro card — clear, readable, paused until the player moves
   if(b && b.intro){
     ctx.fillStyle='rgba(4,2,14,0.78)'; ctx.fillRect(0,0,w,h);
+    // flashing DANGER strip across the top
+    const dp=0.5+0.5*Math.sin((state.t||0)*9);
+    const bh=Math.max(30,h*0.065);
+    ctx.fillStyle=`rgba(170,18,18,${(0.30+0.40*dp).toFixed(3)})`; ctx.fillRect(0,0,w,bh);
+    ctx.strokeStyle=`rgba(255,90,90,${(0.5+0.5*dp).toFixed(3)})`; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,bh); ctx.lineTo(w,bh); ctx.stroke();
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle=`rgba(255,225,225,${(0.7+0.3*dp).toFixed(3)})`;
+    ctx.font=`${Math.min(24,w*0.062)}px 'Bebas Neue',sans-serif`;
+    ctx.fillText('⚠   DANGER · KRAKEN AHEAD   ⚠', w/2, bh/2);
+    ctx.textBaseline='alphabetic';
     const pw=Math.min(w*0.86, 460), ph=Math.min(h*0.7, 300), px=(w-pw)/2, py=(h-ph)/2;
     ctx.fillStyle='rgba(20,10,40,0.96)'; ctx.strokeStyle='rgba(176,107,255,0.7)'; ctx.lineWidth=2;
     roundRect(px,py,pw,ph,16); ctx.fill(); ctx.stroke();
@@ -1981,6 +2022,7 @@ function render(){
     ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle='rgba(220,245,255,0.45)';
     ctx.fillText(state.habitat.name, 8, 24);
   }
+  if(state.phase==='play') drawLoadout(40);
   // portal hint
   if(state.hintT>0){
     state.hintT=Math.max(0,state.hintT-0.016);
@@ -2143,7 +2185,7 @@ function selectWhale(url,id,tier,lit){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v39`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v40`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
@@ -2275,7 +2317,7 @@ function buildShop(){
   const shop=document.getElementById('shop'); if(!shop) return; shop.innerHTML='';
   Object.entries(CONFIG.UPGRADES).forEach(([key,u])=>{
     const b=document.createElement('button'); b.className='shop-item'+(shopSel.has(key)?' on':'');
-    b.innerHTML=`<span class="shop-name">${u.name}</span><span class="shop-cost"><span class="pearl-ico"></span> ${u.cost}</span><span class="shop-desc">${u.desc}</span>`;
+    b.innerHTML=`<span class="shop-name">${u.name}</span><span class="shop-cost"><span class="pearl-ico"></span> ${u.cost}</span><span class="shop-desc">${u.desc}</span><span class="shop-eq">✓ EQUIPPED</span>`;
     b.addEventListener('click',()=>toggleUpgrade(key));
     shop.appendChild(b);
   });
@@ -2290,7 +2332,7 @@ function toggleUpgrade(key){
 function flashVault(){ const el=document.getElementById('pearlCount'); if(!el)return; el.style.color='#ff6b6b'; setTimeout(()=>el.style.color='',350); }
 function updateVaultUI(){
   const pc=document.getElementById('pearlCount'); if(pc) pc.textContent=state.pearls;
-  const tot=document.getElementById('shopTotal'); if(tot) tot.textContent= shopSel.size? `equipping ${selectedTotal()} pearls`:'tap upgrades to equip';
+  const tot=document.getElementById('shopTotal'); if(tot) tot.textContent= shopSel.size? `${shopSel.size} equipped · ${selectedTotal()} pearls on Dive In`:'tap upgrades to equip';
   document.querySelectorAll('.shop-item').forEach((b,i)=>{
     const key=Object.keys(CONFIG.UPGRADES)[i]; const cost=CONFIG.UPGRADES[key].cost;
     const affordable = shopSel.has(key) || (selectedTotal()+cost<=state.pearls);
@@ -2311,6 +2353,7 @@ function commitUpgrades(){
 function diveStart(){ commitUpgrades(); startRun(); }
 function quitToMenu(){
   if(state.phase==='idle') return;
+  stopBossMusic();
   bankPearls();                                   // keep pearls collected so far
   if(state.level>state.best){ state.best=state.level; saveBest(); document.getElementById('bestStart').textContent=state.best; }
   state.phase='idle';
