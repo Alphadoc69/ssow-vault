@@ -358,8 +358,8 @@ const CONFIG = {
   bossWhirlSpawn: 0.9,// seconds between whirlpool appearances
   whirlSelfO2: 9,     // oxygen YOU lose if caught in a whirlpool
   bossSharkO2: 12,    // oxygen lost to a shark bite during a boss fight
-  bossBubbleMax: 5,   // max air bubbles present at once in a boss fight
-  bossBubbleSpawn: 1.6,// seconds between new air bubbles popping up
+  bossBubbleMax: 2,   // max air bubbles present at once in a boss fight
+  bossBubbleSpawn: 3.6,// seconds between new air bubbles popping up
   bossTouchO2: 16,    // oxygen lost if the Kraken catches you
   boltO2: 16,         // oxygen lost by a lightning strike
   bossDrain: 1.6,     // oxygen drain during a boss fight (cells/sec equiv)
@@ -656,7 +656,7 @@ function setupBoss(L){
     state.bossSharks.push({row, x:Math.random()*CONFIG.COLS, dir, speed:0.9+num*0.12, face:dir});
   }
   // air pockets to survive on — more on the tougher Krakens, spread across the arena
-  const nBubbles = 2 + Math.floor(num*0.8);   // boss 1 → 2 … boss 5 → 6
+  const nBubbles = 1 + Math.floor(num*0.4);   // boss 1 → 1 … boss 5 → 3
   const usedB = new Set(state.rocks.map(k=>k.row+'-'+k.col));
   for(let i=0;i<nBubbles;i++){
     let row,col,tries=0;
@@ -1674,7 +1674,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v16`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v17`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
