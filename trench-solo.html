@@ -390,7 +390,8 @@ const CONFIG = {
   laneJitter: 0.55,   // per-lane speed variation (higher = more varied)
   fastLaneChance: 0.25, // chance a lane is a fast "rip current"
   fastLaneMult: 1.5,
-  holdRepeat: 90,     // ms between hops when a pad button is held (lower = faster)
+  holdRepeat: 120,    // ms between hops when a pad button is held (lower = faster)
+  mobileSpeed: 0.78,  // on phones, everything moves at this fraction of desktop speed
   bubbleO2: 16,       // oxygen restored per air bubble
   bubblesBase: 2,     // air bubbles per level
   invuln: 0.5,        // seconds of safety after a squid hit (no chain hits)
@@ -454,6 +455,9 @@ const CONFIG = {
 const cv = document.getElementById('game');
 const ctx = cv.getContext('2d');
 let CW = 60, CH = 60; // cell pixel size (set on resize)
+// phones/touch screens run a bit slower so you can actually thread the gaps
+const IS_MOBILE = (window.matchMedia && window.matchMedia('(pointer:coarse)').matches) || ('ontouchstart' in window) || window.innerWidth < 620;
+const SPD = IS_MOBILE ? CONFIG.mobileSpeed : 1;
 
 const state = {
   phase: 'idle',     // idle | play | clear | over
@@ -624,7 +628,7 @@ function setupLevel(L){
     let etype = Array.isArray(hab.enemy) ? hab.enemy[Math.floor(Math.random()*hab.enemy.length)] : hab.enemy;
     const ep = ENEMY[etype] || ENEMY.squid;
     const fast = !isBottom && Math.random() < CONFIG.fastLaneChance;
-    let speed=cfg.speed*(1-CONFIG.laneJitter/2+Math.random()*CONFIG.laneJitter)*ep.spd;
+    let speed=cfg.speed*(1-CONFIG.laneJitter/2+Math.random()*CONFIG.laneJitter)*ep.spd*SPD;
     if(fast) speed*=CONFIG.fastLaneMult;
     const patrol = !isBottom && L>=12 && !ep.chase && Math.random()<CONFIG.patrolChance;
     // vary density; the bottom lane is capped + evenly spaced so there's always a clean gap to the chest
@@ -740,7 +744,7 @@ function setupBoss(L){
   state.boss={
     hp, maxHp:hp, num,
     x:(CONFIG.COLS-1)/2, y:1.1,
-    speed:0.85+num*0.14, face:1,
+    speed:(0.85+num*0.14)*SPD, face:1,
     hitCd:0, stun:0, boltCd:2.2, bolt:null,
     intro:true, introT:9                            // fight is paused on a readable intro card
   };
@@ -760,7 +764,7 @@ function setupBoss(L){
   for(let i=0;i<nSharks;i++){
     const row=2+Math.floor(Math.random()*(CONFIG.ROWS-3));
     const dir=Math.random()<0.5?1:-1;
-    state.bossSharks.push({row, x:Math.random()*CONFIG.COLS, dir, speed:0.9+num*0.12, face:dir});
+    state.bossSharks.push({row, x:Math.random()*CONFIG.COLS, dir, speed:(0.9+num*0.12)*SPD, face:dir});
   }
   // air pockets to survive on — more on the tougher Krakens, spread across the arena
   const nBubbles = 1 + Math.floor(num*0.4);   // boss 1 → 1 … boss 5 → 3
@@ -915,7 +919,7 @@ function updateBoss(dt){
     if(mq.stun>0){ mq.stun=Math.max(0,mq.stun-dt); }
     else {
       const dx=state.whale.col-mq.x, dy=state.whale.row-mq.y, d=Math.hypot(dx,dy)||1;
-      const spd=CONFIG.bossMiniSpeed + b.num*0.18;
+      const spd=(CONFIG.bossMiniSpeed + b.num*0.18)*SPD;
       mq.x += (dx/d)*spd*dt;
       mq.y += (dy/d)*spd*dt;
       mq.face = dx>=0?1:-1;
@@ -1919,7 +1923,7 @@ let tsx=0,tsy=0;
 cv.addEventListener('touchstart',e=>{ const t=e.changedTouches[0]; tsx=t.clientX; tsy=t.clientY; },{passive:true});
 cv.addEventListener('touchmove',e=>{
   const t=e.changedTouches[0]; const dx=t.clientX-tsx, dy=t.clientY-tsy;
-  const TH=Math.max(20, CW*0.55);
+  const TH=Math.max(15, CW*0.4);
   if(Math.abs(dx)>=TH || Math.abs(dy)>=TH){
     if(Math.abs(dx)>Math.abs(dy)) move(...DIRS[dx>0?'right':'left']);
     else move(...DIRS[dy>0?'down':'up']);
@@ -1994,7 +1998,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v32`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v33`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
