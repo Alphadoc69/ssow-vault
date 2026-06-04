@@ -31,6 +31,10 @@
       radial-gradient(ellipse 60% 40% at 0% 80%, rgba(0,60,120,0.22) 0%, transparent 50%);
   }
   .wrap{position:relative; z-index:1; width:100%; max-width:520px; padding:0 16px; display:flex; flex-direction:column; align-items:center;}
+  /* during a dive: hide the page chrome and center the board + pad as the focus */
+  body.playing header, body.playing footer{display:none;}
+  body.playing .wrap{min-height:100vh; min-height:100dvh; justify-content:center;}
+  body.playing .hint{margin:0.3rem 0 0;}
 
   header{text-align:center; padding:1.6rem 0 0.6rem;}
   .back-link{display:inline-flex; gap:7px; font-size:0.55rem; letter-spacing:0.2em; color:var(--dim);
@@ -391,7 +395,7 @@ const CONFIG = {
   fastLaneChance: 0.25, // chance a lane is a fast "rip current"
   fastLaneMult: 1.5,
   holdRepeat: 120,    // ms between hops when a pad button is held (lower = faster)
-  mobileSpeed: 0.88,  // on phones, everything moves at this fraction of desktop speed
+  mobileSpeed: 0.93,  // on phones, everything moves at this fraction of desktop speed
   swipeRepeat: 130,   // min ms between hops when drag-steering (stops the whale zooming)
   bubbleO2: 16,       // oxygen restored per air bubble
   bubblesBase: 2,     // air bubbles per level
@@ -1890,6 +1894,8 @@ function loop(now){
   render();
   syncHUD();
   const qb=document.getElementById('quitBtn'); if(qb) qb.style.display=(state.phase==='play'||state.phase==='clear')?'block':'none';
+  const playing = state.phase!=='idle';
+  if(playing!==state._wasPlaying){ document.body.classList.toggle('playing', playing); state._wasPlaying=playing; resize(); }
   requestAnimationFrame(loop);
 }
 
@@ -2004,7 +2010,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v35`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v36`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
