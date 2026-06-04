@@ -68,6 +68,12 @@
     overflow-y:auto; scrollbar-width:none;}
   .overlay::-webkit-scrollbar{ width:0; height:0; }
   .overlay.hidden{display:none;}
+  #overlayStart{justify-content:flex-start; padding-top:14px;}
+  .quit-btn{position:absolute; top:8px; right:8px; z-index:6; font-family:'DM Mono',monospace;
+    font-size:0.6rem; letter-spacing:0.1em; color:rgba(220,245,255,0.85); cursor:pointer;
+    background:rgba(2,10,22,0.6); border:1px solid rgba(91,200,232,0.35); border-radius:6px; padding:5px 9px;
+    -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px);}
+  .quit-btn:active{background:rgba(91,200,232,0.25);}
   .overlay h2{font-family:var(--font-display); font-size:2.2rem; letter-spacing:0.1em; color:#fff; line-height:1; margin-bottom:0.5rem;}
   .overlay h2.cyan{color:var(--cyan-lt);}
   .overlay p{font-size:0.7rem; letter-spacing:0.08em; line-height:1.7; color:var(--text); max-width:300px; margin-bottom:0.4rem;}
@@ -105,8 +111,10 @@
     border:1px solid rgba(120,220,255,0.32); border-radius:7px; background:rgba(40,90,120,0.18); text-align:left;}
   #orcaName{font-family:var(--font-display); font-size:0.95rem; letter-spacing:0.05em; color:#bfefff;}
   .orca-thumbs{display:flex; gap:5px; flex-wrap:wrap; justify-content:center;}
-  .orca-thumb{width:34px; height:34px; border-radius:6px; object-fit:cover; flex:0 0 auto;
+  .orca-thumb{width:30px; height:30px; border-radius:6px; object-fit:cover; flex:0 0 auto;
     background:#08202e; border:1px solid rgba(120,220,255,0.35);}
+  .pearl-ico{display:inline-block; width:11px; height:11px; border-radius:50%; vertical-align:-1px;
+    background:radial-gradient(circle at 35% 30%, #ffffff, #d6dEEa 65%, #aab6c8); box-shadow:0 0 3px rgba(200,230,255,0.7);}
   .wealthy-box{display:flex; flex-direction:column; gap:7px; margin-top:8px; padding:9px;
     border:1px solid rgba(120,235,200,0.32); border-radius:7px; background:rgba(30,80,70,0.16); text-align:left;}
   .wealthy-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
@@ -153,17 +161,17 @@
   .g-row .g-x{color:var(--dim); text-align:right; flex:0 0 auto; max-width:60%;}
 
   /* CONTROLS */
-  .pad{display:grid; grid-template-columns:repeat(3,58px); grid-template-rows:repeat(3,58px);
-    gap:8px; margin:1.1rem auto 0.4rem; justify-content:center; touch-action:none;}
-  .pad button{width:58px; height:58px; border:1px solid rgba(91,200,232,0.22); background:rgba(91,200,232,0.05);
-    color:var(--cyan-lt); font-size:1.3rem; border-radius:11px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  .pad{display:grid; grid-template-columns:repeat(3,46px); grid-template-rows:repeat(3,46px);
+    gap:7px; margin:0.7rem auto 0.3rem; justify-content:center; touch-action:none;}
+  .pad button{width:46px; height:46px; border:1px solid rgba(91,200,232,0.22); background:rgba(91,200,232,0.05);
+    color:var(--cyan-lt); font-size:1.05rem; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center;
     transition:background 0.1s, transform 0.06s;}
   .pad button:active{background:rgba(91,200,232,0.22); transform:scale(0.93);}
   .pad .up{grid-column:2; grid-row:1;} .pad .left{grid-column:1; grid-row:2;}
   .pad .right{grid-column:3; grid-row:2;} .pad .down{grid-column:2; grid-row:3;}
-  .pad .mid{grid-column:2; grid-row:2; width:58px; height:58px; display:flex; align-items:center; justify-content:center;
-    color:var(--dim); font-size:0.6rem; letter-spacing:0.12em;}
-  .hint{font-size:0.55rem; letter-spacing:0.16em; color:var(--dim); text-transform:uppercase; text-align:center; margin:0.3rem 0 1.5rem;}
+  .pad .mid{grid-column:2; grid-row:2; width:46px; height:46px; display:flex; align-items:center; justify-content:center;
+    color:var(--dim); font-size:0.5rem; letter-spacing:0.1em;}
+  .hint{font-size:0.5rem; letter-spacing:0.14em; color:var(--dim); text-transform:uppercase; text-align:center; margin:0.25rem 0 0.6rem;}
 
   footer{font-size:0.5rem; letter-spacing:0.18em; color:rgba(255,255,255,0.18); text-transform:uppercase; padding:0.5rem 0 2rem; text-align:center;}
 
@@ -197,6 +205,7 @@
   <div class="stage">
     <canvas id="game"></canvas>
     <div class="vignette" id="vignette"></div>
+    <button id="quitBtn" class="quit-btn" style="display:none">✕ Quit</button>
 
     <div class="overlay" id="overlayStart">
       <h2 class="cyan">SOLO DIVE</h2>
@@ -219,7 +228,7 @@
           <div class="orca-thumbs" id="orcaThumbs"></div>
         </div>
         <div class="wealthy-box" id="wealthyBox" style="display:none">
-          <div class="wealthy-head"><span id="wealthyName">🐚 Wealthy Whales</span><span class="pearl-count">🦪 <b id="pearlCount">0</b></span></div>
+          <div class="wealthy-head"><span id="wealthyName">🐚 Wealthy Whales</span><span class="pearl-count"><span class="pearl-ico"></span> <b id="pearlCount">0</b></span></div>
           <div class="orca-thumbs" id="wealthyThumbs"></div>
           <div class="shop-sub">spend pearls — upgrades for your next dive · <span id="shopTotal">tap upgrades to equip</span></div>
           <div class="shop" id="shop"></div>
@@ -1028,7 +1037,7 @@ function gameOver(){
   const richTrail = state.gems.slice(-14).map(g=>g.e).join(' ');
   const diver = state.skinId ? `${state.tier.name} #${state.skinId}` : state.tier.name;
   document.getElementById('overTitle').textContent='YOU SURFACED';
-  document.getElementById('overRun').textContent = `${diver} · reached Level ${state.level} · Score ${state.score}${state.runPearls?` · 🦪 ${state.runPearls} pearls`:''}`;
+  document.getElementById('overRun').textContent = `${diver} · reached Level ${state.level} · Score ${state.score}${state.runPearls?` · ${state.runPearls} pearls`:''}`;
   document.getElementById('overGems').textContent = richTrail || '🐚';
   document.getElementById('overBest').textContent = `Best dive: Lv.${state.best}`;
   document.getElementById('overlayOver').classList.remove('hidden');
@@ -1784,17 +1793,23 @@ function render(){
     ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle=state.tier.color;
     ctx.fillText(state.tier.name + (state.shieldReady?'  🛡':''), 8, 7);
   }
-  // pearls collected this run (top-center)
+  // pearls collected this run (top-center): a real pearl + the count
   if(state.hasWealthy && state.phase==='play'){
+    const label=String(state.runPearls);
     ctx.font=`600 ${Math.max(9,Math.floor(CW*0.2))}px 'DM Mono',monospace`;
-    ctx.textAlign='center'; ctx.textBaseline='top'; ctx.fillStyle='#bfffe6';
-    ctx.fillText('🦪 '+state.runPearls, w/2, 7);
+    ctx.textAlign='left'; ctx.textBaseline='middle';
+    const pr=Math.max(4,CW*0.07), gap=5, tw=ctx.measureText(label).width;
+    const startX=w/2-(pr*2+gap+tw)/2, cy=7+pr;
+    const g=ctx.createRadialGradient(startX+pr*0.65,cy-pr*0.35,1,startX+pr,cy,pr);
+    g.addColorStop(0,'#ffffff'); g.addColorStop(0.7,'#d6deea'); g.addColorStop(1,'#aab6c8');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(startX+pr,cy,pr,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#bfffe6'; ctx.fillText(label, startX+pr*2+gap, cy);
   }
-  // habitat label (top-right, subtle)
+  // habitat label (top-left, under the diver tag — keeps the top-right clear for Quit)
   if(state.phase!=='idle' && state.habitat){
-    ctx.font=`600 ${Math.max(8,Math.floor(CW*0.17))}px 'DM Mono',monospace`;
-    ctx.textAlign='right'; ctx.textBaseline='top'; ctx.fillStyle='rgba(220,245,255,0.5)';
-    ctx.fillText(state.habitat.name, w-8, 7);
+    ctx.font=`600 ${Math.max(8,Math.floor(CW*0.16))}px 'DM Mono',monospace`;
+    ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle='rgba(220,245,255,0.45)';
+    ctx.fillText(state.habitat.name, 8, 24);
   }
   // portal hint
   if(state.hintT>0){
@@ -1835,6 +1850,7 @@ function loop(now){
   if(state.phase==='play') update(dt);
   render();
   syncHUD();
+  const qb=document.getElementById('quitBtn'); if(qb) qb.style.display=(state.phase==='play'||state.phase==='clear')?'block':'none';
   requestAnimationFrame(loop);
 }
 
@@ -1844,7 +1860,7 @@ function resize(){
   const availW=Math.min(stage.clientWidth, 440);
   const header=document.querySelector('header');
   const hud=document.querySelector('.hud');
-  const reserved=(header?header.offsetHeight:90)+(hud?hud.offsetHeight:48)+232; // pad+hint+margins
+  const reserved=(header?header.offsetHeight:90)+(hud?hud.offsetHeight:48)+165; // smaller pad+hint+margins
   const availH=Math.max(240, window.innerHeight - reserved);
   let cell=Math.min(availW/CONFIG.COLS, availH/CONFIG.ROWS);
   cell=Math.max(30, cell);
@@ -1947,7 +1963,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v29`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v31`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
@@ -2077,7 +2093,7 @@ function buildShop(){
   const shop=document.getElementById('shop'); if(!shop) return; shop.innerHTML='';
   Object.entries(CONFIG.UPGRADES).forEach(([key,u])=>{
     const b=document.createElement('button'); b.className='shop-item'+(shopSel.has(key)?' on':'');
-    b.innerHTML=`<span class="shop-name">${u.name}</span><span class="shop-cost">🦪 ${u.cost}</span><span class="shop-desc">${u.desc}</span>`;
+    b.innerHTML=`<span class="shop-name">${u.name}</span><span class="shop-cost"><span class="pearl-ico"></span> ${u.cost}</span><span class="shop-desc">${u.desc}</span>`;
     b.addEventListener('click',()=>toggleUpgrade(key));
     shop.appendChild(b);
   });
@@ -2092,7 +2108,7 @@ function toggleUpgrade(key){
 function flashVault(){ const el=document.getElementById('pearlCount'); if(!el)return; el.style.color='#ff6b6b'; setTimeout(()=>el.style.color='',350); }
 function updateVaultUI(){
   const pc=document.getElementById('pearlCount'); if(pc) pc.textContent=state.pearls;
-  const tot=document.getElementById('shopTotal'); if(tot) tot.textContent= shopSel.size? `equipping ${selectedTotal()} 🦪`:'tap upgrades to equip';
+  const tot=document.getElementById('shopTotal'); if(tot) tot.textContent= shopSel.size? `equipping ${selectedTotal()} pearls`:'tap upgrades to equip';
   document.querySelectorAll('.shop-item').forEach((b,i)=>{
     const key=Object.keys(CONFIG.UPGRADES)[i]; const cost=CONFIG.UPGRADES[key].cost;
     const affordable = shopSel.has(key) || (selectedTotal()+cost<=state.pearls);
@@ -2111,6 +2127,16 @@ function commitUpgrades(){
     .then(r=>r.json()).then(d=>{ if(typeof d.pearls==='number'){ state.pearls=d.pearls; updateVaultUI(); } }).catch(()=>{}); }
 }
 function diveStart(){ commitUpgrades(); startRun(); }
+function quitToMenu(){
+  if(state.phase==='idle') return;
+  bankPearls();                                   // keep pearls collected so far
+  if(state.level>state.best){ state.best=state.level; saveBest(); document.getElementById('bestStart').textContent=state.best; }
+  state.phase='idle';
+  document.getElementById('overlayOver').classList.add('hidden');
+  document.getElementById('overlayStart').classList.remove('hidden');
+  const qb=document.getElementById('quitBtn'); if(qb) qb.style.display='none';
+}
+document.getElementById('quitBtn').addEventListener('click',quitToMenu);
 
 // restore last wallet + chosen whale + Orca ally
 try{
