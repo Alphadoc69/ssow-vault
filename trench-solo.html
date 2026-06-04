@@ -263,7 +263,7 @@
     </div>
     <div class="g-sec">
       <h3>🦑 Kraken Boss (every 20 levels)</h3>
-      <p>At levels 20, 40, 60, 80 and 100 a giant <b>Kraken</b> blocks the trench. It chases you and hurls <b>lightning</b> down a column — dodge out of the lit lane before it strikes. Whirlpools flicker in and out across the arena: <b>lead the Kraken onto one</b> for big damage (but they'll suck <i>you</i> in too, so don't linger on them). And let the <b>dolphin allies</b> ram it — each hit freezes the Kraken for 3 seconds. Drain its health bar to break through.</p>
+      <p>At levels 20, 40, 60, 80 and 100 a giant <b>Kraken</b> blocks the trench. It chases you and hurls <b>lightning</b> down columns — dodge to a dark column before it strikes. Whirlpools flicker in and out across the arena: <b>lead the Kraken onto one</b> for big damage (but they'll suck <i>you</i> in too, so don't linger). And let the <b>dolphin allies</b> ram it — each hit briefly freezes the Kraken. Drain its health bar to break through. Deeper Krakens get nastier: more lightning columns at once, rock obstacles, and roaming sharks.</p>
     </div>
     <div class="g-sec">
       <h3>💎 The Treasure</h3>
@@ -351,10 +351,11 @@ const CONFIG = {
   bossHp: 110,        // base Kraken health (grows with each boss)
   bossWhirlDmg: 15,   // damage when the Kraken is dragged through a whirlpool
   bossDolphinDmg: 7,  // damage when a dolphin ally strikes the Kraken
-  bossDolphinStun: 3, // seconds the Kraken is frozen when a dolphin rams it
+  bossDolphinStun: 1, // seconds the Kraken is frozen when a dolphin rams it
   bossMaxWhirls: 4,   // how many whirlpools exist at once
   bossWhirlSpawn: 0.9,// seconds between whirlpool appearances
   whirlSelfO2: 9,     // oxygen YOU lose if caught in a whirlpool
+  bossSharkO2: 12,    // oxygen lost to a shark bite during a boss fight
   bossTouchO2: 16,    // oxygen lost if the Kraken catches you
   boltO2: 16,         // oxygen lost by a lightning strike
   bossDrain: 1.6,     // oxygen drain during a boss fight (cells/sec equiv)
@@ -373,7 +374,7 @@ const state = {
   invuln: 0, t: 0, habitat: null, habName: '', bannerT: 0,
   dark: false, ping: null, pingCd: 0, reveal: 0,
   dolphin: null, dolphinCd: 0,
-  mode: 'dive', boss: null, whirls: [], rocks: [], jellies: [], stingFlash: 0,
+  mode: 'dive', boss: null, whirls: [], rocks: [], jellies: [], stingFlash: 0, bossSharks: [],
 };
 
 // ── persistence (works on the real site; harmless if blocked) ──
@@ -624,6 +625,22 @@ function setupBoss(L){
   };
   // whirlpools spawn/disappear dynamically during the fight
   state.whirls=[]; state.whirlCd=0.6; state.whirlSelfCd=0;
+  // harder bosses bring obstacles + roaming sharks
+  state.rocks=[];
+  const nRocks=Math.max(0,num-1);
+  for(let i=0;i<nRocks;i++){
+    let row,col,tries=0;
+    do{ row=2+Math.floor(Math.random()*(CONFIG.ROWS-3)); col=Math.floor(Math.random()*CONFIG.COLS); tries++; }
+    while(tries<16 && ((row===state.whale.row&&col===state.whale.col) || state.rocks.some(k=>k.row===row&&k.col===col)));
+    state.rocks.push({row,col});
+  }
+  state.bossSharks=[];
+  const nSharks=Math.max(0,num-1);
+  for(let i=0;i<nSharks;i++){
+    const row=2+Math.floor(Math.random()*(CONFIG.ROWS-3));
+    const dir=Math.random()<0.5?1:-1;
+    state.bossSharks.push({row, x:Math.random()*CONFIG.COLS, dir, speed:0.9+num*0.12, face:dir});
+  }
   // a couple of air pockets to survive on
   for(let i=0;i<2;i++) state.bubbles.push({row:CONFIG.ROWS-2, col:Math.floor(Math.random()*CONFIG.COLS), taken:false, pop:0});
   state.dolphin=null; state.dolphinCd=2.6;
@@ -712,14 +729,37 @@ function updateBoss(dt){
       b.hp-=CONFIG.bossDolphinDmg; b.stun=Math.max(b.stun,CONFIG.bossDolphinStun); state.dolphin.hit=true; state.stingFlash=0.6; sfxGem(false); }
     if(state.dolphin.x<-2.5||state.dolphin.x>CONFIG.COLS+2.5) state.dolphin=null;
   }
-  // lightning: telegraph a column, then strike it
+  // roaming sharks — drift, chase you in their row, bite on contact
+  if(state.bossSharks) for(const sh of state.bossSharks){
+    if(sh.row===state.whale.row){
+      const d=state.whale.col-sh.x, dir=Math.abs(d)<0.05?0:Math.sign(d);
+      if(dir!==0) sh.face=dir;
+      sh.x=Math.max(0,Math.min(CONFIG.COLS-1, sh.x+dir*sh.speed*CONFIG.chaseMult*dt));
+      if(state.invuln<=0){ let dd=Math.abs(sh.x-state.whale.col); dd=Math.min(dd,CONFIG.COLS-dd);
+        if(dd<CONFIG.hitRadius){
+          state.o2-=CONFIG.bossSharkO2*state.tier.sweepMul; state.invuln=CONFIG.invuln; state.stingFlash=0.5; sfxSwept();
+          const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
+          if(state.o2<=0){ state.o2=0; gameOver(); }
+        }
+      }
+    } else {
+      sh.face=sh.dir;
+      sh.x=((sh.x+sh.dir*sh.speed*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
+    }
+  }
+  // lightning: telegraph several columns (more on tougher bosses), then strike them
   b.boltCd-=dt;
-  if(!b.bolt && b.boltCd<=0){ b.bolt={col:state.whale.col, t:0, phase:'warn'}; }
+  if(!b.bolt && b.boltCd<=0){
+    const n=Math.min(CONFIG.COLS-2, b.num);                 // boss 1→1 column … boss 5→5 columns
+    const cols=new Set([state.whale.col]); let guard=0;
+    while(cols.size<n && guard++<40) cols.add(Math.floor(Math.random()*CONFIG.COLS));
+    b.bolt={cols:[...cols], t:0, phase:'warn'};
+  }
   if(b.bolt){
     b.bolt.t+=dt;
     if(b.bolt.phase==='warn' && b.bolt.t>0.95){
       b.bolt.phase='strike'; b.bolt.t=0; sfxBolt();
-      if(state.whale.col===b.bolt.col && state.invuln<=0){
+      if(b.bolt.cols.includes(state.whale.col) && state.invuln<=0){
         state.o2-=CONFIG.boltO2; state.invuln=CONFIG.invuln;
         const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
       }
@@ -1264,14 +1304,19 @@ function renderBoss(w,h){
     ctx.fillStyle=`rgb(${cr},${cg},${cb})`; ctx.fillRect(0,rowY(r),w,CH+1); }
   // whirlpools
   for(const wpl of state.whirls) drawWhirl(wpl);
+  // rocks
+  if(state.rocks) for(const k of state.rocks) drawRock(k);
   // air pockets
   for(const bub of state.bubbles){ if(!bub.taken) drawBubble(bub); }
-  // lightning telegraph / strike
+  // lightning telegraph / strike (possibly several columns)
   if(b && b.bolt){
-    const x=colX(b.bolt.col);
-    if(b.bolt.phase==='warn'){ const a=0.18+0.18*Math.sin(state.t*30); ctx.fillStyle=`rgba(255,225,120,${a.toFixed(3)})`; ctx.fillRect(x,0,CW,h); }
-    else { ctx.fillStyle='rgba(180,210,255,0.18)'; ctx.fillRect(0,0,w,h); drawBolt(b.bolt.col,w,h); }
+    for(const c of b.bolt.cols){ const x=colX(c);
+      if(b.bolt.phase==='warn'){ const a=0.18+0.18*Math.sin(state.t*30); ctx.fillStyle=`rgba(255,225,120,${a.toFixed(3)})`; ctx.fillRect(x,0,CW,h); }
+      else { ctx.fillStyle='rgba(180,210,255,0.16)'; ctx.fillRect(x,0,CW,h); drawBolt(c,w,h); }
+    }
   }
+  // roaming sharks
+  if(state.bossSharks) for(const sh of state.bossSharks) drawEnemy('shark', sh.x, rowY(sh.row), sh.face||sh.dir, false);
   // dolphin ally
   if(state.dolphin) drawDolphin(state.dolphin);
   // the Kraken
@@ -1310,7 +1355,7 @@ function renderBoss(w,h){
     ctx.fillText(`BOSS ${b.num} / 5`, w/2, py+pw*0.115+20);
     const lines=[
       ['🌀','Lure it onto a WHIRLPOOL','— rips its health, but they hurt you too'],
-      ['🐬','Let DOLPHINS ram it','— a strike freezes it for 3 seconds'],
+      ['🐬','Let DOLPHINS ram it','— a strike briefly freezes it'],
       ['⚡','DODGE its lightning','— slide out of the lit column before it hits'],
     ];
     ctx.textAlign='left';
@@ -1542,7 +1587,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v10`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v11`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
