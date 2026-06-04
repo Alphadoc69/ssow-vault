@@ -391,7 +391,7 @@ const CONFIG = {
   fastLaneChance: 0.25, // chance a lane is a fast "rip current"
   fastLaneMult: 1.5,
   holdRepeat: 120,    // ms between hops when a pad button is held (lower = faster)
-  mobileSpeed: 0.78,  // on phones, everything moves at this fraction of desktop speed
+  mobileSpeed: 0.88,  // on phones, everything moves at this fraction of desktop speed
   swipeRepeat: 130,   // min ms between hops when drag-steering (stops the whale zooming)
   bubbleO2: 16,       // oxygen restored per air bubble
   bubblesBase: 2,     // air bubbles per level
@@ -410,6 +410,8 @@ const CONFIG = {
   dolphinSpeed: 9,    // dolphin streak speed (cells/sec)
   orcaIntervalDive: 8,// seconds between Orca cannon runs in normal levels
   orcaIntervalBoss: 5,// seconds between Orca cannon runs in boss fights
+  orcaRatePerOrca: 0.035, // each extra Orca fires a bit more often…
+  orcaRateCap: 0.38,  // …up to this much faster (so a full pod isn't constant fire)
   cannonSpeed: 11,    // Orca cannonball speed (cells/sec)
   orcaSwimSpeed: 6,   // how fast the Orca crosses the row
   cannonStun: 2.4,    // seconds an enemy is frozen by a cannonball
@@ -471,7 +473,7 @@ const state = {
   dolphin: null, dolphinCd: 0,
   mode: 'dive', boss: null, whirls: [], rocks: [], jellies: [], stingFlash: 0, bossSharks: [],
   chestOpened: false, portal: null, hintT: 0,
-  hasOrca: false, orca: null, orcaCd: 0, cannons: [], orcaImg: null, orcaImgs: [], minis: [], miniCd: 0,
+  hasOrca: false, orca: null, orcaCd: 0, cannons: [], orcaImg: null, orcaImgs: [], orcaCount: 1, minis: [], miniCd: 0,
   hasWealthy: false, wealthyCount: 0, xpMult: 1, pearls: 0, runPearls: 0,
   pearlsList: [], upg: {}, revived: false, wallet: '',
 };
@@ -642,7 +644,7 @@ function setupLevel(L){
     }
     state.lanes.push({row:r,active:true,blocks,dir,speed,fast,patrol,patrolT:2+Math.random()*2.5,enemy:etype,chase:!!ep.chase});
   }
-  state.chest = {row:CONFIG.ROWS-1, col:Math.floor(Math.random()*CONFIG.COLS)};
+  state.chest = {row:CONFIG.ROWS-1, col:1+Math.floor(Math.random()*(CONFIG.COLS-2))};
   state.chestOpened=false; state.portal=null; state.hintT=0;
   state.whale = {row:0, col:Math.floor(CONFIG.COLS/2), facing:1, hop:0};
   state.shieldReady = state.tier.shield || !!state.upg.shield;   // perk resets each level
@@ -1108,7 +1110,8 @@ function updateOrca(dt){
       state.orca={row,dir,x:startX,t:0,imgIdx:idx};
       state.cannons.push({row,dir,x:startX+dir*0.6,speed:CONFIG.cannonSpeed});
       sfxCannon();
-      state.orcaCd = boss?CONFIG.orcaIntervalBoss:CONFIG.orcaIntervalDive;
+      const rateBoost = Math.min(CONFIG.orcaRateCap, CONFIG.orcaRatePerOrca*((state.orcaCount||1)-1));
+      state.orcaCd = (boss?CONFIG.orcaIntervalBoss:CONFIG.orcaIntervalDive) * (1 - rateBoost);
     } else { state.orcaCd=1.2; }
   }
   // move cannonballs and resolve hits
@@ -2001,7 +2004,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v34`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v35`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
@@ -2038,7 +2041,9 @@ function setOrcaImgs(urls){
 function showOrcaBadge(images,count){
   const box=document.getElementById('orcaBadge'); if(!box) return;
   box.style.display='flex';
-  document.getElementById('orcaName').textContent=`🐳 Security Orca${count>1?`s ×${count}`:''} — cannon ally`;
+  state.orcaCount = count||1;
+  const boost = Math.round(Math.min(CONFIG.orcaRateCap, CONFIG.orcaRatePerOrca*(state.orcaCount-1))*100);
+  document.getElementById('orcaName').textContent=`🐳 Security Orca${count>1?`s ×${count}`:''} — cannon ally${boost>0?` · +${boost}% fire rate`:''}`;
   const wrap=document.getElementById('orcaThumbs'); wrap.innerHTML='';
   if(images && images.length){
     images.forEach(u=>{ const im=document.createElement('img'); im.className='orca-thumb'; im.loading='lazy'; im.src=u; wrap.appendChild(im); });
@@ -2197,7 +2202,7 @@ try{
 }catch(e){}
 // ?orca=1 / ?wealthy=1 force allies on for testing
 try{ const q=new URLSearchParams(location.search);
-  if(q.get('orca')==='1'){ state.hasOrca=true; showOrcaBadge('',1); }
+  const oq=q.get('orca'); if(oq){ state.hasOrca=true; showOrcaBadge('', parseInt(oq)||1); }
   if(q.get('wealthy')==='1'){ state.hasWealthy=true; state.wealthyCount=5; state.xpMult=1+Math.min(CONFIG.xpCap,CONFIG.xpBase+CONFIG.xpPer*4); state.pearls=50; showWealthyBadge([],5); }
 }catch(e){}
 
