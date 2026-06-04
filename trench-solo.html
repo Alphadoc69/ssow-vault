@@ -356,6 +356,8 @@ const CONFIG = {
   bossWhirlSpawn: 0.9,// seconds between whirlpool appearances
   whirlSelfO2: 9,     // oxygen YOU lose if caught in a whirlpool
   bossSharkO2: 12,    // oxygen lost to a shark bite during a boss fight
+  bossBubbleMax: 5,   // max air bubbles present at once in a boss fight
+  bossBubbleSpawn: 1.6,// seconds between new air bubbles popping up
   bossTouchO2: 16,    // oxygen lost if the Kraken catches you
   boltO2: 16,         // oxygen lost by a lightning strike
   bossDrain: 1.6,     // oxygen drain during a boss fight (cells/sec equiv)
@@ -593,6 +595,14 @@ function setupLevel(L){
 }
 
 // ── KRAKEN BOSS ──
+function spawnBossBubble(){
+  const occupied=new Set([...state.rocks.map(k=>k.row+'-'+k.col), ...state.bubbles.filter(b=>!b.taken).map(b=>b.row+'-'+b.col)]);
+  let row,col,tries=0;
+  do{ row=1+Math.floor(Math.random()*(CONFIG.ROWS-2)); col=Math.floor(Math.random()*CONFIG.COLS); tries++; }
+  while(tries<16 && (occupied.has(row+'-'+col) || (row===state.whale.row&&col===state.whale.col)));
+  if(occupied.has(row+'-'+col)) return;
+  state.bubbles.push({row,col,taken:false,pop:0});
+}
 function spawnWhirl(){
   const b=state.boss;
   let row,col,tries=0;
@@ -641,8 +651,18 @@ function setupBoss(L){
     const dir=Math.random()<0.5?1:-1;
     state.bossSharks.push({row, x:Math.random()*CONFIG.COLS, dir, speed:0.9+num*0.12, face:dir});
   }
-  // a couple of air pockets to survive on
-  for(let i=0;i<2;i++) state.bubbles.push({row:CONFIG.ROWS-2, col:Math.floor(Math.random()*CONFIG.COLS), taken:false, pop:0});
+  // air pockets to survive on — more on the tougher Krakens, spread across the arena
+  const nBubbles = 2 + Math.floor(num*0.8);   // boss 1 → 2 … boss 5 → 6
+  const usedB = new Set(state.rocks.map(k=>k.row+'-'+k.col));
+  for(let i=0;i<nBubbles;i++){
+    let row,col,tries=0;
+    do{ row=1+Math.floor(Math.random()*(CONFIG.ROWS-2)); col=Math.floor(Math.random()*CONFIG.COLS); tries++; }
+    while(usedB.has(row+'-'+col) && tries<16);
+    if(usedB.has(row+'-'+col)) continue;
+    usedB.add(row+'-'+col);
+    state.bubbles.push({row, col, taken:false, pop:0});
+  }
+  state.bubbleCd=CONFIG.bossBubbleSpawn*0.5;
   state.dolphin=null; state.dolphinCd=2.6;
   state.ping=null; state.reveal=0; state.stingFlash=0;
   state.habName='THE KRAKEN'; state.bannerT=0;
@@ -766,9 +786,15 @@ function updateBoss(dt){
     }
     if(b.bolt.phase==='strike' && b.bolt.t>0.22){ b.bolt=null; b.boltCd=Math.max(1.6, 3.0-b.num*0.18); }
   }
-  // grab air pockets
-  for(const bub of state.bubbles){ if(!bub.taken && bub.row===state.whale.row && bub.col===state.whale.col){
-    bub.taken=true; bub.pop=1; state.o2=Math.min(100,state.o2+CONFIG.bubbleO2); sfxBubble(); } }
+  // air pockets keep popping up around the arena
+  state.bubbleCd-=dt;
+  const liveB=state.bubbles.filter(bub=>!bub.taken).length;
+  if(state.bubbleCd<=0 && liveB<CONFIG.bossBubbleMax){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn; }
+  for(let i=state.bubbles.length-1;i>=0;i--){ const bub=state.bubbles[i];
+    if(!bub.taken && bub.row===state.whale.row && bub.col===state.whale.col){
+      state.o2=Math.min(100,state.o2+CONFIG.bubbleO2); sfxBubble(); state.bubbles.splice(i,1);
+    }
+  }
   if(b.hp<=0){ bossDefeated(); return; }
   if(state.o2<=0){ state.o2=0; gameOver(); }
   if(state.whale.hop>0) state.whale.hop=Math.max(0,state.whale.hop-dt*7);
@@ -1590,7 +1616,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v12`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v14`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
