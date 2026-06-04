@@ -392,6 +392,7 @@ const CONFIG = {
   fastLaneMult: 1.5,
   holdRepeat: 120,    // ms between hops when a pad button is held (lower = faster)
   mobileSpeed: 0.78,  // on phones, everything moves at this fraction of desktop speed
+  swipeRepeat: 130,   // min ms between hops when drag-steering (stops the whale zooming)
   bubbleO2: 16,       // oxygen restored per air bubble
   bubblesBase: 2,     // air bubbles per level
   invuln: 0.5,        // seconds of safety after a squid hit (no chain hits)
@@ -1918,16 +1919,18 @@ window.addEventListener('keydown',e=>{
   if(d){ e.preventDefault(); move(...DIRS[d]); }
   if((k===' '||k==='enter') && (state.phase==='idle'||state.phase==='over')) startRun();
 });
-// touch: drag to steer — each cell-length of drag hops one cell (chains without lifting)
-let tsx=0,tsy=0;
+// touch: drag to steer — throttled so a fast drag can't zoom the whale across
+let tsx=0,tsy=0,lastSwipe=0;
 cv.addEventListener('touchstart',e=>{ const t=e.changedTouches[0]; tsx=t.clientX; tsy=t.clientY; },{passive:true});
 cv.addEventListener('touchmove',e=>{
   const t=e.changedTouches[0]; const dx=t.clientX-tsx, dy=t.clientY-tsy;
-  const TH=Math.max(15, CW*0.4);
-  if(Math.abs(dx)>=TH || Math.abs(dy)>=TH){
+  const TH=Math.max(18, CW*0.5);
+  const now=performance.now();
+  if((Math.abs(dx)>=TH || Math.abs(dy)>=TH) && now-lastSwipe>=CONFIG.swipeRepeat){
     if(Math.abs(dx)>Math.abs(dy)) move(...DIRS[dx>0?'right':'left']);
     else move(...DIRS[dy>0?'down':'up']);
     tsx=t.clientX; tsy=t.clientY; // reset origin so a continuous drag keeps moving
+    lastSwipe=now;
   }
 },{passive:true});
 // pad with hold-repeat
@@ -1998,7 +2001,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v33`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v34`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
