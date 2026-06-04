@@ -1460,7 +1460,9 @@ function render(){
     ctx.fillText(state.habitat.sub, w/2, h*0.49);
     ctx.restore();
   }
-  // HUD sync
+}
+
+function syncHUD(){
   document.getElementById('hudLevel').textContent=state.level;
   document.getElementById('hudScore').textContent=state.score;
   const o2=document.getElementById('o2fill'); o2.style.width=Math.max(0,state.o2)+'%';
@@ -1475,6 +1477,7 @@ function loop(now){
   state.t=now/1000;
   if(state.phase==='play') update(dt);
   render();
+  syncHUD();
   requestAnimationFrame(loop);
 }
 
@@ -1587,7 +1590,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v11`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v12`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
