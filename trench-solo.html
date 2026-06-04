@@ -120,6 +120,16 @@
   .pcard:active{transform:scale(0.95);}
   .pcard.sel{border-color:#fff;}
 
+  /* GUIDE / LEGEND */
+  .guide-body{max-width:560px; margin:0 auto; padding:18px 20px 0;}
+  .g-sec{margin-bottom:22px;}
+  .g-sec h3{font-family:var(--font-display); font-size:1.4rem; letter-spacing:0.06em; color:#fff; margin-bottom:8px;}
+  .g-sec p{font-size:0.78rem; line-height:1.65; color:var(--text); margin-bottom:8px;}
+  .g-sec b{color:var(--cyan-lt);}
+  .g-row{display:flex; justify-content:space-between; align-items:flex-start; gap:14px; padding:7px 0;
+    border-bottom:1px solid rgba(91,200,232,0.08); font-size:0.72rem; letter-spacing:0.02em;}
+  .g-row .g-x{color:var(--dim); text-align:right; flex:0 0 auto; max-width:60%;}
+
   /* CONTROLS */
   .pad{display:grid; grid-template-columns:repeat(3,58px); grid-template-rows:repeat(3,58px);
     gap:8px; margin:1.1rem auto 0.4rem; justify-content:center; touch-action:none;}
@@ -153,7 +163,7 @@
     <a class="back-link" href="/thetrench">← The Trench</a>
     <p class="eyebrow">Secret Society of Whales</p>
     <h1 class="title">SOLO <span>DIVE</span></h1>
-    <p class="sub">one whale · dodge the currents · go deeper</p>
+    <p class="sub">one whale · dodge the giant squid · go deeper</p>
   </header>
 
   <div class="hud">
@@ -185,7 +195,8 @@
       </div>
 
       <button class="btn" id="startBtn">▼ Dive In</button>
-      <p class="small" style="margin-top:0.9rem">Best dive: Lv.<span id="bestStart">1</span></p>
+      <button class="btn2" id="guideBtn">📖 How to Play</button>
+      <p class="small" style="margin-top:0.8rem">Best dive: Lv.<span id="bestStart">1</span></p>
     </div>
 
     <div class="overlay hidden" id="overlayOver">
@@ -210,6 +221,47 @@
   <footer>The Trench · Solo Dive · Fan-made · #TogetherWeWhale</footer>
 </div>
 
+<!-- FULL-SCREEN GUIDE / LEGEND -->
+<div class="picker" id="guide">
+  <div class="picker-head">
+    <div><div class="picker-title">How to Play</div><div class="picker-sub">The Trench · Solo Dive</div></div>
+    <button class="picker-close" id="guideClose">✕</button>
+  </div>
+  <div class="guide-body">
+    <div class="g-sec">
+      <h3>🐋 The Dive</h3>
+      <p>Guide your whale down through the depths to the treasure chest on the seabed. Your <b>oxygen</b> drains the whole time — reach the chest before it runs out. Clear a level and you refill, then plunge deeper. 100 levels down.</p>
+    </div>
+    <div class="g-sec">
+      <h3>🦑 The Giant Squid</h3>
+      <p>The deep belongs to the giant squid — a sperm whale's real-life nemesis. They patrol the lanes inside swirling whirlpools. Touch one and it drags you back to the surface, costing precious air. Time your moves and slip through the gaps.</p>
+    </div>
+    <div class="g-sec">
+      <h3>🫧 Air Bubbles</h3>
+      <p>Pockets of trapped air drift in the calm water. Swim into one to grab a breath and restore oxygen — a lifeline on the deeper, busier levels.</p>
+    </div>
+    <div class="g-sec">
+      <h3>💎 The Treasure</h3>
+      <p>Every chest holds a gem. The deeper you dive, the richer the haul:</p>
+      <div class="g-row"><span>🐚 Sand Dollar</span><span class="g-x">+0</span></div>
+      <div class="g-row"><span>🔴 Ruby</span><span class="g-x">+5</span></div>
+      <div class="g-row"><span>🔵 Sapphire</span><span class="g-x">+9</span></div>
+      <div class="g-row"><span>🟢 Emerald</span><span class="g-x">+14</span></div>
+      <div class="g-row"><span>💎 Diamond</span><span class="g-x">+25</span></div>
+    </div>
+    <div class="g-sec">
+      <h3>⭐ Whale Rarity Perks</h3>
+      <p>Dive as one of your own SSoW whales — the rarer the whale, the stronger its edge in the deep.</p>
+      <div class="g-row"><span style="color:#90e0f5"><b>APEX</b> · rank ≤100</span><span class="g-x">Longest breath · nimble · shrugs off the 1st squid each level 🛡</span></div>
+      <div class="g-row"><span style="color:#b48cff"><b>LEVIATHAN</b> · ≤500</span><span class="g-x">Long breath · nimble · attacks hurt less</span></div>
+      <div class="g-row"><span style="color:#5bc8e8"><b>DEEP DIVER</b> · ≤1000</span><span class="g-x">Better lungs · tougher</span></div>
+      <div class="g-row"><span style="color:#6fe0a0"><b>DIVER</b> · ≤3000</span><span class="g-x">Slightly longer breath</span></div>
+      <div class="g-row"><span style="color:#8aa6b5"><b>PUP</b> · the rest</span><span class="g-x">No perks — pure skill</span></div>
+    </div>
+    <button class="btn" id="guideDive" style="width:100%;margin:8px 0 30px">▼ Dive In</button>
+  </div>
+</div>
+
 <!-- FULL-SCREEN WHALE PICKER -->
 <div class="picker" id="picker">
   <div class="picker-head">
@@ -230,23 +282,25 @@
 const CONFIG = {
   COLS: 7,            // grid width
   ROWS: 8,            // grid height (row 0 = surface, last row = seabed/chest)
-  baseSpeed: 0.70,    // current speed at lvl 1 (cells/sec)
-  speedRamp: 0.055,   // + per level
-  maxSpeed: 3.10,
-  baseBlocks: 1,      // currents per active lane at lvl 1
-  blockEvery: 9,      // +1 current per lane every N levels
+  baseSpeed: 0.58,    // squid speed at lvl 1 (cells/sec)
+  speedRamp: 0.045,   // + per level
+  maxSpeed: 2.80,
+  baseBlocks: 1,      // squids per active lane at lvl 1
+  blockEvery: 10,     // +1 squid per lane every N levels
   maxBlocks: 4,
   baseActive: 2,      // active (dangerous) lanes at lvl 1
-  activeEvery: 7,     // +1 active lane every N levels
+  activeEvery: 8,     // +1 active lane every N levels
   maxActive: 6,
-  baseDrain: 2.6,     // oxygen lost per second
-  drainRamp: 0.045,   // + per level
-  maxDrain: 5.8,
-  sweepPenalty: 24,   // oxygen lost when swept
-  levelRefill: 38,    // oxygen regained on clearing a level
-  hitRadius: 0.60,    // how close a current must be to sweep you (cells)
+  baseDrain: 2.2,     // oxygen lost per second
+  drainRamp: 0.035,   // + per level
+  maxDrain: 5.2,
+  sweepPenalty: 20,   // oxygen lost when caught by a squid
+  levelRefill: 40,    // oxygen regained on clearing a level
+  hitRadius: 0.55,    // how close a squid must be to catch you (cells)
   laneJitter: 0.35,   // per-lane speed variation
   holdRepeat: 90,     // ms between hops when a pad button is held (lower = faster)
+  bubbleO2: 16,       // oxygen restored per air bubble
+  bubblesBase: 2,     // air bubbles per level
 };
 
 const cv = document.getElementById('game');
@@ -258,7 +312,7 @@ const state = {
   level: 1, score: 0, o2: 100, best: 1,
   lanes: [], chest: {row:0,col:0}, whale: {row:0,col:3,facing:1,hop:0},
   gems: [], cfg: null, last: 0, clearAnim: 0, clearGem: null,
-  skinImg: null, skinId: null,
+  skinImg: null, skinId: null, bubbles: [],
 };
 
 // ── persistence (works on the real site; harmless if blocked) ──
@@ -283,6 +337,9 @@ function sfxGem(rich){ if(!AC)return; const t=AC.currentTime; const base=rich?66
   [0,0.08,0.16].forEach((d,i)=> tone(base*Math.pow(1.26,i),t+d,0.16,'sine',0.16)); }
 function sfxLevel(){ if(!AC)return; const t=AC.currentTime; [392,523,659,784].forEach((f,i)=>tone(f,t+i*0.07,0.18,'triangle',0.15)); }
 function sfxShield(){ if(!AC)return; const t=AC.currentTime; tone(880,t,0.12,'sine',0.18); tone(1320,t+0.06,0.18,'sine',0.14); }
+function sfxBubble(){ if(!AC)return; const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(500,t); o.frequency.exponentialRampToValueAtTime(1050,t+0.18);
+  g.gain.setValueAtTime(0.16,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.2); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+0.22); }
 function sfxOver(){ if(!AC)return; const t=AC.currentTime; [330,247,165].forEach((f,i)=>tone(f,t+i*0.13,0.3,'sine',0.16)); }
 
 // ── difficulty ──
@@ -353,6 +410,18 @@ function setupLevel(L){
   state.chest = {row:CONFIG.ROWS-1, col:Math.floor(Math.random()*CONFIG.COLS)};
   state.whale = {row:0, col:Math.floor(CONFIG.COLS/2), facing:1, hop:0};
   state.shieldReady = state.tier.shield;   // perk resets each level
+  // air bubbles — prefer calm lanes so they're a safe breather
+  state.bubbles = [];
+  const calm = state.lanes.filter(l=>!l.active).map(l=>l.row);
+  const rowsForBubbles = calm.length ? calm : state.lanes.map(l=>l.row);
+  const usedCols = new Set();
+  for(let i=0;i<CONFIG.bubblesBase;i++){
+    const row = rowsForBubbles[Math.floor(Math.random()*rowsForBubbles.length)];
+    let col, tries=0;
+    do { col = Math.floor(Math.random()*CONFIG.COLS); tries++; } while(usedCols.has(row+'-'+col) && tries<10);
+    usedCols.add(row+'-'+col);
+    state.bubbles.push({row, col, taken:false, pop:0});
+  }
 }
 
 function rollGem(L){
@@ -373,6 +442,12 @@ function move(dr,dc){
   state.whale.row=nr; state.whale.col=nc; state.whale.hop=1;
   if(dc<0) state.whale.facing=-1; else if(dc>0) state.whale.facing=1;
   sfxMove();
+  // grab an air bubble?
+  for(const b of state.bubbles){
+    if(!b.taken && b.row===nr && b.col===nc){
+      b.taken=true; b.pop=1; state.o2=Math.min(100, state.o2+CONFIG.bubbleO2); sfxBubble();
+    }
+  }
   if(nr===state.chest.row && nc===state.chest.col){ levelComplete(); }
 }
 function sweep(){
@@ -442,20 +517,54 @@ function update(dt){
 function rowY(r){ return r*CH; }
 function colX(c){ return c*CW; }
 
-function drawCurrent(x,cy){
-  const px=x*CW+CW/2;
+function drawSquid(x,cy,dir){
+  const T=state.t||0, w=cv.clientWidth;
   for(const off of [-CONFIG.COLS,0,CONFIG.COLS]){
-    const X=px+off*CW;
-    if(X<-CW||X>cv.clientWidth+CW) continue;
-    const w=CW*0.92, h=CH*0.46;
-    const g=ctx.createLinearGradient(X-w/2,0,X+w/2,0);
-    g.addColorStop(0,'rgba(91,200,232,0.05)'); g.addColorStop(0.5,'rgba(120,220,250,0.55)'); g.addColorStop(1,'rgba(91,200,232,0.05)');
-    ctx.fillStyle=g;
-    ctx.beginPath();
-    const rr=h/2;
-    ctx.roundRect(X-w/2,cy+CH/2-h/2,w,h,rr); ctx.fill();
-    ctx.strokeStyle='rgba(200,245,255,0.5)'; ctx.lineWidth=1; ctx.stroke();
+    const X=(x+off)*CW+CW/2; const Y=cy+CH/2;
+    if(X<-CW||X>w+CW) continue;
+    const sz=Math.min(CW,CH);
+    // ── whirlpool swirl behind the squid ──
+    ctx.save(); ctx.translate(X,Y); ctx.rotate((T*1.7*(dir<0?-1:1))%(Math.PI*2));
+    for(let s=0;s<3;s++){
+      const rr=sz*0.52*(1-s*0.24);
+      ctx.beginPath(); ctx.strokeStyle=`rgba(120,210,245,${0.30-s*0.07})`; ctx.lineWidth=2;
+      ctx.arc(0,0,rr, s*0.7, s*0.7+Math.PI*1.45); ctx.stroke();
+    }
+    ctx.restore();
+    // ── giant squid ──
+    ctx.save(); ctx.translate(X,Y); if(dir<0) ctx.scale(-1,1);
+    // tentacles trailing behind
+    ctx.strokeStyle='#c0436a'; ctx.lineWidth=Math.max(2,sz*0.05); ctx.lineCap='round';
+    for(let i=-2;i<=2;i++){
+      const wig=Math.sin(T*6+i)*sz*0.10;
+      ctx.beginPath(); ctx.moveTo(-sz*0.05,i*sz*0.05);
+      ctx.quadraticCurveTo(-sz*0.30,i*sz*0.07+wig,-sz*0.50,i*sz*0.10+wig); ctx.stroke();
+    }
+    // mantle
+    ctx.fillStyle='#dc5a82'; ctx.strokeStyle='#7a2440'; ctx.lineWidth=Math.max(1,sz*0.03);
+    ctx.beginPath(); ctx.moveTo(sz*0.44,0);
+    ctx.quadraticCurveTo(sz*0.06,-sz*0.23,-sz*0.10,-sz*0.12);
+    ctx.quadraticCurveTo(-sz*0.17,0,-sz*0.10,sz*0.12);
+    ctx.quadraticCurveTo(sz*0.06,sz*0.23,sz*0.44,0);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // eye
+    ctx.fillStyle='#160d1c'; ctx.beginPath(); ctx.arc(sz*0.05,-sz*0.02,sz*0.08,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#ffd25a'; ctx.beginPath(); ctx.arc(sz*0.07,-sz*0.04,sz*0.032,0,Math.PI*2); ctx.fill();
+    ctx.restore();
   }
+}
+function drawBubble(b){
+  const T=state.t||0;
+  const cx=colX(b.col)+CW/2, cy=rowY(b.row)+CH/2 + Math.sin(T*3+b.col)*CH*0.05;
+  const R=CW*0.19;
+  ctx.save(); ctx.translate(cx,cy);
+  const offs=[[0,0,R],[-R*0.85,-R*0.5,R*0.55],[R*0.75,-R*0.35,R*0.5]];
+  for(const o of offs){
+    ctx.beginPath(); ctx.fillStyle='rgba(150,225,250,0.22)'; ctx.strokeStyle='rgba(200,245,255,0.85)'; ctx.lineWidth=1.5;
+    ctx.arc(o[0],o[1],o[2],0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.fillStyle='rgba(255,255,255,0.75)'; ctx.arc(o[0]-o[2]*0.3,o[1]-o[2]*0.3,o[2]*0.22,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
 }
 function drawChest(open){
   const x=colX(state.chest.col), y=rowY(state.chest.row);
@@ -521,10 +630,12 @@ function render(){
   // lane separators
   ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
   for(let r=1;r<CONFIG.ROWS;r++){ ctx.beginPath(); ctx.moveTo(0,rowY(r)); ctx.lineTo(w,rowY(r)); ctx.stroke(); }
-  // currents
+  // giant squid (the enemy) swirling in whirlpool currents
   for(const lane of state.lanes){ if(!lane.active) continue;
-    for(const b of lane.blocks) drawCurrent(b,rowY(lane.row));
+    for(const b of lane.blocks) drawSquid(b,rowY(lane.row),lane.dir);
   }
+  // air bubbles
+  for(const b of state.bubbles){ if(!b.taken) drawBubble(b); }
   // chest
   drawChest(state.phase==='clear');
   // clearing gem rise
@@ -556,6 +667,7 @@ function render(){
 // ── loop ──
 function loop(now){
   const dt=Math.min(0.05,(now-state.last)/1000); state.last=now;
+  state.t=now/1000;
   if(state.phase==='play') update(dt);
   render();
   requestAnimationFrame(loop);
@@ -619,6 +731,10 @@ document.getElementById('menuBtn').addEventListener('click',()=>{
   document.getElementById('overlayOver').classList.add('hidden');
   document.getElementById('overlayStart').classList.remove('hidden');
 });
+const guide=document.getElementById('guide');
+document.getElementById('guideBtn').addEventListener('click',()=>guide.classList.add('open'));
+document.getElementById('guideClose').addEventListener('click',()=>guide.classList.remove('open'));
+document.getElementById('guideDive').addEventListener('click',()=>{ guide.classList.remove('open'); startRun(); });
 
 // ── wallet → whale picker ──
 const wInput=document.getElementById('walletInput');
