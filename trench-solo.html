@@ -241,6 +241,14 @@
       <p>Pockets of trapped air drift in the calm water. Swim into one to grab a breath and restore oxygen — a lifeline on the deeper, busier levels.</p>
     </div>
     <div class="g-sec">
+      <h3>🐬 Dolphin Allies</h3>
+      <p>You're not alone down here. Pods of dolphins streak across the trench and <b>stun every squid in a lane</b> as they pass — watch for one and dart through the lane it clears while the squid are dazed.</p>
+    </div>
+    <div class="g-sec">
+      <h3>🌊 Echolocation (deep dark zones)</h3>
+      <p>In the Antarctic Deep and the Abyss the water goes black. Like a real sperm whale, you <b>ping sonar</b> — an expanding ring that lights up the field and <b>stuns the squid it touches</b>. Time your moves to each ping.</p>
+    </div>
+    <div class="g-sec">
       <h3>💎 The Treasure</h3>
       <p>Every chest holds a gem. The deeper you dive, the richer the haul:</p>
       <div class="g-row"><span>🐚 Sand Dollar</span><span class="g-x">+0</span></div>
@@ -290,7 +298,7 @@ const CONFIG = {
   maxBlocks: 4,
   baseActive: 2,      // active (dangerous) lanes at lvl 1
   activeEvery: 8,     // +1 active lane every N levels
-  maxActive: 5,       // never fill all 6 lanes — always leave ≥1 rest row
+  maxActive: 4,       // never more than 4 danger lanes — always ≥2 rest rows
   baseDrain: 2.2,     // oxygen lost per second
   drainRamp: 0.035,   // + per level
   maxDrain: 5.2,
@@ -308,6 +316,9 @@ const CONFIG = {
   pingInterval: 2.6,  // seconds between sonar pings on dark levels
   pingSpeed: 7,       // sonar ring expansion (cells/sec)
   stunTime: 1.7,      // seconds a squid is stunned by sonar
+  dolphinInterval: 7, // seconds between dolphin ally runs
+  dolphinStun: 3.0,   // seconds squid are stunned in a lane a dolphin clears
+  dolphinSpeed: 9,    // dolphin streak speed (cells/sec)
 };
 
 const cv = document.getElementById('game');
@@ -322,6 +333,7 @@ const state = {
   skinImg: null, skinId: null, bubbles: [],
   invuln: 0, t: 0, habitat: null, habIdx: -1, bannerT: 0,
   dark: false, ping: null, pingCd: 0, reveal: 0,
+  dolphin: null, dolphinCd: 0,
 };
 
 // ── persistence (works on the real site; harmless if blocked) ──
@@ -349,6 +361,7 @@ function sfxShield(){ if(!AC)return; const t=AC.currentTime; tone(880,t,0.12,'si
 function sfxPing(){ if(!AC)return; const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
   o.type='sine'; o.frequency.setValueAtTime(1400,t); o.frequency.exponentialRampToValueAtTime(420,t+0.35);
   g.gain.setValueAtTime(0.12,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.4); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+0.42); }
+function sfxDolphin(){ if(!AC)return; const t=AC.currentTime; [900,1300,1700,1400].forEach((f,i)=>tone(f,t+i*0.05,0.08,'sine',0.12)); }
 function sfxBubble(){ if(!AC)return; const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
   o.type='sine'; o.frequency.setValueAtTime(500,t); o.frequency.exponentialRampToValueAtTime(1050,t+0.18);
   g.gain.setValueAtTime(0.16,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.2); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+0.22); }
@@ -465,6 +478,8 @@ function setupLevel(L){
   // sonar / darkness
   state.dark=!!state.habitat.dark;
   state.ping=null; state.pingCd=state.dark?1.0:0; state.reveal=0;
+  // dolphin allies
+  state.dolphin=null; state.dolphinCd=CONFIG.dolphinInterval*0.6;
 }
 
 function rollGem(L){
@@ -571,6 +586,24 @@ function update(dt){
         for(const lane of state.lanes){ for(const b of lane.blocks) b.pinged=false; }
       }
     }
+  }
+  // dolphin allies — periodically streak across a lane and stun its squid (orca + dolphin teamwork)
+  if(!state.dolphin){
+    state.dolphinCd-=dt;
+    if(state.dolphinCd<=0){
+      const act=state.lanes.filter(l=>l.active);
+      if(act.length){
+        const lane=act[Math.floor(Math.random()*act.length)];
+        const dir=Math.random()<0.5?1:-1;
+        state.dolphin={row:lane.row, x:(dir>0?-1.5:CONFIG.COLS+1.5), dir};
+        for(const b of lane.blocks) b.stun=Math.max(b.stun, CONFIG.dolphinStun);
+        sfxDolphin();
+      }
+      state.dolphinCd=CONFIG.dolphinInterval;
+    }
+  } else {
+    state.dolphin.x += state.dolphin.dir*CONFIG.dolphinSpeed*dt;
+    if(state.dolphin.x < -2.5 || state.dolphin.x > CONFIG.COLS+2.5) state.dolphin=null;
   }
   const hitR=Math.max(0.45, CONFIG.hitRadius+state.tier.hit);
   const lane=state.lanes.find(l=>l.row===state.whale.row);
@@ -723,6 +756,31 @@ function drawDecor(H,w,h){
   }
   ctx.restore();
 }
+function drawDolphin(d){
+  const X=d.x*CW+CW/2, Y=rowY(d.row)+CH/2, sz=Math.min(CW,CH);
+  ctx.save(); ctx.translate(X,Y); if(d.dir<0) ctx.scale(-1,1);
+  // speed trail
+  ctx.strokeStyle='rgba(190,235,252,0.4)'; ctx.lineWidth=2; ctx.lineCap='round';
+  for(let i=1;i<=3;i++){ ctx.beginPath(); ctx.moveTo(-sz*0.45-i*sz*0.18,0); ctx.lineTo(-sz*0.6-i*sz*0.18,0); ctx.stroke(); }
+  // body
+  ctx.fillStyle='#7fb4d4'; ctx.strokeStyle='#2f5f7a'; ctx.lineWidth=Math.max(1,sz*0.03);
+  ctx.beginPath(); ctx.moveTo(sz*0.46,0);
+  ctx.quadraticCurveTo(sz*0.05,-sz*0.20,-sz*0.34,-sz*0.05);
+  ctx.quadraticCurveTo(-sz*0.48,0,-sz*0.34,sz*0.06);
+  ctx.quadraticCurveTo(sz*0.05,sz*0.20,sz*0.46,0); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // belly
+  ctx.fillStyle='rgba(235,248,255,0.6)'; ctx.beginPath();
+  ctx.moveTo(sz*0.30,sz*0.04); ctx.quadraticCurveTo(sz*0.0,sz*0.16,-sz*0.3,sz*0.05);
+  ctx.quadraticCurveTo(sz*0.0,sz*0.1,sz*0.30,sz*0.04); ctx.fill();
+  // dorsal fin
+  ctx.fillStyle='#7fb4d4'; ctx.beginPath(); ctx.moveTo(sz*0.02,-sz*0.12); ctx.lineTo(-sz*0.08,-sz*0.34); ctx.lineTo(-sz*0.16,-sz*0.12); ctx.closePath(); ctx.fill();
+  // tail fluke
+  ctx.beginPath(); ctx.moveTo(-sz*0.34,0); ctx.lineTo(-sz*0.5,-sz*0.15); ctx.lineTo(-sz*0.46,0); ctx.lineTo(-sz*0.5,sz*0.15); ctx.closePath(); ctx.fill();
+  // eye + smile
+  ctx.fillStyle='#11212b'; ctx.beginPath(); ctx.arc(sz*0.24,-sz*0.03,sz*0.028,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#2f5f7a'; ctx.lineWidth=Math.max(1,sz*0.02); ctx.beginPath(); ctx.arc(sz*0.3,-sz*0.01,sz*0.08,0.2,1.25); ctx.stroke();
+  ctx.restore();
+}
 function render(){
   const w=cv.clientWidth, h=cv.clientHeight;
   ctx.clearRect(0,0,w,h);
@@ -751,6 +809,8 @@ function render(){
   }
   // air bubbles
   for(const b of state.bubbles){ if(!b.taken) drawBubble(b); }
+  // dolphin ally
+  if(state.dolphin) drawDolphin(state.dolphin);
   // chest
   drawChest(state.phase==='clear');
   // clearing gem rise
