@@ -301,6 +301,7 @@ const CONFIG = {
   holdRepeat: 90,     // ms between hops when a pad button is held (lower = faster)
   bubbleO2: 16,       // oxygen restored per air bubble
   bubblesBase: 2,     // air bubbles per level
+  invuln: 0.7,        // seconds of safety after a squid hit (no chain hits)
 };
 
 const cv = document.getElementById('game');
@@ -313,6 +314,7 @@ const state = {
   lanes: [], chest: {row:0,col:0}, whale: {row:0,col:3,facing:1,hop:0},
   gems: [], cfg: null, last: 0, clearAnim: 0, clearGem: null,
   skinImg: null, skinId: null, bubbles: [],
+  invuln: 0, t: 0, habitat: null, habIdx: -1, bannerT: 0,
 };
 
 // ── persistence (works on the real site; harmless if blocked) ──
@@ -396,6 +398,19 @@ function levelCfg(L){
   };
 }
 
+// ── HABITATS — the water changes as you dive deeper / progress ──
+// each spans ~7 levels; top/bot are the water gradient (RGB), seabed tint, and a decor style.
+const HABITATS=[
+  {name:'TROPICAL NURSERY', sub:'warm calving shallows', top:[46,158,176], bot:[12,74,116], seabed:[200,186,130], decor:'coral'},
+  {name:'CORAL REEFS',       sub:'subtropical shelf',     top:[30,138,150], bot:[10,62,104], seabed:[180,150,110], decor:'coral'},
+  {name:'COASTAL KELP',      sub:'nearshore forests',     top:[36,116,108], bot:[14,58,72],  seabed:[70,80,50],    decor:'kelp'},
+  {name:'KRILL FIELDS',      sub:'sub-polar feeding',     top:[30,96,128],  bot:[8,44,76],   seabed:[40,60,80],    decor:'krill'},
+  {name:'ARCTIC ICE',        sub:'the frozen north',      top:[120,182,212],bot:[28,74,116], seabed:[150,170,190], decor:'ice'},
+  {name:'ANTARCTIC DEEP',    sub:'polar cold',            top:[58,112,162], bot:[8,30,72],   seabed:[60,80,110],   decor:'ice'},
+  {name:'THE ABYSS',         sub:'the deep trench',       top:[12,28,48],   bot:[2,6,16],    seabed:[14,18,30],    decor:'biolum'},
+];
+function habitatFor(L){ return HABITATS[Math.min(HABITATS.length-1, Math.floor((L-1)/7))]; }
+
 function setupLevel(L){
   const cfg = levelCfg(L); state.cfg = cfg; state.lanes = [];
   const laneCount = CONFIG.ROWS-2;            // rows 1 .. ROWS-2 are lanes
@@ -431,6 +446,10 @@ function setupLevel(L){
     usedCols.add(row+'-'+col);
     state.bubbles.push({row, col, taken:false, pop:0});
   }
+  // habitat for this depth — banner when entering a new one
+  const hIdx=Math.min(HABITATS.length-1, Math.floor((L-1)/7));
+  state.habitat=HABITATS[hIdx];
+  if(hIdx!==state.habIdx){ state.habIdx=hIdx; state.bannerT=2.6; }
 }
 
 function rollGem(L){
@@ -460,16 +479,17 @@ function move(dr,dc){
   if(nr===state.chest.row && nc===state.chest.col){ levelComplete(); }
 }
 function sweep(){
-  if(state.phase!=='play') return;
+  if(state.phase!=='play' || state.invuln>0) return;
   const v=document.getElementById('vignette');
-  if(state.shieldReady){            // perk: absorb the first sweep this level
-    state.shieldReady=false; sfxShield();
+  if(state.shieldReady){            // perk: absorb the hit entirely, hold position
+    state.shieldReady=false; sfxShield(); state.invuln=CONFIG.invuln;
     v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),200);
-    state.whale.row=0; return;
+    return;
   }
   state.o2 -= CONFIG.sweepPenalty*state.tier.sweepMul; sfxSwept();
   v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
-  state.whale.row=0;
+  state.whale.row=Math.max(0, state.whale.row-1);   // knocked back just one row
+  state.invuln=CONFIG.invuln;
   if(state.o2<=0){ state.o2=0; gameOver(); }
 }
 function levelComplete(){
@@ -495,6 +515,7 @@ function gameOver(){
 function startRun(){
   resumeAudio();
   state.level=1; state.score=0; state.o2=100; state.gems=[];
+  state.invuln=0; state.habIdx=-1;
   if(state.best<1) state.best=1;
   setupLevel(1); state.phase='play'; state.last=performance.now();
   document.getElementById('overlayStart').classList.add('hidden');
@@ -504,6 +525,8 @@ function startRun(){
 // ── update ──
 function update(dt){
   if(state.phase!=='play') return;
+  if(state.invuln>0) state.invuln=Math.max(0,state.invuln-dt);
+  if(state.bannerT>0) state.bannerT=Math.max(0,state.bannerT-dt);
   state.o2 -= state.cfg.drain*state.tier.drain*dt;
   for(const lane of state.lanes){ if(!lane.active) continue;
     for(let i=0;i<lane.blocks.length;i++){
@@ -512,7 +535,7 @@ function update(dt){
   }
   const hitR=Math.max(0.45, CONFIG.hitRadius+state.tier.hit);
   const lane=state.lanes.find(l=>l.row===state.whale.row);
-  if(lane && lane.active){
+  if(state.invuln<=0 && lane && lane.active){
     for(const b of lane.blocks){
       let d=Math.abs(b-state.whale.col); d=Math.min(d,CONFIG.COLS-d);
       if(d<hitR){ sweep(); break; }
@@ -603,6 +626,7 @@ function drawWhale(){
   const cy=rowY(state.whale.row)+CH/2 - hop*CH*0.18;
   ctx.save();
   ctx.translate(cx,cy);
+  if(state.invuln>0) ctx.globalAlpha = (Math.sin(state.t*28)>0)?0.35:0.85;  // blink while safe
   if(state.skinImg && state.skinImg.complete && state.skinImg.naturalWidth){
     const R=CW*0.40;
     // glow ring in the tier's colour
@@ -623,19 +647,57 @@ function drawWhale(){
   }
   ctx.restore();
 }
+function drawDecor(H,w,h){
+  const T=state.t||0, seabedY=rowY(CONFIG.ROWS-1)+CH*0.55;
+  ctx.save();
+  if(H.decor==='ice'){
+    ctx.fillStyle='rgba(225,242,250,0.85)'; ctx.strokeStyle='rgba(150,200,225,0.6)';
+    for(let i=0;i<5;i++){
+      const x=((i*53)%w)+Math.sin(T*0.3+i)*8, bw=w*0.16;
+      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x+bw,0); ctx.lineTo(x+bw*0.7,CH*0.22); ctx.lineTo(x+bw*0.2,CH*0.18); ctx.closePath(); ctx.fill();
+    }
+  } else if(H.decor==='coral'){
+    const cols=['#e87a9a','#f0a85a','#9a6fd0','#5ad0c0'];
+    for(let i=0;i<6;i++){
+      const x=(i+0.5)*w/6 + Math.sin(i)*6; ctx.strokeStyle=cols[i%cols.length]; ctx.globalAlpha=0.5; ctx.lineWidth=Math.max(3,CW*0.07); ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(x,seabedY+CH*0.4); ctx.lineTo(x,seabedY-CH*0.1);
+      ctx.moveTo(x,seabedY); ctx.lineTo(x-CW*0.2,seabedY-CH*0.25); ctx.moveTo(x,seabedY); ctx.lineTo(x+CW*0.2,seabedY-CH*0.3); ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+  } else if(H.decor==='kelp'){
+    ctx.strokeStyle='rgba(90,150,90,0.45)'; ctx.lineWidth=Math.max(3,CW*0.08); ctx.lineCap='round';
+    for(let i=0;i<6;i++){
+      const x=(i+0.5)*w/6; ctx.beginPath(); ctx.moveTo(x,seabedY+CH*0.4);
+      for(let s=1;s<=4;s++){ const yy=seabedY+CH*0.4-s*CH*0.6; ctx.lineTo(x+Math.sin(T*1.5+i+s)*CW*0.25, yy); } ctx.stroke();
+    }
+  } else if(H.decor==='krill'){
+    ctx.fillStyle='rgba(255,170,140,0.5)';
+    for(let i=0;i<34;i++){ const x=(i*97+ (T*18)%w)%w; const y=((i*53)%(h-CH))+CH*0.5+Math.sin(T+i)*4; ctx.fillRect(x,y,3,2); }
+  } else if(H.decor==='biolum'){
+    for(let i=0;i<26;i++){ const x=(i*71+Math.sin(T*0.4+i)*20)%w; const y=((i*61)%(h-CH))+CH*0.5+Math.sin(T*0.6+i)*6;
+      const a=0.3+0.3*Math.sin(T*2+i); ctx.fillStyle=`rgba(120,235,210,${a})`; ctx.beginPath(); ctx.arc(x,y,2.2,0,Math.PI*2); ctx.fill(); }
+  }
+  ctx.restore();
+}
 function render(){
   const w=cv.clientWidth, h=cv.clientHeight;
   ctx.clearRect(0,0,w,h);
-  // depth gradient
+  const H=state.habitat||HABITATS[0];
+  // depth gradient from the current habitat's palette
   for(let r=0;r<CONFIG.ROWS;r++){
     const t=r/(CONFIG.ROWS-1);
-    const top=`rgb(${10-6*t},${30-14*t},${52-26*t})`;
-    ctx.fillStyle=top; ctx.fillRect(0,rowY(r),w,CH+1);
+    const cr=Math.round(H.top[0]+(H.bot[0]-H.top[0])*t);
+    const cg=Math.round(H.top[1]+(H.bot[1]-H.top[1])*t);
+    const cb=Math.round(H.top[2]+(H.bot[2]-H.top[2])*t);
+    ctx.fillStyle=`rgb(${cr},${cg},${cb})`; ctx.fillRect(0,rowY(r),w,CH+1);
   }
   // surface shimmer
-  ctx.fillStyle='rgba(150,224,245,0.10)'; ctx.fillRect(0,0,w,CH*0.18);
+  ctx.fillStyle='rgba(220,245,255,0.12)'; ctx.fillRect(0,0,w,CH*0.18);
   // seabed
-  ctx.fillStyle='rgba(40,30,18,0.55)'; ctx.fillRect(0,rowY(CONFIG.ROWS-1)+CH*0.55,w,CH*0.6);
+  ctx.fillStyle=`rgba(${H.seabed[0]},${H.seabed[1]},${H.seabed[2]},0.5)`;
+  ctx.fillRect(0,rowY(CONFIG.ROWS-1)+CH*0.55,w,CH*0.6);
+  // habitat decor (behind gameplay)
+  drawDecor(H,w,h);
   // lane separators
   ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
   for(let r=1;r<CONFIG.ROWS;r++){ ctx.beginPath(); ctx.moveTo(0,rowY(r)); ctx.lineTo(w,rowY(r)); ctx.stroke(); }
@@ -663,6 +725,23 @@ function render(){
     ctx.font=`600 ${Math.max(9,Math.floor(CW*0.20))}px 'DM Mono',monospace`;
     ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle=state.tier.color;
     ctx.fillText(state.tier.name + (state.shieldReady?'  🛡':''), 8, 7);
+  }
+  // habitat label (top-right, subtle)
+  if(state.phase!=='idle' && state.habitat){
+    ctx.font=`600 ${Math.max(8,Math.floor(CW*0.17))}px 'DM Mono',monospace`;
+    ctx.textAlign='right'; ctx.textBaseline='top'; ctx.fillStyle='rgba(220,245,255,0.5)';
+    ctx.fillText(state.habitat.name, w-8, 7);
+  }
+  // habitat entry banner
+  if(state.bannerT>0 && state.habitat){
+    const a=Math.min(1,state.bannerT/0.7);
+    ctx.save(); ctx.globalAlpha=a; ctx.textAlign='center';
+    ctx.fillStyle='rgba(2,10,22,0.5)'; ctx.fillRect(0,h*0.34,w,h*0.20);
+    ctx.fillStyle='#fff'; ctx.font=`${Math.floor(CW*0.5)}px 'Bebas Neue',sans-serif`; ctx.textBaseline='middle';
+    ctx.fillText(state.habitat.name, w/2, h*0.42);
+    ctx.fillStyle='rgba(150,224,245,0.85)'; ctx.font=`${Math.floor(CW*0.22)}px 'DM Mono',monospace`;
+    ctx.fillText(state.habitat.sub, w/2, h*0.49);
+    ctx.restore();
   }
   // HUD sync
   document.getElementById('hudLevel').textContent=state.level;
