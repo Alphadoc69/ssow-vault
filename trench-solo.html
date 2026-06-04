@@ -258,6 +258,10 @@
       <p>You're not alone down here. Pods of dolphins streak across the trench and <b>stun every predator in a lane</b> as they pass — watch for one and dart through the lane it clears.</p>
     </div>
     <div class="g-sec">
+      <h3>🐳 Security Orca (NFT holders)</h3>
+      <p>Own a <b>Secret Society Security Orca</b>? Load your wallet and it joins the dive. The Orca surfaces now and then and <b>fires a cannonball</b> down a row — freezing any predators it hits, and blasting the <b>Kraken</b> for damage in boss fights. Your own armed escort to the bottom.</p>
+    </div>
+    <div class="g-sec">
       <h3>🌊 Echolocation (the final 20 levels)</h3>
       <p>In the Abyss the water goes black. Like a real sperm whale, you <b>ping sonar</b> — an expanding ring that lights the field and <b>freezes the single nearest predator lane</b>. Moose swim at the surface, so sonar can't touch them. Time your moves to each ping.</p>
     </div>
@@ -344,6 +348,12 @@ const CONFIG = {
   dolphinInterval: 7, // seconds between dolphin ally runs
   dolphinStun: 3.0,   // seconds squid are stunned in a lane a dolphin clears
   dolphinSpeed: 9,    // dolphin streak speed (cells/sec)
+  orcaIntervalDive: 8,// seconds between Orca cannon runs in normal levels
+  orcaIntervalBoss: 5,// seconds between Orca cannon runs in boss fights
+  cannonSpeed: 11,    // Orca cannonball speed (cells/sec)
+  cannonStun: 2.4,    // seconds an enemy is frozen by a cannonball
+  cannonBossDmg: 9,   // damage a cannonball deals to the Kraken
+  cannonBossStun: 1.4,// seconds the Kraken is frozen by a cannonball
   maxLevel: 100,      // the Trench bottoms out here — clear it to win
   jellyStingO2: 7,    // oxygen lost brushing a jellyfish (a sting, not a hit)
   jellySpeed: 0.5,    // jellyfish drift speed (cells/sec)
@@ -380,6 +390,7 @@ const state = {
   dolphin: null, dolphinCd: 0,
   mode: 'dive', boss: null, whirls: [], rocks: [], jellies: [], stingFlash: 0, bossSharks: [],
   chestOpened: false, portal: null, hintT: 0,
+  hasOrca: false, orca: null, orcaCd: 0, cannons: [],
 };
 
 // ── persistence (works on the real site; harmless if blocked) ──
@@ -409,6 +420,7 @@ function sfxBolt(){ if(!AC)return; const t=AC.currentTime; tone(120,t,0.18,'squa
   const buf=AC.createBuffer(1,AC.sampleRate*0.2,AC.sampleRate); const d=buf.getChannelData(0);
   for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length); const n=AC.createBufferSource(); n.buffer=buf;
   const ng=AC.createGain(); ng.gain.setValueAtTime(0.22,t); ng.gain.exponentialRampToValueAtTime(0.001,t+0.2); n.connect(ng); ng.connect(AC.destination); n.start(t); }
+function sfxCannon(){ if(!AC)return; const t=AC.currentTime; tone(180,t,0.08,'square',0.14); tone(90,t+0.02,0.16,'triangle',0.12); }
 function sfxPing(){ if(!AC)return; const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
   o.type='sine'; o.frequency.setValueAtTime(1400,t); o.frequency.exponentialRampToValueAtTime(420,t+0.35);
   g.gain.setValueAtTime(0.12,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.4); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+0.42); }
@@ -596,6 +608,8 @@ function setupLevel(L){
   state.ping=null; state.pingCd=state.dark?1.0:0; state.reveal=0;
   // dolphin allies
   state.dolphin=null; state.dolphinCd=CONFIG.dolphinInterval*0.6;
+  // Orca cannon ally (if owned)
+  state.orca=null; state.cannons=[]; state.orcaCd=CONFIG.orcaIntervalDive*0.6;
 }
 
 // ── KRAKEN BOSS ──
@@ -668,6 +682,7 @@ function setupBoss(L){
   }
   state.bubbleCd=CONFIG.bossBubbleSpawn*0.5;
   state.dolphin=null; state.dolphinCd=2.6;
+  state.orca=null; state.cannons=[]; state.orcaCd=CONFIG.orcaIntervalBoss*0.6;
   state.ping=null; state.reveal=0; state.stingFlash=0;
   state.habName='THE KRAKEN'; state.bannerT=0;
 }
@@ -755,6 +770,7 @@ function updateBoss(dt){
   }
   // roaming sharks — drift, chase you in their row, bite on contact
   if(state.bossSharks) for(const sh of state.bossSharks){
+    if(sh.stun>0){ sh.stun=Math.max(0,sh.stun-dt); continue; }
     if(sh.row===state.whale.row){
       const d=state.whale.col-sh.x, dir=Math.abs(d)<0.05?0:Math.sign(d);
       if(dir!==0) sh.face=dir;
@@ -799,6 +815,7 @@ function updateBoss(dt){
       state.o2=Math.min(100,state.o2+CONFIG.bubbleO2); sfxBubble(); state.bubbles.splice(i,1);
     }
   }
+  updateOrca(dt);
   if(b.hp<=0){ bossDefeated(); return; }
   if(state.o2<=0){ state.o2=0; gameOver(); }
   if(state.whale.hop>0) state.whale.hop=Math.max(0,state.whale.hop-dt*7);
@@ -913,6 +930,42 @@ function startRun(){
 }
 
 // ── update ──
+function updateOrca(dt){
+  if(!state.hasOrca) return;
+  const boss = state.mode==='boss';
+  if(!state.cannons) state.cannons=[];
+  // visible orca fades out after firing
+  if(state.orca){ state.orca.t+=dt; state.orca.x+=state.orca.dir*2.4*dt; if(state.orca.t>1.2) state.orca=null; }
+  // fire on a timer
+  state.orcaCd-=dt;
+  if(state.orcaCd<=0 && state.cannons.length===0){
+    let row=null, dir=Math.random()<0.5?1:-1;
+    if(boss && state.boss){ row=Math.round(state.boss.y); }
+    else { const act=state.lanes.filter(l=>l.active); if(act.length) row=act[Math.floor(Math.random()*act.length)].row; }
+    if(row!==null){
+      const startX = dir>0 ? -1.2 : CONFIG.COLS+0.2;
+      state.orca={row,dir,x:startX,t:0};
+      state.cannons.push({row,dir,x:startX+dir*0.6,speed:CONFIG.cannonSpeed});
+      sfxCannon();
+      state.orcaCd = boss?CONFIG.orcaIntervalBoss:CONFIG.orcaIntervalDive;
+    } else { state.orcaCd=1.2; }
+  }
+  // move cannonballs and resolve hits
+  for(let i=state.cannons.length-1;i>=0;i--){ const c=state.cannons[i];
+    c.x += c.dir*c.speed*dt;
+    if(boss && state.boss){
+      if(Math.abs(c.x-state.boss.x)<0.6 && Math.abs(c.row-state.boss.y)<1.0){
+        state.boss.hp-=CONFIG.cannonBossDmg; state.boss.stun=Math.max(state.boss.stun,CONFIG.cannonBossStun);
+        state.stingFlash=0.6; state.cannons.splice(i,1); continue;
+      }
+      if(state.bossSharks) for(const sh of state.bossSharks){ if(sh.row===c.row && Math.abs(sh.x-c.x)<0.55) sh.stun=CONFIG.cannonStun; }
+    } else {
+      const lane=state.lanes.find(l=>l.row===c.row);
+      if(lane && lane.active){ for(const b of lane.blocks){ let dx=Math.abs(b.x-c.x); dx=Math.min(dx,CONFIG.COLS-dx); if(dx<0.55) b.stun=Math.max(b.stun,CONFIG.cannonStun); } }
+    }
+    if(c.x<-2 || c.x>CONFIG.COLS+2) state.cannons.splice(i,1);
+  }
+}
 function update(dt){
   if(state.phase!=='play') return;
   if(state.mode==='boss'){ updateBoss(dt); return; }
@@ -920,6 +973,7 @@ function update(dt){
   if(state.bannerT>0) state.bannerT=Math.max(0,state.bannerT-dt);
   if(state.reveal>0) state.reveal=Math.max(0,state.reveal-dt*1.4);
   state.o2 -= state.cfg.drain*state.tier.drain*dt;
+  updateOrca(dt);
   // move predators (frozen ones hold still)
   for(const lane of state.lanes){ if(!lane.active) continue;
     if(lane.patrol){ lane.patrolT-=dt; if(lane.patrolT<=0){ lane.dir*=-1; lane.patrolT=2+Math.random()*2.5; } }
@@ -1279,6 +1333,44 @@ function drawDecor(H,w,h){
   }
   ctx.restore();
 }
+function drawOrca(o){
+  const X=o.x*CW+CW/2, Y=rowY(o.row)+CH/2, sz=Math.min(CW,CH);
+  ctx.save(); ctx.translate(X,Y); if(o.dir<0) ctx.scale(-1,1);
+  // body (black)
+  ctx.fillStyle='#16181d'; ctx.strokeStyle='#0a0b0e'; ctx.lineWidth=Math.max(1,sz*0.03);
+  ctx.beginPath(); ctx.moveTo(sz*0.5,0);
+  ctx.quadraticCurveTo(sz*0.05,-sz*0.24,-sz*0.38,-sz*0.06);
+  ctx.quadraticCurveTo(-sz*0.52,0,-sz*0.38,sz*0.07);
+  ctx.quadraticCurveTo(sz*0.05,sz*0.24,sz*0.5,0); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // white belly + flank patch
+  ctx.fillStyle='#f4f8fb';
+  ctx.beginPath(); ctx.moveTo(sz*0.34,sz*0.05); ctx.quadraticCurveTo(sz*0.0,sz*0.2,-sz*0.34,sz*0.05);
+  ctx.quadraticCurveTo(sz*0.0,sz*0.12,sz*0.34,sz*0.05); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(sz*0.12,-sz*0.06,sz*0.12,sz*0.06,-0.2,0,Math.PI*2); ctx.fill();   // eye patch
+  // dorsal fin (tall, orca-style)
+  ctx.fillStyle='#16181d'; ctx.beginPath(); ctx.moveTo(sz*0.04,-sz*0.14); ctx.lineTo(-sz*0.06,-sz*0.46); ctx.lineTo(-sz*0.2,-sz*0.14); ctx.closePath(); ctx.fill();
+  // tail fluke
+  ctx.beginPath(); ctx.moveTo(-sz*0.38,0); ctx.lineTo(-sz*0.54,-sz*0.16); ctx.lineTo(-sz*0.5,0); ctx.lineTo(-sz*0.54,sz*0.16); ctx.closePath(); ctx.fill();
+  // eye
+  ctx.fillStyle='#0a0b0e'; ctx.beginPath(); ctx.arc(sz*0.16,-sz*0.06,sz*0.03,0,Math.PI*2); ctx.fill();
+  // little cannon on its back
+  ctx.fillStyle='#5a6470'; ctx.fillRect(-sz*0.02,-sz*0.2,sz*0.22,sz*0.09);
+  ctx.fillStyle='#3a424c'; ctx.fillRect(sz*0.16,-sz*0.19,sz*0.1,sz*0.07);
+  ctx.restore();
+}
+function drawCannon(c){
+  const X=c.x*CW+CW/2, Y=rowY(c.row)+CH/2, sz=Math.min(CW,CH);
+  ctx.save(); ctx.translate(X,Y);
+  // trail
+  ctx.strokeStyle='rgba(120,200,255,0.4)'; ctx.lineWidth=Math.max(1,sz*0.04); ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-c.dir*sz*0.4,0); ctx.stroke();
+  // ball
+  const g=ctx.createRadialGradient(-sz*0.04,-sz*0.04,1,0,0,sz*0.18);
+  g.addColorStop(0,'#cfe8ff'); g.addColorStop(1,'#33506e');
+  ctx.fillStyle=g; ctx.strokeStyle='#0c1622'; ctx.lineWidth=Math.max(1,sz*0.02);
+  ctx.beginPath(); ctx.arc(0,0,sz*0.16,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
 function drawDolphin(d){
   const X=d.x*CW+CW/2, Y=rowY(d.row)+CH/2, sz=Math.min(CW,CH);
   ctx.save(); ctx.translate(X,Y); if(d.dir<0) ctx.scale(-1,1);
@@ -1388,9 +1480,12 @@ function renderBoss(w,h){
     }
   }
   // roaming sharks
-  if(state.bossSharks) for(const sh of state.bossSharks) drawEnemy('shark', sh.x, rowY(sh.row), sh.face||sh.dir, false);
+  if(state.bossSharks) for(const sh of state.bossSharks) drawEnemy('shark', sh.x, rowY(sh.row), sh.face||sh.dir, sh.stun>0);
   // dolphin ally
   if(state.dolphin) drawDolphin(state.dolphin);
+  // Orca cannon ally
+  if(state.orca) drawOrca(state.orca);
+  if(state.cannons) for(const c of state.cannons) drawCannon(c);
   // the Kraken
   if(b) drawKraken(b,w,h);
   // whale
@@ -1481,6 +1576,9 @@ function render(){
   for(const b of state.bubbles){ if(!b.taken) drawBubble(b); }
   // dolphin ally
   if(state.dolphin) drawDolphin(state.dolphin);
+  // Orca cannon ally
+  if(state.orca) drawOrca(state.orca);
+  if(state.cannons) for(const c of state.cannons) drawCannon(c);
   // chest (shows open once looted)
   drawChest(state.chestOpened || state.phase==='clear');
   // water portal — appears after the treasure is opened
@@ -1674,7 +1772,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v17`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v18`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
@@ -1704,6 +1802,20 @@ function closePicker(){ picker.classList.remove('open'); }
 document.getElementById('pickerClose').addEventListener('click',closePicker);
 document.getElementById('changeBtn').addEventListener('click',openPicker);
 
+async function checkOrca(wallet){
+  try{
+    const res=await fetch(`/api/orcas?wallet=${encodeURIComponent(wallet)}`);
+    const data=await res.json();
+    if(res.ok && data.owns){
+      state.hasOrca=true;
+      try{ localStorage.setItem('trench_solo_orca','1'); }catch(e){}
+      return true;
+    }
+    state.hasOrca=false;
+    try{ localStorage.removeItem('trench_solo_orca'); }catch(e){}
+  }catch(e){ /* leave ally state as-is on network hiccup */ }
+  return false;
+}
 async function loadWallet(){
   const wallet=wInput.value.trim();
   if(!wallet.startsWith('0x')||wallet.length<10){ setW('Enter a valid 0x wallet address.',true); return; }
@@ -1711,8 +1823,9 @@ async function loadWallet(){
   try{
     loadedNfts=await fetchAllNFTs(wallet);
     if(!loadedNfts.length){ setW('No SSoW whales found for that wallet.',true); return; }
-    setW(`Loaded ${loadedNfts.length} whales — pick your diver`);
     try{ localStorage.setItem('trench_solo_wallet', wallet); }catch(e){}
+    const orca=await checkOrca(wallet);
+    setW(`Loaded ${loadedNfts.length} whales — pick your diver${orca?' · 🐳 Security Orca ally unlocked!':''}`);
     openPicker();
   }catch(err){ setW(err.message||'Could not load whales.',true); }
   finally{ wBtn.disabled=false; }
@@ -1720,12 +1833,15 @@ async function loadWallet(){
 wBtn.addEventListener('click',loadWallet);
 wInput.addEventListener('keydown',e=>{ if(e.key==='Enter') loadWallet(); });
 
-// restore last wallet + chosen whale
+// restore last wallet + chosen whale + Orca ally
 try{
   const lw=localStorage.getItem('trench_solo_wallet'); if(lw) wInput.value=lw;
   const sk=JSON.parse(localStorage.getItem('trench_solo_skin')||'null');
   if(sk&&sk.url){ const img=new Image(); img.crossOrigin='anonymous'; img.src=sk.url; state.skinImg=img; state.skinId=sk.id; state.tier=TIERS[sk.tier]||TIERS.common; showChosen(sk.url,sk.id,state.tier); }
+  if(localStorage.getItem('trench_solo_orca')==='1') state.hasOrca=true;
 }catch(e){}
+// ?orca=1 forces the ally on for testing
+try{ if(new URLSearchParams(location.search).get('orca')==='1') state.hasOrca=true; }catch(e){}
 
 window.addEventListener('resize',resize);
 // boot
