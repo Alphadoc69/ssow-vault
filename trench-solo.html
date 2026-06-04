@@ -200,7 +200,7 @@
     </div>
 
     <div class="overlay hidden" id="overlayOver">
-      <h2>YOU SURFACED</h2>
+      <h2 id="overTitle">YOU SURFACED</h2>
       <div class="runline" id="overRun">Reached Level 1</div>
       <div class="gemtrail" id="overGems"></div>
       <p class="small" id="overBest" style="margin-top:0.6rem">Best dive: Lv.1</p>
@@ -246,12 +246,20 @@
       <p>Pockets of trapped air drift in the calm water. Swim into one to grab a breath and restore oxygen — a lifeline on the deeper, busier levels.</p>
     </div>
     <div class="g-sec">
-      <h3>🐬 Dolphin Allies</h3>
-      <p>You're not alone down here. Pods of dolphins streak across the trench and <b>stun every squid in a lane</b> as they pass — watch for one and dart through the lane it clears while the squid are dazed.</p>
+      <h3>🪼 Jellyfish</h3>
+      <p>Translucent jellies drift through the water. Brush one and it gives a light <b>sting</b> — a small nip of oxygen, no real harm. Annoying in a crowd, not deadly.</p>
     </div>
     <div class="g-sec">
-      <h3>🌊 Echolocation (deep dark zones)</h3>
-      <p>In the Antarctic Deep and the Abyss the water goes black. Like a real sperm whale, you <b>ping sonar</b> — an expanding ring that lights up the field and <b>stuns the squid it touches</b>. Time your moves to each ping.</p>
+      <h3>🪨 Rocks</h3>
+      <p>Boulders block their cell — you can't swim through them, so plan your path around them.</p>
+    </div>
+    <div class="g-sec">
+      <h3>🐬 Dolphin Allies</h3>
+      <p>You're not alone down here. Pods of dolphins streak across the trench and <b>stun every predator in a lane</b> as they pass — watch for one and dart through the lane it clears.</p>
+    </div>
+    <div class="g-sec">
+      <h3>🌊 Echolocation (the final 20 levels)</h3>
+      <p>In the Abyss the water goes black. Like a real sperm whale, you <b>ping sonar</b> — an expanding ring that lights the field and <b>freezes the single nearest predator lane</b>. Moose swim at the surface, so sonar can't touch them. Time your moves to each ping.</p>
     </div>
     <div class="g-sec">
       <h3>💎 The Treasure</h3>
@@ -330,6 +338,11 @@ const CONFIG = {
   dolphinInterval: 7, // seconds between dolphin ally runs
   dolphinStun: 3.0,   // seconds squid are stunned in a lane a dolphin clears
   dolphinSpeed: 9,    // dolphin streak speed (cells/sec)
+  maxLevel: 100,      // the Trench bottoms out here — clear it to win
+  jellyStingO2: 7,    // oxygen lost brushing a jellyfish (a sting, not a hit)
+  jellySpeed: 0.5,    // jellyfish drift speed (cells/sec)
+  jellyChance: 0.55,  // chance a level spawns jellyfish
+  rockChance: 0.5,    // chance a level has rock obstacles you must path around
 };
 
 const cv = document.getElementById('game');
@@ -369,6 +382,7 @@ function sfxGem(rich){ if(!AC)return; const t=AC.currentTime; const base=rich?66
   [0,0.08,0.16].forEach((d,i)=> tone(base*Math.pow(1.26,i),t+d,0.16,'sine',0.16)); }
 function sfxLevel(){ if(!AC)return; const t=AC.currentTime; [392,523,659,784].forEach((f,i)=>tone(f,t+i*0.07,0.18,'triangle',0.15)); }
 function sfxShield(){ if(!AC)return; const t=AC.currentTime; tone(880,t,0.12,'sine',0.18); tone(1320,t+0.06,0.18,'sine',0.14); }
+function sfxSting(){ if(!AC)return; const t=AC.currentTime; tone(300,t,0.1,'sawtooth',0.07); tone(190,t+0.04,0.12,'sine',0.06); }
 function sfxPing(){ if(!AC)return; const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
   o.type='sine'; o.frequency.setValueAtTime(1400,t); o.frequency.exponentialRampToValueAtTime(420,t+0.35);
   g.gain.setValueAtTime(0.12,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.4); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+0.42); }
@@ -438,7 +452,7 @@ const ENEMY={
   squid:   {spd:1.0,  hit:0,    stun:1.0},
   colossal:{spd:1.08, hit:0.10, stun:0.55},
   bear:    {spd:0.95, hit:0,    stun:1.0},
-  moose:   {spd:0.92, hit:0.04, stun:1.0},
+  moose:   {spd:0.92, hit:0.04, stun:1.0, sonar:false},
 };
 const ALL_ENEMIES=['shark','squid','colossal','bear','moose'];
 
@@ -514,8 +528,31 @@ function setupLevel(L){
     usedCols.add(row+'-'+col);
     state.bubbles.push({row, col, taken:false, pop:0});
   }
-  // banner when entering a new habitat (compare by name)
-  if(hab.name!==state.habName){ state.habName=hab.name; state.bannerT=2.6; }
+  // rock obstacles — sit on calm rows; you must path around them (never on the chest)
+  state.rocks=[];
+  if(L>=4 && calm.length && Math.random()<CONFIG.rockChance){
+    const nRocks=1+(Math.random()<0.5?1:0)+(L>40&&Math.random()<0.4?1:0);
+    const taken=new Set();
+    for(let i=0;i<nRocks;i++){
+      const row=calm[Math.floor(Math.random()*calm.length)];
+      const col=Math.floor(Math.random()*CONFIG.COLS);
+      const key=row+'-'+col;
+      if(taken.has(key)) continue;
+      if(row===state.whale.row && col===state.whale.col) continue;
+      taken.add(key); state.rocks.push({row,col});
+    }
+  }
+  // jellyfish — drift slowly, a light sting (small O2 nip, no knockback)
+  state.jellies=[];
+  if(L>=3 && Math.random()<CONFIG.jellyChance){
+    const nJelly=1+(Math.random()<0.5?1:0)+(L>50&&Math.random()<0.5?1:0);
+    for(let i=0;i<nJelly;i++){
+      const row=1+Math.floor(Math.random()*(CONFIG.ROWS-2));
+      const dir=Math.random()<0.5?1:-1;
+      state.jellies.push({row, x:Math.random()*CONFIG.COLS, dir, cool:0, t:Math.random()*6});
+    }
+  }
+  state.stingFlash=0;
   // sonar / darkness
   state.dark=!!hab.dark;
   state.ping=null; state.pingCd=state.dark?1.0:0; state.reveal=0;
@@ -538,6 +575,7 @@ function move(dr,dc){
   const nr=clampi(state.whale.row+dr,0,CONFIG.ROWS-1);
   const nc=clampi(state.whale.col+dc,0,CONFIG.COLS-1);
   if(nr===state.whale.row && nc===state.whale.col) return;
+  if(state.rocks && state.rocks.some(k=>k.row===nr && k.col===nc)){ return; }   // rock blocks the cell
   state.whale.row=nr; state.whale.col=nc; state.whale.hop=1;
   if(dc<0) state.whale.facing=-1; else if(dc>0) state.whale.facing=1;
   sfxMove();
@@ -569,15 +607,28 @@ function levelComplete(){
   state.score += gem.xp + 10; if(gem.xp) sfxGem(gem.rich);
   setTimeout(()=>{
     state.o2=Math.min(100, state.o2+CONFIG.levelRefill);
+    if(state.level>=CONFIG.maxLevel){ win(); return; }   // bottom of the Trench — you win
     state.level++; if(state.level>state.best){ state.best=state.level; saveBest(); }
     setupLevel(state.level); state.phase='play'; state.last=performance.now();
   }, 1150);
+}
+function win(){
+  state.phase='over'; sfxLevel();
+  if(state.level>state.best){ state.best=state.level; saveBest(); }
+  const richTrail = state.gems.slice(-14).map(g=>g.e).join(' ');
+  const diver = state.skinId ? `${state.tier.name} #${state.skinId}` : state.tier.name;
+  document.getElementById('overTitle').textContent='🏆 YOU CONQUERED THE TRENCH';
+  document.getElementById('overRun').textContent = `${diver} · cleared all ${CONFIG.maxLevel} levels · Score ${state.score}`;
+  document.getElementById('overGems').textContent = richTrail || '💎';
+  document.getElementById('overBest').textContent = `Best dive: Lv.${state.best}`;
+  document.getElementById('overlayOver').classList.remove('hidden');
 }
 function gameOver(){
   state.phase='over'; sfxOver();
   if(state.level>state.best){ state.best=state.level; saveBest(); }
   const richTrail = state.gems.slice(-14).map(g=>g.e).join(' ');
   const diver = state.skinId ? `${state.tier.name} #${state.skinId}` : state.tier.name;
+  document.getElementById('overTitle').textContent='YOU SURFACED';
   document.getElementById('overRun').textContent = `${diver} · reached Level ${state.level} · Score ${state.score}`;
   document.getElementById('overGems').textContent = richTrail || '🐚';
   document.getElementById('overBest').textContent = `Best dive: Lv.${state.best}`;
@@ -609,20 +660,33 @@ function update(dt){
       if(chasing){
         const d=state.whale.col-b.x;
         const dir=Math.abs(d)<0.05?0:Math.sign(d);
+        if(dir!==0) b.face=dir;
         b.x=Math.max(0,Math.min(CONFIG.COLS-1, b.x + dir*lane.speed*CONFIG.chaseMult*dt));
       } else {
+        b.face=lane.dir;
         b.x=((b.x+lane.dir*lane.speed*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
       }
     }
   }
-  // sonar: on dark levels, periodic ping reveals the field and stuns nearby squid
+  // sonar: on dark levels a periodic ping reveals the field and freezes ONE lane (the nearest one it can affect)
   if(state.dark){
     state.pingCd-=dt;
-    if(state.pingCd<=0 && !state.ping){ state.ping={r:0}; state.pingCd=CONFIG.pingInterval; state.reveal=1; sfxPing(); }
+    if(state.pingCd<=0 && !state.ping){
+      // choose a single target lane: nearest active lane whose predators respond to sonar (moose don't)
+      let target=null, bestD=1e9;
+      for(const lane of state.lanes){
+        if(!lane.active) continue;
+        if((ENEMY[lane.enemy]||ENEMY.squid).sonar===false) continue;
+        const d=Math.abs(lane.row-state.whale.row);
+        if(d<bestD){ bestD=d; target=lane.row; }
+      }
+      state.ping={r:0, lane:target}; state.pingCd=CONFIG.pingInterval; state.reveal=1; sfxPing();
+    }
     if(state.ping){
       state.ping.r += CONFIG.pingSpeed*dt;
       const wx=state.whale.col, wy=state.whale.row;
-      for(const lane of state.lanes){ if(!lane.active) continue;
+      const lane=state.lanes.find(l=>l.row===state.ping.lane);
+      if(lane && lane.active){
         const dyr=lane.row-wy;
         for(const b of lane.blocks){
           let dx=Math.abs(b.x-wx); dx=Math.min(dx,CONFIG.COLS-dx);
@@ -632,7 +696,7 @@ function update(dt){
       }
       if(state.ping.r > CONFIG.COLS+CONFIG.ROWS){
         state.ping=null;
-        for(const lane of state.lanes){ for(const b of lane.blocks) b.pinged=false; }
+        for(const ln of state.lanes){ for(const b of ln.blocks) b.pinged=false; }
       }
     }
   }
@@ -653,6 +717,16 @@ function update(dt){
   } else {
     state.dolphin.x += state.dolphin.dir*CONFIG.dolphinSpeed*dt;
     if(state.dolphin.x < -2.5 || state.dolphin.x > CONFIG.COLS+2.5) state.dolphin=null;
+  }
+  // jellyfish — drift and lightly sting (small O2 nip, brief cooldown, no knockback)
+  if(state.stingFlash>0) state.stingFlash=Math.max(0,state.stingFlash-dt*3);
+  if(state.jellies) for(const j of state.jellies){
+    j.t+=dt; if(j.cool>0) j.cool-=dt;
+    j.x=((j.x+j.dir*CONFIG.jellySpeed*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
+    if(j.row===state.whale.row && j.cool<=0){
+      let dx=Math.abs(j.x-state.whale.col); dx=Math.min(dx,CONFIG.COLS-dx);
+      if(dx<0.55){ state.o2=Math.max(0,state.o2-CONFIG.jellyStingO2); j.cool=1.0; state.stingFlash=1; sfxSting(); }
+    }
   }
   const lane=state.lanes.find(l=>l.row===state.whale.row);
   const hitR=Math.max(0.45, CONFIG.hitRadius+state.tier.hit+((lane&&ENEMY[lane.enemy])?ENEMY[lane.enemy].hit:0));
@@ -774,6 +848,44 @@ function drawEnemy(type,x,cy,dir,stunned){
     }
     if(stunned){ ctx.font=`${Math.floor(sz*0.3)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('💫',X,Y-sz*0.42); }
   }
+}
+function drawRock(k){
+  const cx=colX(k.col)+CW/2, cy=rowY(k.row)+CH/2;
+  const sz=Math.min(CW,CH);
+  ctx.save(); ctx.translate(cx,cy);
+  // shadow
+  ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(0,sz*0.28,sz*0.4,sz*0.12,0,0,Math.PI*2); ctx.fill();
+  // boulder cluster
+  const lumps=[[0,0,0.34,'#6b6f78'],[ -sz*0.22,sz*0.06,0.2,'#565b64'],[sz*0.2,sz*0.04,0.22,'#7a7f88']];
+  for(const L of lumps){
+    ctx.fillStyle=L[3]; ctx.strokeStyle='rgba(20,24,30,0.5)'; ctx.lineWidth=Math.max(1,sz*0.02);
+    ctx.beginPath(); ctx.ellipse(L[0],L[1],sz*L[2],sz*L[2]*0.82,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  }
+  // highlight + a little seaweed
+  ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.ellipse(-sz*0.08,-sz*0.1,sz*0.12,sz*0.08,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='rgba(90,160,110,0.7)'; ctx.lineWidth=Math.max(1,sz*0.03); ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(sz*0.26,sz*0.18); ctx.quadraticCurveTo(sz*0.34,-sz*0.02,sz*0.28,-sz*0.2); ctx.stroke();
+  ctx.restore();
+}
+function drawJelly(j){
+  const T=state.t||0;
+  const cx=colX(j.x)+CW/2, cy=rowY(j.row)+CH/2 + Math.sin(j.t*2)*CH*0.06;
+  const sz=Math.min(CW,CH), R=sz*0.26, pulse=1+Math.sin(j.t*3)*0.08;
+  ctx.save(); ctx.translate(cx,cy);
+  // glow
+  const gl=ctx.createRadialGradient(0,0,1,0,0,R*2);
+  gl.addColorStop(0,'rgba(200,140,240,0.28)'); gl.addColorStop(1,'rgba(200,140,240,0)');
+  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(0,0,R*2,0,Math.PI*2); ctx.fill();
+  // tentacles
+  ctx.strokeStyle='rgba(220,170,245,0.7)'; ctx.lineWidth=Math.max(1,sz*0.025); ctx.lineCap='round';
+  for(let i=-2;i<=2;i++){ const sway=Math.sin(j.t*3+i)*R*0.3;
+    ctx.beginPath(); ctx.moveTo(i*R*0.28,R*0.1);
+    ctx.quadraticCurveTo(i*R*0.28+sway,R*0.7, i*R*0.28+sway*1.4,R*1.2); ctx.stroke(); }
+  // bell
+  ctx.fillStyle='rgba(210,150,240,0.55)'; ctx.strokeStyle='rgba(235,200,255,0.8)'; ctx.lineWidth=Math.max(1,sz*0.02);
+  ctx.beginPath(); ctx.ellipse(0,0,R*pulse,R*0.8*pulse,0,Math.PI,0); ctx.lineTo(R*pulse,R*0.12); ctx.quadraticCurveTo(0,R*0.32,-R*pulse,R*0.12); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.ellipse(-R*0.3,-R*0.2,R*0.18,R*0.1,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
 }
 function drawBubble(b){
   const T=state.t||0;
@@ -916,10 +1028,14 @@ function render(){
   // lane separators
   ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
   for(let r=1;r<CONFIG.ROWS;r++){ ctx.beginPath(); ctx.moveTo(0,rowY(r)); ctx.lineTo(w,rowY(r)); ctx.stroke(); }
+  // rock obstacles (drawn on the seabed-side, behind predators)
+  if(state.rocks) for(const k of state.rocks) drawRock(k);
   // predators — each lane draws its own kind (sharks, squid, colossal, bears, moose)
   for(const lane of state.lanes){ if(!lane.active) continue;
-    for(const b of lane.blocks) drawEnemy(lane.enemy||'squid',b.x,rowY(lane.row),lane.dir,b.stun>0);
+    for(const b of lane.blocks) drawEnemy(lane.enemy||'squid',b.x,rowY(lane.row),(b.face||lane.dir),b.stun>0);
   }
+  // jellyfish (translucent — drift over everything)
+  if(state.jellies) for(const j of state.jellies) drawJelly(j);
   // air bubbles
   for(const b of state.bubbles){ if(!b.taken) drawBubble(b); }
   // dolphin ally
@@ -950,6 +1066,8 @@ function render(){
       ctx.beginPath(); ctx.arc(wx,wy,state.ping.r*CW,0,Math.PI*2); ctx.stroke();
     }
   }
+  // jellyfish sting flash (gentle purple pulse)
+  if(state.stingFlash>0){ ctx.fillStyle=`rgba(180,120,230,${(0.18*state.stingFlash).toFixed(3)})`; ctx.fillRect(0,0,w,h); }
   // diver tier tag (top-left)
   if(state.phase==='play' && state.tier.key!=='common'){
     ctx.font=`600 ${Math.max(9,Math.floor(CW*0.20))}px 'DM Mono',monospace`;
@@ -1100,7 +1218,7 @@ function selectWhale(url,id,tier){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v6`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v7`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
