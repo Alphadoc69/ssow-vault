@@ -354,8 +354,16 @@
       <p>You're not alone down here. Pods of dolphins streak across the trench and <b>stun every predator in a lane</b> as they pass — watch for one and dart through the lane it clears.</p>
     </div>
     <div class="g-sec">
-      <h3>🐚 Wealthy Whales (NFT holders)</h3>
-      <p>Hold a <b>Wealthy Whale</b> (either Gen) and three perks unlock: a permanent <b>XP multiplier</b> on every gem, glowing <b>pearls</b> that drift through the dives, and a <b>Pearl Vault</b>. Pearls you collect are <b>at risk</b> until you bank them — the deeper you dive the more they're worth (a rising multiplier), but if you run out of air you <b>lose every unbanked pearl</b>. Bank them safely by <b>surfacing</b> (the Quit button) or by <b>clearing a Kraken</b> (a checkpoint). Then spend your banked pearls in the shop on per-dive upgrades.</p>
+      <h3>🐚 Wealthy Whales — Pearls (NFT holders)</h3>
+      <p>Hold a <b>Wealthy Whale</b> (either Gen counts the same) and you unlock <b>pearls</b> — a currency only holders earn. Three things come with it:</p>
+      <p><b>1. Earn pearls.</b> Glowing pearls drift through the dives — swim into them to collect. They're <b>worth more the deeper you go</b> (a rising ×multiplier you'll see up top), and beating a <b>Kraken</b> drops a fat pearl bonus in its hoard.</p>
+      <p><b>2. Keep them — or lose them.</b> Pearls you pick up are <b>AT RISK</b> until banked. If you run out of air, the deep keeps <b>every unbanked pearl</b>. Lock them in safely by <b>surfacing</b> (the Surface button) or by <b>clearing a Kraken</b> (a checkpoint). So every level is a bet: push deeper for more, or surface and bank what you've got.</p>
+      <p><b>3. Spend them.</b> Banked pearls live in your <b>Vault</b> (saved to your wallet between runs). Before a dive, spend them in the shop on stackable upgrades:</p>
+      <div class="g-row"><span>🐢 Slow Drain — oxygen drains 25% slower</span><span class="g-x">12</span></div>
+      <div class="g-row"><span>🛡 Spare Shield — a shield every level</span><span class="g-x">10</span></div>
+      <div class="g-row"><span>🫧 Bubble Bloom — more air, worth more</span><span class="g-x">8</span></div>
+      <div class="g-row"><span>❤️ Revive — resurface once instead of dying</span><span class="g-x">15</span></div>
+      <p>You also get a permanent <b>XP multiplier</b> on every gem (+20% for one whale, up to +50% for a big pod) — so holders score higher and climb the leaderboard faster, even before spending a single pearl.</p>
     </div>
     <div class="g-sec">
       <h3>🐳 Security Orca (NFT holders)</h3>
@@ -371,12 +379,13 @@
     </div>
     <div class="g-sec">
       <h3>💎 The Treasure</h3>
-      <p>Every chest holds a gem. The deeper you dive, the richer the haul:</p>
-      <div class="g-row"><span>🐚 Sand Dollar</span><span class="g-x">+0</span></div>
-      <div class="g-row"><span>🔴 Ruby</span><span class="g-x">+5</span></div>
-      <div class="g-row"><span>🔵 Sapphire</span><span class="g-x">+9</span></div>
-      <div class="g-row"><span>🟢 Emerald</span><span class="g-x">+14</span></div>
-      <div class="g-row"><span>💎 Diamond</span><span class="g-x">+25</span></div>
+      <p>Every chest you crack rolls a <b>rarity</b> — rarer tiers get more likely the deeper you dive, and Epic/Legendary pay a bonus:</p>
+      <div class="g-row"><span>🐚 Driftwood</span><span class="g-x">+0</span></div>
+      <div class="g-row"><span>🔴 Common</span><span class="g-x">+6</span></div>
+      <div class="g-row"><span>🔵 Uncommon</span><span class="g-x">+11</span></div>
+      <div class="g-row"><span>🟢 Rare</span><span class="g-x">+18</span></div>
+      <div class="g-row"><span>💎 Epic</span><span class="g-x">+30 & bonus</span></div>
+      <div class="g-row"><span>👑 Legendary</span><span class="g-x">+60 & jackpot</span></div>
     </div>
     <div class="g-sec">
       <h3>⭐ Whale Rarity Perks</h3>
@@ -2273,7 +2282,7 @@ function selectWhale(url,id,tier,lit){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v45`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v46`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
