@@ -1860,12 +1860,12 @@ function drawKraken(b,w,h){
   const cx=b.x*CW+CW/2, cy=b.y*CH+CH/2, sz=Math.min(CW,CH)*1.7, T=state.t||0;
   const stunned=b.stun>0;
   ctx.save(); ctx.translate(cx,cy);
-  // menacing glow
+  // pale glow
   const gl=ctx.createRadialGradient(0,0,2,0,0,sz*1.1);
-  gl.addColorStop(0, stunned?'rgba(150,170,190,0.3)':'rgba(150,60,200,0.4)'); gl.addColorStop(1,'rgba(150,60,200,0)');
+  gl.addColorStop(0, stunned?'rgba(150,170,190,0.3)':'rgba(220,238,255,0.45)'); gl.addColorStop(1,'rgba(220,238,255,0)');
   ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(0,0,sz*1.1,0,Math.PI*2); ctx.fill();
   if(b.face<0) ctx.scale(-1,1);
-  const body=stunned?'#6b7480':'#5a2a7a', edge=stunned?'#444c55':'#3a1652';
+  const body=stunned?'#9aa3ad':'#eef2f8', edge=stunned?'#5a626b':'#b3becd';
   // tentacles
   ctx.strokeStyle=body; ctx.lineWidth=Math.max(3,sz*0.09); ctx.lineCap='round';
   for(let i=0;i<7;i++){ const a=(-0.9 + i*0.3); const wig=stunned?0:Math.sin(T*4+i)*sz*0.16;
@@ -1879,9 +1879,9 @@ function drawKraken(b,w,h){
   ctx.quadraticCurveTo(-sz*0.42,-sz*0.4,0,-sz*0.55); ctx.closePath(); ctx.fill(); ctx.stroke();
   // glowing eyes
   for(const sgn of [-1,1]){
-    ctx.fillStyle='#1a0c22'; ctx.beginPath(); ctx.ellipse(sgn*sz*0.16,-sz*0.06,sz*0.12,sz*0.09,0,0,Math.PI*2); ctx.fill();
-    if(!stunned){ ctx.fillStyle='#ffd23a'; ctx.beginPath(); ctx.ellipse(sgn*sz*0.16,-sz*0.06,sz*0.05,sz*0.07,0,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle='#1a0c22'; ctx.fillRect(sgn*sz*0.16-sz*0.012,-sz*0.13,sz*0.024,sz*0.14); }
+    ctx.fillStyle='#222a38'; ctx.beginPath(); ctx.ellipse(sgn*sz*0.16,-sz*0.06,sz*0.12,sz*0.09,0,0,Math.PI*2); ctx.fill();
+    if(!stunned){ ctx.fillStyle='#ff5a6e'; ctx.beginPath(); ctx.ellipse(sgn*sz*0.16,-sz*0.06,sz*0.05,sz*0.07,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#222a38'; ctx.fillRect(sgn*sz*0.16-sz*0.012,-sz*0.13,sz*0.024,sz*0.14); }
   }
   if(stunned){ ctx.font=`${Math.floor(sz*0.4)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('💫',0,-sz*0.75); }
   ctx.restore();
@@ -2283,7 +2283,7 @@ function selectWhale(url,id,tier,lit){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v47`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v48`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
