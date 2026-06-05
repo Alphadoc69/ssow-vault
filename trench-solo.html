@@ -427,6 +427,7 @@ const CONFIG = {
   levelRefill: 40,    // oxygen regained on clearing a level
   moveO2: 1.3,        // oxygen spent on every move — every hop counts
   chestRefill: 32,    // oxygen regained the moment you crack the treasure open
+  lootRevealT: 1.5,   // seconds the rarity loot pops out of a cracked chest
   hitRadius: 0.55,    // how close a squid must be to catch you (cells)
   knockbackRows: 3,   // rows pushed back toward the surface when caught
   laneJitter: 0.55,   // per-lane speed variation (higher = more varied)
@@ -517,7 +518,7 @@ const state = {
   dark: false, ping: null, pingCd: 0, reveal: 0,
   dolphin: null, dolphinCd: 0,
   mode: 'dive', boss: null, whirls: [], rocks: [], jellies: [], stingFlash: 0, bossSharks: [],
-  chestOpened: false, portal: null, hintT: 0,
+  chestOpened: false, portal: null, hintT: 0, lootReveal: 0, hoardPhase: false,
   hasOrca: false, orca: null, orcaCd: 0, cannons: [], orcaImg: null, orcaImgs: [], orcaCount: 1, minis: [], miniCd: 0,
   hasWealthy: false, wealthyCount: 0, xpMult: 1, pearls: 0, runPearls: 0,
   pearlsList: [], upg: {}, revived: false, wallet: '',
@@ -687,7 +688,7 @@ function habitatFor(L){
 function isBoss(L){ return L%20===0; }
 function setupLevel(L){
   if(isBoss(L)){ setupBoss(L); return; }
-  state.mode='dive';
+  state.mode='dive'; state.hoardPhase=false;
   const cfg = levelCfg(L); state.cfg = cfg; state.lanes = [];
   // habitat for this depth (set first — lanes use its predator + speed)
   state.habitat=habitatFor(L);
@@ -884,32 +885,43 @@ function krakenTouch(){
   if(state.o2<=0){ state.o2=0; gameOver(); }
 }
 function bossDefeated(){
-  state.phase='over'; sfxLevel(); stopBossMusic();
+  sfxLevel(); stopBossMusic();
   const num = state.boss ? state.boss.num : 1;
-  // loot: gems for everyone, pearls for Wealthy Whale holders
-  const gemCount = 2 + num;                          // a fat pile of gems
-  let gemXp=0; const trail=[];
-  for(let i=0;i<gemCount;i++){ const g=rollGem(Math.min(CONFIG.maxLevel, state.level+20)); state.gems.push(g); gemXp+=g.xp; trail.push(g.e); }
-  state.score += Math.round(gemXp*state.xpMult) + 40;
-  const pearlReward = state.hasWealthy ? CONFIG.bossPearls*num + 6 : 0;
-  state._bossPearls = pearlReward;
-  // build the hoard display
-  const items=document.getElementById('rewardItems');
-  items.innerHTML = `<span class="ri">💎 ×${gemCount}</span>` +
-                    `<span class="ri">+${Math.round(gemXp*state.xpMult)} score</span>` +
-                    (pearlReward? `<span class="ri"><span class="pearl-ico"></span> ×${pearlReward} pearls</span>`:'');
-  document.getElementById('rewardSub').textContent = `Kraken ${num}/5 down — grab the loot`;
-  document.getElementById('overlayReward').classList.remove('hidden');
-  sfxGem(true);
+  state._hoardNum = num;
+  state.boss=null;                              // the Kraken is slain
+  // clear the arena so the victory lap to the chest is safe
+  state.minis=[]; state.inks=[]; state.inkBalls=[]; state.bossSharks=[];
+  state.whirls=[]; state.dolphin=null; state.orca=null; state.cannons=[]; state.rocks=[];
+  // drop a treasure chest where the Kraken was — walk up and crack it
+  state.chest={row:1, col:Math.floor(CONFIG.COLS/2)}; state.chestOpened=false; state.portal=null;
+  state.hoardPhase=true; state.lootReveal=0;
+  state.habName='KRAKEN DEFEATED'; state.bannerT=2.6;
+  state.phase='play'; state.last=performance.now();
 }
-function continueAfterBoss(){
-  document.getElementById('overlayReward').classList.add('hidden');
-  if(state._bossPearls){ state.runPearls += state._bossPearls; state._bossPearls=0; }
-  bankPearls();   // a cleared Kraken is a safe checkpoint — lock in everything so far
+function openBossHoard(){
+  state.chestOpened=true;
+  const num=state._hoardNum||1;
+  const gemCount=2+num; let gemXp=0;
+  for(let i=0;i<gemCount;i++){ const g=rollGem(Math.min(CONFIG.maxLevel, state.level+20)); state.gems.push(g); gemXp+=g.xp; }
+  state.score += Math.round(gemXp*state.xpMult) + 40;
+  if(state.hasWealthy) state.runPearls += CONFIG.bossPearls*num + 6;
+  bankPearls();                                 // a cleared Kraken is a safe checkpoint
   state.o2=Math.min(100, state.o2+CONFIG.levelRefill+25);
+  state.clearGem={e:'🧰', name:`HOARD · ${gemCount} GEMS`, color:'#ffd24a', rich:true, jackpot:true};
+  state.lootReveal=CONFIG.lootRevealT*1.4;
+  sfxJackpot();
+  // a portal opens beside the hoard — step in to dive on
+  const spot={row:Math.min(CONFIG.ROWS-1, state.chest.row+1), col:state.chest.col};
+  state.portal={row:spot.row, col:spot.col, t:0}; state.hintT=2.4;
+}
+function finishHoard(){
+  state.hoardPhase=false; state.portal=null;
   if(state.level>=CONFIG.maxLevel){ win(); return; }
   state.level++; if(state.level>state.best){ state.best=state.level; saveBest(); }
   setupLevel(state.level); state.phase='play'; state.last=performance.now();
+}
+function continueAfterBoss(){   // legacy (overlay) — no longer used
+  document.getElementById('overlayReward').classList.add('hidden');
 }
 function updateBoss(dt){
   const b=state.boss; if(!b) return;
@@ -1129,12 +1141,23 @@ function move(dr,dc){
   if(state.mode!=='boss'){
     if(!state.chestOpened && nr===state.chest.row && nc===state.chest.col){ openTreasure(); }
     else if(state.chestOpened && state.portal && nr===state.portal.row && nc===state.portal.col){ levelComplete(); }
+  } else if(state.hoardPhase){
+    if(!state.chestOpened && nr===state.chest.row && nc===state.chest.col){ openBossHoard(); }
+    else if(state.chestOpened && state.portal && nr===state.portal.row && nc===state.portal.col){ finishHoard(); }
   }
 }
 function openTreasure(){
   state.chestOpened=true;
   state.o2=Math.min(100, state.o2+CONFIG.chestRefill);
-  sfxGem(true);
+  // roll the chest's loot rarity right here, so it bursts out of the chest you cracked
+  const gem=rollGem(state.level); state.clearGem=gem; state.gems.push(gem);
+  state.score += Math.round(gem.xp*state.xpMult) + 10;
+  if(gem.jackpot) sfxJackpot(); else if(gem.rich) sfxGem(true); else sfxGem(false);
+  if(gem.bonus || gem.jackpot){
+    state.score += gem.jackpot?100:30;
+    if(state.hasWealthy) state.runPearls += Math.round((gem.jackpot?20:6)*pearlMult());
+  }
+  state.lootReveal = CONFIG.lootRevealT;
   // a water portal tears open right beside the chest — step into it to descend
   const blocked=new Set((state.rocks||[]).map(k=>k.row+'-'+k.col));
   blocked.add(state.chest.row+'-'+state.chest.col);
@@ -1161,21 +1184,13 @@ function sweep(){
   if(state.o2<=0){ state.o2=0; gameOver(); }
 }
 function levelComplete(){
-  state.phase='clear'; state.clearAnim=0;
-  const gem=rollGem(state.level); state.clearGem=gem; state.gems.push(gem);
-  state.score += Math.round(gem.xp*state.xpMult) + 10;
-  if(gem.jackpot) sfxJackpot(); else if(gem.rich) sfxGem(true); else if(gem.xp) sfxGem(false); else sfxLevel();
-  // big rolls pay a bonus — extra score for everyone, extra pearls for holders
-  if(gem.bonus || gem.jackpot){
-    state.score += gem.jackpot?100:30;
-    if(state.hasWealthy) state.runPearls += Math.round((gem.jackpot?20:6)*pearlMult());
-  }
+  state.phase='clear'; state.clearAnim=0; state.clearGem=null; sfxBubble();
   setTimeout(()=>{
     state.o2=Math.min(100, state.o2+CONFIG.levelRefill);
     if(state.level>=CONFIG.maxLevel){ win(); return; }   // bottom of the Trench — you win
     state.level++; if(state.level>state.best){ state.best=state.level; saveBest(); }
     setupLevel(state.level); state.phase='play'; state.last=performance.now();
-  }, 1150);
+  }, 650);
 }
 function win(){
   state.phase='over'; sfxLevel(); stopBossMusic();
@@ -1212,7 +1227,7 @@ function startRun(){
   resumeAudio();
   state.level=1; state.score=0; state.o2=100; state.gems=[];
   state.invuln=0; state.habName='';
-  state.runPearls=0; state.revived=false;
+  state.runPearls=0; state.revived=false; state.hoardPhase=false; state.lootReveal=0;
   if(state.best<1) state.best=1;
   setupLevel(1); state.phase='play'; state.last=performance.now();
   document.getElementById('overlayStart').classList.add('hidden');
@@ -1262,6 +1277,7 @@ function updateOrca(dt){
 }
 function update(dt){
   if(state.phase!=='play') return;
+  if(state.lootReveal>0) state.lootReveal=Math.max(0,state.lootReveal-dt);
   if(state.mode==='boss'){ updateBoss(dt); return; }
   if(state.invuln>0) state.invuln=Math.max(0,state.invuln-dt);
   if(state.bannerT>0) state.bannerT=Math.max(0,state.bannerT-dt);
@@ -1535,6 +1551,20 @@ function drawLoadout(y){
   if(!ic.length) return;
   ctx.save(); ctx.font=`${Math.max(12,Math.floor(CW*0.3))}px serif`; ctx.textAlign='left'; ctx.textBaseline='top';
   ctx.globalAlpha=0.95; ctx.fillText(ic.join(' '), 8, y); ctx.restore();
+}
+function drawLootReveal(){
+  if(!(state.lootReveal>0 && state.clearGem)) return;
+  const g=state.clearGem, dur=(g.jackpot&&g.e==='🧰')?CONFIG.lootRevealT*1.4:CONFIG.lootRevealT;
+  const p=1-state.lootReveal/dur;   // 0 → 1
+  const cx=colX(state.chest.col)+CW/2, cy=rowY(state.chest.row)+CH*0.4 - p*CH*1.6;
+  const alpha = p<0.82 ? 1 : Math.max(0,1-(p-0.82)/0.18);
+  const sc = p<0.25 ? 0.4+p*2.4 : 1;
+  ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.globalAlpha=alpha;
+  if(g.rich){ ctx.shadowColor=g.color; ctx.shadowBlur=g.jackpot?32:18; }
+  ctx.font=`${Math.floor(CW*0.78*sc)}px serif`; ctx.fillText(g.e, cx, cy); ctx.shadowBlur=0;
+  if(g.name){ ctx.fillStyle=g.color||'#fff'; ctx.font=`${Math.floor(CW*0.3)}px 'Bebas Neue',sans-serif`;
+    ctx.fillText(g.name, cx, cy+CH*0.55); }
+  ctx.restore();
 }
 function drawBubble(b){
   const T=state.t||0;
@@ -1872,11 +1902,23 @@ function renderBoss(w,h){
   if(state.cannons) for(const c of state.cannons) drawCannon(c);
   // the Kraken
   if(b) drawKraken(b,w,h);
+  // hoard chest + portal after the Kraken is slain
+  if(state.hoardPhase){
+    drawChest(state.chestOpened);
+    if(state.portal){ state.portal.t=(state.portal.t||0)+0.05; drawPortal(state.portal); }
+  }
   // ink: small splats where balls landed (local blind), then the flying ink balls
   if(state.inks) for(const ink of state.inks) drawInk(ink);
   if(state.inkBalls) for(const bl of state.inkBalls) drawInkBall(bl);
   // whale
   if(state.phase!=='idle') drawWhale();
+  if(state.hoardPhase){
+    drawLootReveal();
+    ctx.save(); ctx.textAlign='center'; ctx.textBaseline='top';
+    ctx.fillStyle='#ffd24a'; ctx.font=`${Math.min(22,w*0.055)}px 'Bebas Neue',sans-serif`;
+    ctx.fillText(state.chestOpened?'▼ STEP INTO THE PORTAL':'🏆 KRAKEN DEFEATED — GRAB THE HOARD', w/2, 8);
+    ctx.restore();
+  }
   // lightning shrug — cyan ring when a lightning-proof whale is struck
   if(state.shrug>0){ state.shrug=Math.max(0,state.shrug-0.016);
     const wx=colX(state.whale.col)+CW/2, wy=rowY(state.whale.row)+CH/2, rr=Math.min(CW,CH)*(0.5+(0.5-state.shrug));
@@ -1914,15 +1956,15 @@ function renderBoss(w,h){
   // intro card — clear, readable, paused until the player moves
   if(b && b.intro){
     ctx.fillStyle='rgba(4,2,14,0.78)'; ctx.fillRect(0,0,w,h);
-    // flashing DANGER strip across the top
+    // flashing DANGER strip across the BOTTOM
     const dp=0.5+0.5*Math.sin((state.t||0)*9);
-    const bh=Math.max(30,h*0.065);
-    ctx.fillStyle=`rgba(170,18,18,${(0.30+0.40*dp).toFixed(3)})`; ctx.fillRect(0,0,w,bh);
-    ctx.strokeStyle=`rgba(255,90,90,${(0.5+0.5*dp).toFixed(3)})`; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,bh); ctx.lineTo(w,bh); ctx.stroke();
+    const bh=Math.max(30,h*0.065), by=h-bh;
+    ctx.fillStyle=`rgba(170,18,18,${(0.30+0.40*dp).toFixed(3)})`; ctx.fillRect(0,by,w,bh);
+    ctx.strokeStyle=`rgba(255,90,90,${(0.5+0.5*dp).toFixed(3)})`; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,by); ctx.lineTo(w,by); ctx.stroke();
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillStyle=`rgba(255,225,225,${(0.7+0.3*dp).toFixed(3)})`;
     ctx.font=`${Math.min(24,w*0.062)}px 'Bebas Neue',sans-serif`;
-    ctx.fillText('⚠   DANGER · KRAKEN AHEAD   ⚠', w/2, bh/2);
+    ctx.fillText('⚠   DANGER · KRAKEN AHEAD   ⚠', w/2, by+bh/2);
     ctx.textBaseline='alphabetic';
     const pw=Math.min(w*0.86, 460), ph=Math.min(h*0.7, 300), px=(w-pw)/2, py=(h-ph)/2;
     ctx.fillStyle='rgba(20,10,40,0.96)'; ctx.strokeStyle='rgba(176,107,255,0.7)'; ctx.lineWidth=2;
@@ -1998,15 +2040,8 @@ function render(){
   drawChest(state.chestOpened || state.phase==='clear');
   // water portal — appears after the treasure is opened
   if(state.portal){ state.portal.t=(state.portal.t||0)+0.05; drawPortal(state.portal); }
-  // clearing gem rise
-  if(state.phase==='clear' && state.clearGem){
-    state.clearAnim=Math.min(1,state.clearAnim+0.03);
-    const cx=colX(state.chest.col)+CW/2, cy=rowY(state.chest.row)+CH/2;
-    ctx.save(); ctx.globalAlpha=1-state.clearAnim*0.3;
-    ctx.font=`${Math.floor(CW*0.7)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(state.clearGem.e, cx, cy - state.clearAnim*CH*1.1);
-    ctx.restore();
-  }
+  // loot bursts out of the cracked chest — rarity reveal, right where you opened it
+  drawLootReveal();
   // whale
   if(state.phase!=='idle') drawWhale();
   // darkness + sonar (echolocation zones)
@@ -2216,7 +2251,7 @@ function selectWhale(url,id,tier,lit){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v41`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v43`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
