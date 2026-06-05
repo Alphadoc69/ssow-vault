@@ -446,8 +446,8 @@ const CONFIG = {
   holdRepeat: 120,    // ms between hops when a pad button is held (lower = faster)
   mobileSpeed: 0.93,  // on phones, everything moves at this fraction of desktop speed
   swipeRepeat: 130,   // min ms between hops when drag-steering (stops the whale zooming)
-  bubbleO2: 16,       // oxygen restored per air bubble
-  bubblesBase: 2,     // air bubbles per level
+  bubbleO2: 20,       // oxygen restored per air bubble
+  bubblesBase: 4,     // air bubbles per level
   invuln: 0.5,        // seconds of safety after a squid hit (no chain hits)
   pingInterval: 2.6,  // seconds between sonar pings on dark levels
   pingSpeed: 7,       // sonar ring expansion (cells/sec)
@@ -616,7 +616,7 @@ const TIERS={
              perk:'Better lungs · tougher against currents'},
   uncommon: {key:'uncommon', name:'DIVER',     color:'#6fe0a0',drain:0.93,sweepMul:0.90,hit:0,    shield:false,
              perk:'Slightly longer breath'},
-  common:   {key:'common',   name:'PUP',       color:'#8aa6b5',drain:1.00,sweepMul:1.00,hit:0,    shield:false,
+  common:   {key:'common',   name:'PUP',       color:'#8aa6b5',drain:0.94,sweepMul:1.00,hit:0,    shield:false,
              perk:'No perks — pure skill'},
 };
 function tierFromRank(r){ if(r<=100)return TIERS.legendary; if(r<=500)return TIERS.epic; if(r<=1000)return TIERS.rare; if(r<=3000)return TIERS.uncommon; return TIERS.common; }
@@ -2283,7 +2283,7 @@ function selectWhale(url,id,tier,lit){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v48`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v50`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
