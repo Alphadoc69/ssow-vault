@@ -375,7 +375,8 @@
     </div>
     <div class="g-sec">
       <h3>🦑 Kraken Boss (every 20 levels)</h3>
-      <p>At levels 20, 40, 60, 80 and 100 a giant <b>Kraken</b> blocks the trench. It chases you and hurls <b>lightning</b> down columns — dodge to a dark column before it strikes. Whirlpools flicker in and out across the arena: <b>lead the Kraken onto one</b> for big damage (but they'll suck <i>you</i> in too, so don't linger). And let the <b>dolphin allies</b> ram it — each hit briefly freezes the Kraken. Drain its health bar to break through. Deeper Krakens get nastier: more lightning columns at once, rock obstacles, roaming sharks, and it <b>summons mini-squids</b> that chase you down — keep moving, and let your cannon or dolphins freeze them.</p>
+      <p>At levels 20, 40, 60, 80 and 100 a giant <b>Kraken</b> blocks the trench. It chases you and hurls <b>lightning</b> down columns — dodge to a dark column before it strikes. Whirlpools flicker in and out across the arena: <b>lead the Kraken onto one</b> for big damage (but they'll suck <i>you</i> in too, so don't linger). And let the <b>dolphin allies</b> ram it — each hit briefly freezes the Kraken. Drain its health bar to break through. Deeper Krakens get nastier: more lightning columns at once, rock obstacles, roaming sharks, <b>balls of ink</b> thrown at you, and <b>mini-squids</b> it summons to chase you down — keep moving, and let your cannon or dolphins freeze them.</p>
+      <p><b>The Hoard.</b> Beat the Kraken and the arena clears — a <b>treasure chest</b> drops where it was. Swim up and crack it for the biggest payout in the game: a pile of <b>score</b> for everyone, plus a stack of <b>pearls</b> for Wealthy Whale holders (more the deeper the boss). It's also a <b>safe checkpoint</b> — cracking the hoard banks all your at-risk pearls. Then step into the portal beside it to dive on.</p>
     </div>
     <div class="g-sec">
       <h3>💎 The Treasure</h3>
@@ -2282,7 +2283,7 @@ function selectWhale(url,id,tier,lit){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v46`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v47`;
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
