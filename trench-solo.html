@@ -377,8 +377,10 @@
       <p>In the Abyss the water goes black. Like a real sperm whale, you <b>ping sonar</b> — an expanding ring that lights the field and <b>freezes the single nearest predator lane</b>. Moose swim at the surface, so sonar can't touch them. Time your moves to each ping.</p>
     </div>
     <div class="g-sec">
-      <h3>🦑 Kraken Boss (every 20 levels)</h3>
-      <p>At levels 20, 40, 60, 80 and 100 a giant <b>Kraken</b> blocks the trench. It chases you and hurls <b>lightning</b> down columns — dodge to a dark column before it strikes. Whirlpools flicker in and out across the arena: <b>lead the Kraken onto one</b> for big damage (but they'll suck <i>you</i> in too, so don't linger). And let the <b>dolphin allies</b> ram it — each hit briefly freezes the Kraken. Drain its health bar to break through. Deeper Krakens get nastier: more lightning columns at once, rock obstacles, roaming sharks, <b>balls of ink</b> thrown at you, and <b>mini-squids</b> it summons to chase you down — keep moving, and let your cannon or dolphins freeze them.</p>
+      <h3>🐢 Giant Sea Turtle (level 20)</h3>
+      <p>The first boss is the <b>Guardian of the Deep</b> — a giant sea turtle. It <b>bites</b> (it rears back first — when you see "BITE!", slide out of the way; a <b>missed bite makes it crash and stun itself</b>, your best window to hurt it), <b>sweeps its flippers</b> across a glowing band of rows ("SWEEP!" — step out of the highlighted rows), and tucks into its <b>armored shell to pinball around the arena</b> — it can't be hurt while shelled and bouncing into you stings, so just dodge it until it pops back out. Damage it with <b>dolphin rams and your Orca cannon</b> while its head and flippers are out, and by baiting those missed bites. Every diver fights it — no pearls needed.</p>
+      <h3>🦑 Kraken Boss (levels 40 · 60 · 80 · 100)</h3>
+      <p>At levels 40, 60, 80 and 100 a giant <b>Kraken</b> blocks the trench. It chases you and hurls <b>lightning</b> down columns — dodge to a dark column before it strikes. Whirlpools flicker in and out across the arena: <b>lead the Kraken onto one</b> for big damage (but they'll suck <i>you</i> in too, so don't linger). And let the <b>dolphin allies</b> ram it — each hit briefly freezes the Kraken. Drain its health bar to break through. Deeper Krakens get nastier: more lightning columns at once, rock obstacles, roaming sharks, <b>balls of ink</b> thrown at you, and <b>mini-squids</b> it summons to chase you down — keep moving, and let your cannon or dolphins freeze them.</p>
       <p><b>The Hoard.</b> Beat the Kraken and the arena clears — a <b>treasure chest</b> drops where it was. Swim up and crack it for the biggest payout in the game: a pile of <b>score</b> for everyone, plus a stack of <b>pearls</b> for Wealthy Whale holders (more the deeper the boss). It's also a <b>safe checkpoint</b> — cracking the hoard banks all your at-risk pearls. Then step into the portal beside it to dive on.</p>
     </div>
     <div class="g-sec">
@@ -494,6 +496,22 @@ const CONFIG = {
   bossInkSpawn: 3.4,  // seconds between the Kraken's ink-ball throws (faster on deeper bosses)
   bossInkO2: 8,       // oxygen lost from a direct ink-ball hit
   bossInkLife: 1.2,   // how long an ink splat lingers where a ball lands
+  // ── Giant Sea Turtle boss (level 20) ──
+  turtleHp: 120,       // turtle health
+  turtleSpeed: 0.95,   // slow stalking chase speed (cells/sec)
+  turtleTouchO2: 14,   // oxygen lost bumping the turtle (head/flippers out)
+  turtleAtkGap: 1.9,   // seconds between attacks while stalking
+  turtleBiteWind: 0.62,// bite tell — turtle rears back this long before lunging
+  turtleBiteSpeed: 9.5,// how fast the turtle lunges on a bite
+  turtleBiteO2: 18,    // oxygen lost from a bite that connects
+  turtleBiteSelfDmg: 16,// damage the turtle takes when it bites & MISSES (crashes)
+  turtleBiteStun: 1.5, // seconds the turtle is stunned after a missed bite (hit it now!)
+  turtleSweepWind: 0.5,// flipper-strike tell
+  turtleSweepO2: 13,   // oxygen lost from a flipper strike (hits turtle's row ±1)
+  turtleShellWind: 0.45,// tuck-in tell before the shell starts bouncing
+  turtleShellSpeed: 6.5,// how fast the shell pinballs around the arena
+  turtleShellTime: 3.6,// how long the shell bounces before it pops back out
+  turtleShellO2: 15,   // oxygen lost when the bouncing shell hits you
   // Wealthy Whales — XP multiplier, pearls, per-run upgrades
   xpBase: 0.20,       // +20% XP for owning a Wealthy Whale
   xpPer: 0.03,        // +3% per extra whale
@@ -837,6 +855,7 @@ function spawnWhirl(){
 function setupBoss(L){
   state.mode='boss';
   const num = L/CONFIG.bossEvery;                  // boss 1..5
+  if(L===20){ setupTurtle(L); return; }            // level 20 → Giant Sea Turtle
   state.cfg = {drain:CONFIG.bossDrain};
   state.lanes=[]; state.bubbles=[]; state.jellies=[]; state.rocks=[];
   state.habitat=HAB.kraken; state.dark=false;
@@ -888,6 +907,121 @@ function setupBoss(L){
   state.habName='THE KRAKEN'; state.bannerT=0;
   sfxAlarm(); startBossMusic();
 }
+// ── GIANT SEA TURTLE BOSS (level 20) ──
+function setupTurtle(L){
+  state.cfg={drain:CONFIG.bossDrain};
+  state.lanes=[]; state.bubbles=[]; state.jellies=[]; state.rocks=[];
+  state.habitat=HAB.kraken; state.dark=false;
+  state.whale={row:CONFIG.ROWS-2, col:Math.floor(CONFIG.COLS/2), facing:1, hop:0};
+  state.shieldReady=state.tier.shield || !!state.upg.shield;
+  const hp=CONFIG.turtleHp;
+  state.boss={
+    type:'turtle', hp, maxHp:hp, num:1,
+    x:(CONFIG.COLS-1)/2, y:1.2, speed:CONFIG.turtleSpeed*SPD, face:1,
+    hitCd:0, stun:0, mode:'stalk', atkCd:CONFIG.turtleAtkGap, atkT:0,
+    armored:false, flipUp:0, jaw:0, vx:0, vy:0, tuck:0, spin:0,
+    intro:true, introT:9
+  };
+  state.whirls=[]; state.bossSharks=[]; state.minis=[]; state.inks=[]; state.inkBalls=[];
+  const used=new Set();
+  for(let i=0;i<2;i++){ let row,col,tries=0;
+    do{ row=2+Math.floor(Math.random()*(CONFIG.ROWS-3)); col=Math.floor(Math.random()*CONFIG.COLS); tries++; }
+    while(used.has(row+'-'+col)&&tries<16); used.add(row+'-'+col);
+    state.bubbles.push({row,col,taken:false,pop:0}); }
+  state.bubbleCd=CONFIG.bossBubbleSpawn*0.5;
+  state.dolphin=null; state.dolphinCd=2.6;
+  state.orca=null; state.cannons=[]; state.orcaCd=CONFIG.orcaIntervalBoss*0.6;
+  state.ping=null; state.reveal=0; state.stingFlash=0;
+  state.habName='THE GUARDIAN'; state.bannerT=0;
+  sfxAlarm(); startBossMusic();
+}
+function startBite(b){ b.mode='bite'; b.biteState='wind'; b.atkT=CONFIG.turtleBiteWind; b.jaw=0; }
+function startSweep(b){ b.mode='sweep'; b.sweepState='wind'; b.atkT=CONFIG.turtleSweepWind; b.swept=false; b.flipUp=0; b.sweepRow=Math.round(b.y); }
+function startShell(b){ b.mode='shell'; b.armored=true; b.tuck=0; b.spin=0; b.atkT=CONFIG.turtleShellTime; b.hitCd=0;
+  const dx=state.whale.col-b.x, dy=state.whale.row-b.y, d=Math.hypot(dx,dy)||1, sp=CONFIG.turtleShellSpeed*SPD, a=Math.random()*Math.PI*2;
+  b.vx=(dx/d)*sp*0.7 + Math.cos(a)*sp*0.35; b.vy=(dy/d)*sp*0.7 + Math.sin(a)*sp*0.35; sfxSwept();
+}
+function toStalk(b,gap){ b.mode='stalk'; b.armored=false; b.flipUp=0; b.jaw=0; b.tuck=0; b.atkCd=gap; b.hitCd=0.6; }
+function turtleHurtWhale(o2){
+  if(state.invuln>0) return;
+  const b=state.boss;
+  if(state.shieldReady){ state.shieldReady=false; sfxShield(); state.invuln=CONFIG.invuln;
+    const v=document.getElementById('vignette'); v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),200); return; }
+  state.o2-=o2*state.tier.sweepMul; sfxSwept();
+  const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
+  const dc=Math.sign(state.whale.col-b.x)||1, dr=Math.sign(state.whale.row-b.y)||1;
+  state.whale.col=clampi(state.whale.col+dc*2,0,CONFIG.COLS-1);
+  state.whale.row=clampi(state.whale.row+dr,0,CONFIG.ROWS-1);
+  state.invuln=CONFIG.invuln; state.stingFlash=0.6;
+  if(state.o2<=0){ state.o2=0; gameOver(); }
+}
+function updateTurtle(dt){
+  const b=state.boss;
+  if(b.stun>0) b.stun=Math.max(0,b.stun-dt);
+  if(b.mode==='stalk'){
+    if(b.stun<=0){
+      const dx=state.whale.col-b.x, dy=state.whale.row-b.y, d=Math.hypot(dx,dy)||1;
+      b.x=Math.max(0.4,Math.min(CONFIG.COLS-1.4, b.x+(dx/d)*b.speed*dt));
+      b.y=Math.max(0.6,Math.min(CONFIG.ROWS-1.6, b.y+(dy/d)*b.speed*0.7*dt));
+      b.face=dx>=0?1:-1;
+      b.atkCd-=dt;
+      if(b.atkCd<=0){ const r=Math.random(); if(r<0.42) startBite(b); else if(r<0.72) startSweep(b); else startShell(b); }
+    }
+    if(b.hitCd>0) b.hitCd-=dt;
+    if(Math.hypot(b.x-state.whale.col,b.y-state.whale.row)<0.9 && b.hitCd<=0){ turtleHurtWhale(CONFIG.turtleTouchO2); b.hitCd=1.1; }
+  }
+  else if(b.mode==='bite'){
+    b.atkT-=dt;
+    if(b.biteState==='wind'){
+      b.jaw=Math.min(1,b.jaw+dt*3);
+      if(b.atkT<=0){ b.biteState='lunge'; b.atkT=0.65; b.lungeTo={x:state.whale.col,y:state.whale.row}; }
+    } else {
+      const dx=b.lungeTo.x-b.x, dy=b.lungeTo.y-b.y, d=Math.hypot(dx,dy), step=CONFIG.turtleBiteSpeed*SPD*dt;
+      if(d>0.05){ b.x=Math.max(0.3,Math.min(CONFIG.COLS-1.3, b.x+(dx/d)*step)); b.y=Math.max(0.5,Math.min(CONFIG.ROWS-1.5, b.y+(dy/d)*step)); b.face=dx>=0?1:-1; }
+      if(Math.hypot(b.x-state.whale.col,b.y-state.whale.row)<0.8 && state.invuln<=0){ turtleHurtWhale(CONFIG.turtleBiteO2); toStalk(b,CONFIG.turtleAtkGap); }
+      else if(d<=step || b.atkT<=0){ b.hp-=CONFIG.turtleBiteSelfDmg; b.stun=CONFIG.turtleBiteStun; state.stingFlash=0.9; sfxPing(); toStalk(b,CONFIG.turtleAtkGap+0.4); }
+    }
+  }
+  else if(b.mode==='sweep'){
+    b.atkT-=dt;
+    if(b.sweepState==='wind'){
+      b.flipUp=Math.min(1,b.flipUp+dt*4);
+      if(b.atkT<=0){ b.sweepState='strike'; b.atkT=0.4; }
+    } else {
+      if(!b.swept){ if(Math.abs(state.whale.row-b.sweepRow)<=1 && state.invuln<=0) turtleHurtWhale(CONFIG.turtleSweepO2); b.swept=true; }
+      b.flipUp=Math.max(0,b.flipUp-dt*4);
+      if(b.atkT<=0) toStalk(b,CONFIG.turtleAtkGap);
+    }
+  }
+  else if(b.mode==='shell'){
+    b.atkT-=dt; b.tuck=Math.min(1,b.tuck+dt*5); b.spin=(b.spin||0)+dt*11;
+    b.x+=b.vx*dt; b.y+=b.vy*dt;
+    if(b.x<=0.5){ b.x=0.5; b.vx=Math.abs(b.vx); } if(b.x>=CONFIG.COLS-1.5){ b.x=CONFIG.COLS-1.5; b.vx=-Math.abs(b.vx); }
+    if(b.y<=0.6){ b.y=0.6; b.vy=Math.abs(b.vy); } if(b.y>=CONFIG.ROWS-1.5){ b.y=CONFIG.ROWS-1.5; b.vy=-Math.abs(b.vy); }
+    if(b.hitCd>0) b.hitCd-=dt;
+    if(Math.hypot(b.x-state.whale.col,b.y-state.whale.row)<0.85 && b.hitCd<=0){ turtleHurtWhale(CONFIG.turtleShellO2); b.hitCd=0.8; }
+    if(b.atkT<=0) toStalk(b,1.0);
+  }
+  if(!state.dolphin){ state.dolphinCd-=dt;
+    if(state.dolphinCd<=0){ const row=Math.round(b.y); const dir=Math.random()<0.5?1:-1;
+      state.dolphin={row, x:(dir>0?-1.5:CONFIG.COLS+1.5), dir, hit:false}; state.dolphinCd=2.8; sfxDolphin(); }
+  } else {
+    state.dolphin.x+=state.dolphin.dir*CONFIG.dolphinSpeed*dt;
+    if(!state.dolphin.hit && !b.armored && Math.abs(state.dolphin.x-b.x)<0.6 && Math.abs(state.dolphin.row-b.y)<0.9){
+      b.hp-=CONFIG.bossDolphinDmg; b.stun=Math.max(b.stun,CONFIG.bossDolphinStun); state.dolphin.hit=true; state.stingFlash=0.6; sfxGem(false); }
+    if(state.dolphin.x<-2.5||state.dolphin.x>CONFIG.COLS+2.5) state.dolphin=null;
+  }
+  state.bubbleCd-=dt;
+  const liveB=state.bubbles.filter(bub=>!bub.taken).length;
+  if(state.bubbleCd<=0 && liveB<CONFIG.bossBubbleMax){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn; }
+  for(let i=state.bubbles.length-1;i>=0;i--){ const bub=state.bubbles[i];
+    if(!bub.taken && bub.row===state.whale.row && bub.col===state.whale.col){ state.o2=Math.min(100,state.o2+CONFIG.bubbleO2); sfxBubble(); state.bubbles.splice(i,1); } }
+  updateOrca(dt);
+  if(b.hp<=0){ bossDefeated(); return; }
+  if(state.o2<=0){ state.o2=0; gameOver(); }
+  if(state.whale.hop>0) state.whale.hop=Math.max(0,state.whale.hop-dt*7);
+}
+
 function krakenTouch(){
   if(state.invuln>0) return;
   const b=state.boss;
@@ -904,16 +1038,17 @@ function krakenTouch(){
 }
 function bossDefeated(){
   sfxLevel(); stopBossMusic();
+  const wasTurtle = state.boss && state.boss.type==='turtle';
   const num = state.boss ? state.boss.num : 1;
   state._hoardNum = num;
-  state.boss=null;                              // the Kraken is slain
+  state.boss=null;                              // the boss is slain
   // clear the arena so the victory lap to the chest is safe
   state.minis=[]; state.inks=[]; state.inkBalls=[]; state.bossSharks=[];
   state.whirls=[]; state.dolphin=null; state.orca=null; state.cannons=[]; state.rocks=[];
-  // drop a treasure chest where the Kraken was — walk up and crack it
+  // drop a treasure chest where the boss was — walk up and crack it
   state.chest={row:1, col:Math.floor(CONFIG.COLS/2)}; state.chestOpened=false; state.portal=null;
   state.hoardPhase=true; state.lootReveal=0;
-  state.habName='KRAKEN DEFEATED'; state.bannerT=2.6;
+  state.habName= wasTurtle ? 'GUARDIAN DEFEATED' : 'KRAKEN DEFEATED'; state.bannerT=2.6;
   state.phase='play'; state.last=performance.now();
 }
 function openBossHoard(){
@@ -955,6 +1090,7 @@ function updateBoss(dt){
   const ramp=CONFIG.bossDrainRamp*(1+0.12*(b.num-1));
   const drain=Math.min(CONFIG.bossDrainMax, CONFIG.bossDrain + ramp*b.fightT);
   state.o2 -= drain*state.tier.drain*(state.upg.slow?0.75:1)*dt;
+  if(b.type==='turtle'){ updateTurtle(dt); return; }
   // Kraken chases the whale (holds still while stunned)
   if(b.stun>0){ b.stun=Math.max(0,b.stun-dt); }
   else {
@@ -1282,7 +1418,7 @@ function updateOrca(dt){
   // move cannonballs and resolve hits
   for(let i=state.cannons.length-1;i>=0;i--){ const c=state.cannons[i];
     c.x += c.dir*c.speed*dt;
-    if(boss && state.boss){
+    if(boss && state.boss && !state.boss.armored){
       if(Math.abs(c.x-state.boss.x)<0.6 && Math.abs(c.row-state.boss.y)<1.0){
         state.boss.hp-=CONFIG.cannonBossDmg; state.boss.stun=Math.max(state.boss.stun,CONFIG.cannonBossStun);
         state.stingFlash=0.6; state.cannons.splice(i,1); continue;
@@ -1864,6 +2000,72 @@ function drawWhirl(wpl){
   ctx.fillStyle=`rgba(4,16,34,${(0.75*a).toFixed(3)})`; ctx.beginPath(); ctx.arc(0,0,sz*0.1,0,Math.PI*2); ctx.fill();
   ctx.restore();
 }
+function drawTurtle(b,w,h){
+  const cx=b.x*CW+CW/2, cy=b.y*CH+CH/2, sz=Math.min(CW,CH)*1.7, T=state.t||0;
+  const stunned=b.stun>0, shell=(b.mode==='shell');
+  const windBite=(b.mode==='bite'&&b.biteState==='wind'), windSweep=(b.mode==='sweep'&&b.sweepState==='wind'), striking=(b.mode==='sweep'&&b.sweepState==='strike');
+  ctx.save(); ctx.translate(cx,cy);
+  const gcol = shell?'rgba(190,235,250,0.5)' : (windBite||windSweep)?'rgba(255,170,110,0.5)' : 'rgba(150,225,175,0.38)';
+  const gl=ctx.createRadialGradient(0,0,2,0,0,sz*1.05); gl.addColorStop(0,gcol); gl.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(0,0,sz*1.05,0,Math.PI*2); ctx.fill();
+
+  if(shell){
+    ctx.save(); ctx.rotate(b.spin||0);
+    const cg=ctx.createRadialGradient(-sz*0.12,-sz*0.12,sz*0.05,0,0,sz*0.55);
+    cg.addColorStop(0,'#6fae5e'); cg.addColorStop(1,'#2f6b3a');
+    ctx.fillStyle=cg; ctx.strokeStyle='#1c4a28'; ctx.lineWidth=Math.max(2,sz*0.05);
+    ctx.beginPath(); ctx.arc(0,0,sz*0.5,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle='rgba(20,60,32,0.7)'; ctx.lineWidth=Math.max(1.5,sz*0.025);
+    ctx.beginPath(); ctx.arc(0,0,sz*0.22,0,Math.PI*2); ctx.stroke();
+    for(let i=0;i<6;i++){ const a=i*Math.PI/3; ctx.beginPath(); ctx.moveTo(Math.cos(a)*sz*0.22,Math.sin(a)*sz*0.22); ctx.lineTo(Math.cos(a)*sz*0.5,Math.sin(a)*sz*0.5); ctx.stroke(); }
+    ctx.strokeStyle='rgba(220,255,230,0.55)'; ctx.lineWidth=Math.max(1.5,sz*0.03); ctx.beginPath(); ctx.arc(0,0,sz*0.46,0,Math.PI*2); ctx.stroke();
+    ctx.restore(); ctx.restore(); return;
+  }
+
+  if(b.face<0) ctx.scale(-1,1);
+  const skin=stunned?'#8a9a80':'#7cae63', skinE=stunned?'#5a6650':'#4d7a3a', shellE=stunned?'#566150':'#235233';
+
+  // flippers (behind shell)
+  ctx.fillStyle=skin; ctx.strokeStyle=skinE; ctx.lineWidth=Math.max(2,sz*0.035);
+  ctx.save(); ctx.translate(-sz*0.42,sz*0.28); ctx.rotate(0.5+Math.sin(T*2)*0.06);
+  ctx.beginPath(); ctx.ellipse(0,0,sz*0.20,sz*0.11,0,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
+  const fl=b.flipUp||0;
+  ctx.save(); ctx.translate(sz*0.30,sz*0.26);
+  const fang = striking ? -1.0 : (-0.2 - fl*1.1 + Math.sin(T*2.5)*0.05);
+  ctx.rotate(fang);
+  ctx.beginPath(); ctx.ellipse(0,0,sz*0.30,sz*0.13,0,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
+
+  // head (front, +x)
+  const rear = windBite ? sz*0.12*Math.min(1,(b.jaw||0)*1.5) : 0;
+  const hx=sz*0.52 - rear;
+  ctx.fillStyle=skin; ctx.strokeStyle=skinE; ctx.lineWidth=Math.max(2,sz*0.035);
+  ctx.beginPath(); ctx.ellipse(hx,-sz*0.02,sz*0.20,sz*0.16,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  const jaw=(b.mode==='bite')?(b.jaw||0):0;
+  if(jaw>0.02){ ctx.fillStyle='#7a2230'; ctx.beginPath();
+    ctx.moveTo(hx+sz*0.07,-sz*0.02); ctx.lineTo(hx+sz*0.26,-sz*0.02-sz*0.12*jaw); ctx.lineTo(hx+sz*0.26,-sz*0.02+sz*0.12*jaw); ctx.closePath(); ctx.fill(); }
+  ctx.fillStyle=stunned?'#caa15a':'#e6b15a'; ctx.beginPath(); ctx.moveTo(hx+sz*0.17,-sz*0.07); ctx.lineTo(hx+sz*0.27,-sz*0.02); ctx.lineTo(hx+sz*0.17,sz*0.03); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#10210f'; ctx.beginPath(); ctx.arc(hx-sz*0.02,-sz*0.06,sz*0.035,0,Math.PI*2); ctx.fill();
+  if(!stunned){ ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(hx-sz*0.005,-sz*0.075,sz*0.012,0,Math.PI*2); ctx.fill(); }
+
+  // carapace
+  const cg=ctx.createRadialGradient(-sz*0.12,-sz*0.14,sz*0.05,0,0,sz*0.52);
+  cg.addColorStop(0,stunned?'#92a386':'#56a062'); cg.addColorStop(1,shellE);
+  ctx.fillStyle=cg; ctx.strokeStyle=shellE; ctx.lineWidth=Math.max(2.5,sz*0.05);
+  ctx.beginPath(); ctx.ellipse(-sz*0.05,0,sz*0.5,sz*0.42,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle='rgba(20,55,30,0.6)'; ctx.lineWidth=Math.max(1.5,sz*0.025);
+  ctx.beginPath(); ctx.ellipse(-sz*0.05,0,sz*0.22,sz*0.2,0,0,Math.PI*2); ctx.stroke();
+  for(let i=0;i<6;i++){ const a=i*Math.PI/3+0.3; ctx.beginPath();
+    ctx.moveTo(-sz*0.05+Math.cos(a)*sz*0.22,Math.sin(a)*sz*0.2);
+    ctx.lineTo(-sz*0.05+Math.cos(a)*sz*0.5,Math.sin(a)*sz*0.42); ctx.stroke(); }
+
+  if(b.face<0) ctx.scale(-1,1);
+  ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  if(windBite){ ctx.fillStyle='rgba(255,160,90,0.95)'; ctx.font=`700 ${Math.floor(sz*0.16)}px 'DM Mono',monospace`; ctx.fillText('BITE!',0,-sz*0.62); }
+  else if(windSweep){ ctx.fillStyle='rgba(255,205,90,0.95)'; ctx.font=`700 ${Math.floor(sz*0.16)}px 'DM Mono',monospace`; ctx.fillText('SWEEP!',0,-sz*0.62); }
+  if(stunned){ ctx.font=`${Math.floor(sz*0.36)}px serif`; ctx.textBaseline='middle'; ctx.fillText('💫',0,-sz*0.66); }
+  ctx.restore();
+}
+
 function drawKraken(b,w,h){
   const cx=b.x*CW+CW/2, cy=b.y*CH+CH/2, sz=Math.min(CW,CH)*1.7, T=state.t||0;
   const stunned=b.stun>0;
@@ -1929,8 +2131,13 @@ function renderBoss(w,h){
   // Orca cannon ally
   if(state.orca) drawOrca(state.orca);
   if(state.cannons) for(const c of state.cannons) drawCannon(c);
-  // the Kraken
-  if(b) drawKraken(b,w,h);
+  // the boss
+  if(b && b.type==='turtle' && b.mode==='sweep'){   // telegraph the flipper-strike band (sweepRow ±1)
+    const warn=(b.sweepState==='wind'); const a = warn ? (0.10+0.10*Math.sin(state.t*22)) : 0.26;
+    const r0=Math.max(0,b.sweepRow-1), r1=Math.min(CONFIG.ROWS-1,b.sweepRow+1);
+    ctx.fillStyle=`rgba(255,180,80,${a.toFixed(3)})`; ctx.fillRect(0,rowY(r0),w,(r1-r0+1)*CH);
+  }
+  if(b){ if(b.type==='turtle') drawTurtle(b,w,h); else drawKraken(b,w,h); }
   // hoard chest + portal after the Kraken is slain
   if(state.hoardPhase){
     drawChest(state.chestOpened);
@@ -1943,7 +2150,7 @@ function renderBoss(w,h){
   if(state.phase!=='idle') drawWhale();
   if(state.hoardPhase){
     drawLootReveal();
-    const msg = state.chestOpened ? '▼ STEP INTO THE PORTAL' : '🏆 KRAKEN DEFEATED!';
+    const msg = state.chestOpened ? '▼ STEP INTO THE PORTAL' : '🏆 BOSS DEFEATED!';
     const sub = state.chestOpened ? '' : 'swim up & grab the hoard';
     ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
     const by=h*0.62, fs=Math.min(22,w*0.058);
@@ -1973,7 +2180,7 @@ function renderBoss(w,h){
     const grd=ctx.createLinearGradient(bx,0,bx+bw,0); grd.addColorStop(0,'#ff5a7a'); grd.addColorStop(1,'#b06bff');
     ctx.fillStyle=grd; ctx.fillRect(bx,by,bw*frac,bh);
     ctx.font=`600 ${Math.max(9,Math.floor(CW*0.18))}px 'DM Mono',monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillStyle='#fff'; ctx.fillText(`THE KRAKEN  ·  BOSS ${b.num}/5`, w/2, by+bh/2);
+    ctx.fillStyle='#fff'; ctx.fillText(b.type==='turtle' ? 'GIANT SEA TURTLE  ·  THE GUARDIAN' : `THE KRAKEN  ·  BOSS ${b.num}/5`, w/2, by+bh/2);
   }
   // clearing celebration (gem rise)
   if(state.phase==='clear' && state.clearGem){
@@ -1998,17 +2205,21 @@ function renderBoss(w,h){
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillStyle=`rgba(255,225,225,${(0.7+0.3*dp).toFixed(3)})`;
     ctx.font=`${Math.min(24,w*0.062)}px 'Bebas Neue',sans-serif`;
-    ctx.fillText('⚠   DANGER · KRAKEN AHEAD   ⚠', w/2, by+bh/2);
+    ctx.fillText(b.type==='turtle' ? '⚠   DANGER · SEA TURTLE AHEAD   ⚠' : '⚠   DANGER · KRAKEN AHEAD   ⚠', w/2, by+bh/2);
     ctx.textBaseline='alphabetic';
     const pw=Math.min(w*0.86, 460), ph=Math.min(h*0.7, 300), px=(w-pw)/2, py=(h-ph)/2;
     ctx.fillStyle='rgba(20,10,40,0.96)'; ctx.strokeStyle='rgba(176,107,255,0.7)'; ctx.lineWidth=2;
     roundRect(px,py,pw,ph,16); ctx.fill(); ctx.stroke();
     ctx.textAlign='center';
     ctx.fillStyle='#fff'; ctx.font=`${Math.min(38,pw*0.10)}px 'Bebas Neue',sans-serif`; ctx.textBaseline='alphabetic';
-    ctx.fillText('🦑 THE KRAKEN', w/2, py+pw*0.115);
+    ctx.fillText(b.type==='turtle' ? '🐢 GIANT SEA TURTLE' : '🦑 THE KRAKEN', w/2, py+pw*0.115);
     ctx.fillStyle='rgba(220,200,255,0.8)'; ctx.font=`600 ${Math.min(13,pw*0.034)}px 'DM Mono',monospace`;
-    ctx.fillText(`BOSS ${b.num} / 5`, w/2, py+pw*0.115+20);
-    const lines=[
+    ctx.fillText(b.type==='turtle' ? 'THE GUARDIAN OF THE DEEP' : `BOSS ${b.num} / 5`, w/2, py+pw*0.115+20);
+    const lines = b.type==='turtle' ? [
+      ['🐢','BAIT its BITE, then dodge','— a missed bite makes it crash & stun (hit it!)'],
+      ['🐬','Let DOLPHINS / cannon strike','— while its head & flippers are out'],
+      ['🛡','AVOID the spinning SHELL','— it\'s armored & bounces — just don\'t get hit'],
+    ] : [
       ['🌀','Lure it onto a WHIRLPOOL','— rips its health, but they hurt you too'],
       ['🐬','Let DOLPHINS ram it','— a strike briefly freezes it'],
       ['⚡','DODGE its lightning','— slide out of the lit column before it hits'],
@@ -2291,7 +2502,7 @@ function selectWhale(url,id,tier,lit,bub){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v52`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v53`;
   // default PUP whale — always available to pick (for non-holders and holders alike)
   {
     const dc=document.createElement('div'); dc.className='pcard'+(state.skinId==null?' sel':'');
