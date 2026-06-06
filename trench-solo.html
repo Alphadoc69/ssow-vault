@@ -514,8 +514,8 @@ const CONFIG = {
   turtleShellTime: 10,  // how long the shell bounces before it pops back out
   turtleShellO2: 15,   // oxygen lost when the bouncing shell hits you
   turtleRechargeTime: 5,// after spinning, the turtle lands SHELL-DOWN & helpless this long
-  turtleBarnacleDmg: 11,// damage each thrown barnacle deals to the grounded turtle
-  turtleBarnacleCd: 0.32,// min seconds between barnacle throws
+  turtleBarnacleDmg: 5,// damage each thrown barnacle deals to the grounded turtle
+  turtleBarnacleCd: 0.4,// min seconds between barnacle throws
   turtleBarnacleDur: 0.3,// barnacle flight time (whale → turtle)
   turtleDolphinGap: 5.5,// seconds between dolphin allies in the turtle fight (rarer = harder)
   // Wealthy Whales — XP multiplier, pearls, per-run upgrades
@@ -2653,7 +2653,7 @@ function selectWhale(url,id,tier,lit,bub){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v58`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v60`;
   // default PUP whale — always available to pick (for non-holders and holders alike)
   {
     const dc=document.createElement('div'); dc.className='pcard'+(state.skinId==null?' sel':'');
