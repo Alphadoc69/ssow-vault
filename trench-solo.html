@@ -2557,7 +2557,7 @@ function selectWhale(url,id,tier,lit,bub){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v54`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v55`;
   // default PUP whale — always available to pick (for non-holders and holders alike)
   {
     const dc=document.createElement('div'); dc.className='pcard'+(state.skinId==null?' sel':'');
@@ -2778,6 +2778,21 @@ try{ const q=new URLSearchParams(location.search);
   const oq=q.get('orca'); if(oq){ state.hasOrca=true; showOrcaBadge('', parseInt(oq)||1); }
   if(q.get('wealthy')==='1'){ state.hasWealthy=true; state.wealthyCount=5; state.xpMult=1+Math.min(CONFIG.xpCap,CONFIG.xpBase+CONFIG.xpPer*4); state.pearls=50; showWealthyBadge([],5); }
   if(q.get('win')==='1'){ state.level=CONFIG.maxLevel; state.score=9999; state.runPearls=120; document.body.classList.add('playing'); setTimeout(win,250); }
+  // jump straight into a level for testing — ?boss=1 → turtle (lvl 20); ?level=N → any level (e.g. ?level=40 = Kraken)
+  const lvParam = q.get('boss')==='1' ? 20 : parseInt(q.get('level'));
+  if(lvParam){
+    const L=Math.max(1,Math.min(CONFIG.maxLevel,lvParam));
+    setTimeout(()=>{ resumeAudio();
+      state.level=L; state.score=0; state.o2=100; state.gems=[]; state.invuln=0; state.habName='';
+      state.runPearls=0; state.revived=false; state.hoardPhase=false; state.lootReveal=0;
+      if(state.best<L) state.best=L;
+      setupLevel(L); state.phase='play'; state.last=performance.now();
+      document.body.classList.add('playing');
+      document.getElementById('overlayStart').classList.add('hidden');
+      document.getElementById('overlayOver').classList.add('hidden');
+      resize();
+    }, 200);
+  }
 }catch(e){}
 
 window.addEventListener('resize',resize);
