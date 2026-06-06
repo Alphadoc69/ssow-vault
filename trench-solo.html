@@ -467,7 +467,7 @@ const CONFIG = {
   dolphinStun: 3.0,   // seconds squid are stunned in a lane a dolphin clears
   dolphinSpeed: 9,    // dolphin streak speed (cells/sec)
   orcaIntervalDive: 8,// seconds between Orca cannon runs in normal levels
-  orcaIntervalBoss: 5,// seconds between Orca cannon runs in boss fights
+  orcaIntervalBoss: 8,// seconds between Orca cannon runs in boss fights
   orcaRatePerOrca: 0.035, // each extra Orca fires a bit more often…
   orcaRateCap: 0.38,  // …up to this much faster (so a full pod isn't constant fire)
   cannonSpeed: 11,    // Orca cannonball speed (cells/sec)
@@ -497,22 +497,23 @@ const CONFIG = {
   bossInkO2: 8,       // oxygen lost from a direct ink-ball hit
   bossInkLife: 1.2,   // how long an ink splat lingers where a ball lands
   // ── Giant Sea Turtle boss (level 20) ──
-  turtleHp: 165,       // turtle health (tougher)
-  turtleSpeed: 1.0,    // slow stalking chase speed (cells/sec)
+  turtleHp: 210,       // turtle health (tougher)
+  turtleSpeed: 1.05,   // slow stalking chase speed (cells/sec)
   turtleTouchO2: 14,   // oxygen lost bumping the turtle (head/flippers out)
-  turtleAtkGap: 1.7,   // seconds between attacks while stalking
-  turtleBiteWind: 0.6, // bite tell — turtle rears back this long before lunging
-  turtleBiteSpeed: 10.5,// how fast the turtle lunges on a bite
-  turtleBiteReach: 1.1,// how far PAST you the lunge carries (longer reach)
+  turtleAtkGap: 1.4,   // seconds between attacks while stalking
+  turtleBiteWind: 0.55,// bite tell — turtle rears back this long before lunging
+  turtleBiteSpeed: 11, // how fast the turtle lunges on a bite
+  turtleBiteReach: 1.2,// how far PAST you the lunge carries (longer reach)
   turtleBiteO2: 18,    // oxygen lost from a bite that connects
   turtleBiteSelfDmg: 15,// damage the turtle takes when it bites & MISSES (crashes)
   turtleBiteStun: 1.4, // seconds the turtle is stunned after a missed bite (hit it now!)
-  turtleSweepWind: 0.5,// flipper-strike tell
+  turtleSweepWind: 0.48,// flipper-strike tell
   turtleSweepO2: 13,   // oxygen lost from a flipper strike (hits turtle's row ±1)
   turtleShellWind: 0.45,// tuck-in tell before the shell starts bouncing
-  turtleShellSpeed: 8.0,// how fast the shell pinballs around the arena
+  turtleShellSpeed: 11.5,// how fast the shell pinballs around the arena (Sonic-style)
   turtleShellTime: 10,  // how long the shell bounces before it pops back out
   turtleShellO2: 15,   // oxygen lost when the bouncing shell hits you
+  turtleDolphinGap: 5.5,// seconds between dolphin allies in the turtle fight (rarer = harder)
   // Wealthy Whales — XP multiplier, pearls, per-run upgrades
   xpBase: 0.20,       // +20% XP for owning a Wealthy Whale
   xpPer: 0.03,        // +3% per extra whale
@@ -930,7 +931,7 @@ function setupTurtle(L){
     while(used.has(row+'-'+col)&&tries<16); used.add(row+'-'+col);
     state.bubbles.push({row,col,taken:false,pop:0}); }
   state.bubbleCd=CONFIG.bossBubbleSpawn*0.5;
-  state.dolphin=null; state.dolphinCd=2.6;
+  state.dolphin=null; state.dolphinCd=CONFIG.turtleDolphinGap;
   state.orca=null; state.cannons=[]; state.orcaCd=CONFIG.orcaIntervalBoss*0.6;
   state.ping=null; state.reveal=0; state.stingFlash=0;
   state.habName='THE GUARDIAN'; state.bannerT=0;
@@ -966,7 +967,7 @@ function updateTurtle(dt){
       b.y=Math.max(0.6,Math.min(CONFIG.ROWS-1.6, b.y+(dy/d)*b.speed*0.7*dt));
       b.face=dx>=0?1:-1;
       b.atkCd-=dt;
-      if(b.atkCd<=0){ const r=Math.random(); if(r<0.42) startBite(b); else if(r<0.72) startSweep(b); else startShell(b); }
+      if(b.atkCd<=0){ const r=Math.random(); if(r<0.34) startBite(b); else if(r<0.58) startSweep(b); else startShell(b); }
     }
     if(b.hitCd>0) b.hitCd-=dt;
     if(Math.hypot(b.x-state.whale.col,b.y-state.whale.row)<0.9 && b.hitCd<=0){ turtleHurtWhale(CONFIG.turtleTouchO2); b.hitCd=1.1; }
@@ -998,7 +999,7 @@ function updateTurtle(dt){
     }
   }
   else if(b.mode==='shell'){
-    b.atkT-=dt; b.tuck=Math.min(1,b.tuck+dt*5); b.spin=(b.spin||0)+dt*13;
+    b.atkT-=dt; b.tuck=Math.min(1,b.tuck+dt*5); b.spin=(b.spin||0)+dt*20;
     b.x+=b.vx*dt; b.y+=b.vy*dt;
     const sp=CONFIG.turtleShellSpeed*SPD; let bounced=false;
     if(b.x<=0.5){ b.x=0.5; b.vx=Math.abs(b.vx); bounced=true; } if(b.x>=CONFIG.COLS-1.5){ b.x=CONFIG.COLS-1.5; b.vx=-Math.abs(b.vx); bounced=true; }
@@ -1011,7 +1012,7 @@ function updateTurtle(dt){
   }
   if(!state.dolphin){ state.dolphinCd-=dt;
     if(state.dolphinCd<=0){ const row=Math.round(b.y); const dir=Math.random()<0.5?1:-1;
-      state.dolphin={row, x:(dir>0?-1.5:CONFIG.COLS+1.5), dir, hit:false}; state.dolphinCd=2.8; sfxDolphin(); }
+      state.dolphin={row, x:(dir>0?-1.5:CONFIG.COLS+1.5), dir, hit:false}; state.dolphinCd=CONFIG.turtleDolphinGap; sfxDolphin(); }
   } else {
     state.dolphin.x+=state.dolphin.dir*CONFIG.dolphinSpeed*dt;
     if(!state.dolphin.hit && !b.armored && Math.abs(state.dolphin.x-b.x)<0.6 && Math.abs(state.dolphin.row-b.y)<0.9){
@@ -2557,7 +2558,7 @@ function selectWhale(url,id,tier,lit,bub){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v55`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v56`;
   // default PUP whale — always available to pick (for non-holders and holders alike)
   {
     const dc=document.createElement('div'); dc.className='pcard'+(state.skinId==null?' sel':'');
