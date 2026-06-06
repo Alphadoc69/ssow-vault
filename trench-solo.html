@@ -378,7 +378,7 @@
     </div>
     <div class="g-sec">
       <h3>🐢 Giant Sea Turtle (level 20)</h3>
-      <p>The first boss is the <b>Guardian of the Deep</b> — a giant sea turtle. It <b>bites</b> (it rears back first — when you see "BITE!", slide out of the way; a <b>missed bite makes it crash and stun itself</b>, your best window to hurt it), <b>sweeps its flippers</b> across a glowing band of rows ("SWEEP!" — step out of the highlighted rows), and tucks into its <b>armored shell to pinball around the arena</b> — it can't be hurt while shelled and bouncing into you stings, so just dodge it until it pops back out. Damage it with <b>dolphin rams and your Orca cannon</b> while its head and flippers are out, and by baiting those missed bites. Every diver fights it — no pearls needed.</p>
+      <p>The first boss is the <b>Guardian of the Deep</b> — a giant sea turtle. It <b>bites</b> (it rears back first — when you see "BITE!", slide out of the way; a <b>missed bite makes it crash and stun itself</b>, a window to hurt it), <b>sweeps its flippers</b> across a glowing band of rows ("SWEEP!" — step out of the highlighted rows), and tucks into its <b>armored shell to pinball around the arena</b> for ~10s — it can't be hurt while spinning, so just dodge it. When the shell finally <b>lands shell-down it's helpless for 5 seconds</b> — that's your moment: <b>tap the screen (or press space) to hurl barnacles</b> at it for big damage. Dolphins and your Orca cannon also chip in while its head is out. Every diver fights it — no pearls needed.</p>
       <h3>🦑 Kraken Boss (levels 40 · 60 · 80 · 100)</h3>
       <p>At levels 40, 60, 80 and 100 a giant <b>Kraken</b> blocks the trench. It chases you and hurls <b>lightning</b> down columns — dodge to a dark column before it strikes. Whirlpools flicker in and out across the arena: <b>lead the Kraken onto one</b> for big damage (but they'll suck <i>you</i> in too, so don't linger). And let the <b>dolphin allies</b> ram it — each hit briefly freezes the Kraken. Drain its health bar to break through. Deeper Krakens get nastier: more lightning columns at once, rock obstacles, roaming sharks, <b>balls of ink</b> thrown at you, and <b>mini-squids</b> it summons to chase you down — keep moving, and let your cannon or dolphins freeze them.</p>
       <p><b>The Hoard.</b> Beat the Kraken and the arena clears — a <b>treasure chest</b> drops where it was. Swim up and crack it for the biggest payout in the game: a pile of <b>score</b> for everyone, plus a stack of <b>pearls</b> for Wealthy Whale holders (more the deeper the boss). It's also a <b>safe checkpoint</b> — cracking the hoard banks all your at-risk pearls. Then step into the portal beside it to dive on.</p>
@@ -513,6 +513,10 @@ const CONFIG = {
   turtleShellSpeed: 11.5,// how fast the shell pinballs around the arena (Sonic-style)
   turtleShellTime: 10,  // how long the shell bounces before it pops back out
   turtleShellO2: 15,   // oxygen lost when the bouncing shell hits you
+  turtleRechargeTime: 5,// after spinning, the turtle lands SHELL-DOWN & helpless this long
+  turtleBarnacleDmg: 11,// damage each thrown barnacle deals to the grounded turtle
+  turtleBarnacleCd: 0.32,// min seconds between barnacle throws
+  turtleBarnacleDur: 0.3,// barnacle flight time (whale → turtle)
   turtleDolphinGap: 5.5,// seconds between dolphin allies in the turtle fight (rarer = harder)
   // Wealthy Whales — XP multiplier, pearls, per-run upgrades
   xpBase: 0.20,       // +20% XP for owning a Wealthy Whale
@@ -555,7 +559,7 @@ const state = {
   chestOpened: false, portal: null, hintT: 0, lootReveal: 0, hoardPhase: false,
   hasOrca: false, orca: null, orcaCd: 0, cannons: [], orcaImg: null, orcaImgs: [], orcaCount: 1, minis: [], miniCd: 0,
   hasWealthy: false, wealthyCount: 0, xpMult: 1, pearls: 0, runPearls: 0,
-  pearlsList: [], upg: {}, revived: false, wallet: '',
+  pearlsList: [], upg: {}, revived: false, wallet: '', barnacles: [], barnacleCd: 0,
 };
 
 // ── persistence (works on the real site; harmless if blocked) ──
@@ -598,6 +602,7 @@ function sfxCannon(){ if(!AC)return; const t=AC.currentTime; voice(220,90,t,0.12
 function sfxPing(){ if(!AC)return; const t=AC.currentTime; voice(1300,440,t,0.36,'sine',0.11,5000); }
 function sfxDolphin(){ if(!AC)return; const t=AC.currentTime; [900,1300,1700,1400].forEach((f,i)=>voice(f,f,t+i*0.05,0.08,'sine',0.10,5200)); }
 function sfxBubble(){ if(!AC)return; const t=AC.currentTime; voice(430,1000,t,0.12,'sine',0.13,3400); voice(1200,1700,t+0.004,0.05,'sine',0.05,5200); }  // cute pop
+function sfxThrow(){ if(!AC)return; const t=AC.currentTime; voice(300,120,t,0.13,'square',0.12,1100); noise(t,0.05,0.06,2600); }  // a hurled barnacle
 function sfxOver(){ if(!AC)return; const t=AC.currentTime; [392,294,196].forEach((f,i)=>voice(f,f*0.95,t+i*0.14,0.34,'sine',0.14,1800)); }  // gentle wah-down
 function sfxInk(){ if(!AC)return; const t=AC.currentTime; voice(260,90,t,0.2,'sine',0.13,700); noise(t,0.14,0.10,1100); }  // wet splorp
 function sfxAlarm(){ if(!AC)return; const t=AC.currentTime;   // klaxon before the boss
@@ -925,6 +930,7 @@ function setupTurtle(L){
     intro:true, introT:9
   };
   state.whirls=[]; state.bossSharks=[]; state.minis=[]; state.inks=[]; state.inkBalls=[];
+  state.barnacles=[]; state.barnacleCd=0;
   const used=new Set();
   for(let i=0;i<2;i++){ let row,col,tries=0;
     do{ row=2+Math.floor(Math.random()*(CONFIG.ROWS-3)); col=Math.floor(Math.random()*CONFIG.COLS); tries++; }
@@ -956,6 +962,15 @@ function turtleHurtWhale(o2){
   state.whale.row=clampi(state.whale.row+dr,0,CONFIG.ROWS-1);
   state.invuln=CONFIG.invuln; state.stingFlash=0.6;
   if(state.o2<=0){ state.o2=0; gameOver(); }
+}
+function throwBarnacle(){
+  const b=state.boss;
+  if(!b || b.type!=='turtle' || b.mode!=='recharge') return;   // only when it's grounded & helpless
+  if((state.barnacleCd||0)>0) return;
+  state.barnacleCd=CONFIG.turtleBarnacleCd;
+  if(!state.barnacles) state.barnacles=[];
+  state.barnacles.push({x0:state.whale.col, y0:state.whale.row, x:state.whale.col, y:state.whale.row, tx:b.x, ty:b.y, t:0, dur:CONFIG.turtleBarnacleDur});
+  state.whale.hop=1; sfxThrow();
 }
 function updateTurtle(dt){
   const b=state.boss;
@@ -1008,7 +1023,12 @@ function updateTurtle(dt){
     const v=Math.hypot(b.vx,b.vy)||1; b.vx=b.vx/v*sp; b.vy=b.vy/v*sp;   // keep it fast & roaming
     if(b.hitCd>0) b.hitCd-=dt;
     if(Math.hypot(b.x-state.whale.col,b.y-state.whale.row)<0.85 && b.hitCd<=0){ turtleHurtWhale(CONFIG.turtleShellO2); b.hitCd=0.8; }
-    if(b.atkT<=0) toStalk(b,1.0);
+    if(b.atkT<=0){ b.mode='recharge'; b.armored=false; b.atkT=CONFIG.turtleRechargeTime; b.stun=0; b.flop=0; state.hintT=1.6; }
+  }
+  else if(b.mode==='recharge'){          // landed SHELL-DOWN, helpless — pelt it with barnacles!
+    b.flop=(b.flop||0)+dt;               // flailing animation
+    b.atkT-=dt;
+    if(b.atkT<=0) toStalk(b,CONFIG.turtleAtkGap);
   }
   if(!state.dolphin){ state.dolphinCd-=dt;
     if(state.dolphinCd<=0){ const row=Math.round(b.y); const dir=Math.random()<0.5?1:-1;
@@ -1024,6 +1044,15 @@ function updateTurtle(dt){
   if(state.bubbleCd<=0 && liveB<CONFIG.bossBubbleMax){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn; }
   for(let i=state.bubbles.length-1;i>=0;i--){ const bub=state.bubbles[i];
     if(!bub.taken && bub.row===state.whale.row && bub.col===state.whale.col){ state.o2=Math.min(100,state.o2+CONFIG.bubbleO2); sfxBubble(); state.bubbles.splice(i,1); } }
+  // thrown barnacles — arc to the turtle; damage it while it's grounded (recharge)
+  if(state.barnacleCd>0) state.barnacleCd-=dt;
+  if(state.barnacles) for(let i=state.barnacles.length-1;i>=0;i--){ const bn=state.barnacles[i];
+    bn.t+=dt; const k=Math.min(1,bn.t/bn.dur);
+    bn.x=bn.x0+(bn.tx-bn.x0)*k; bn.y=bn.y0+(bn.ty-bn.y0)*k - Math.sin(k*Math.PI)*1.3;
+    if(k>=1){ state.barnacles.splice(i,1);
+      if(b.mode==='recharge'){ b.hp-=CONFIG.turtleBarnacleDmg; state.stingFlash=0.5; sfxGem(false);
+        if(b.hp<=0){ bossDefeated(); return; } } }
+  }
   updateOrca(dt);
   if(b.hp<=0){ bossDefeated(); return; }
   if(state.o2<=0){ state.o2=0; gameOver(); }
@@ -1051,7 +1080,7 @@ function bossDefeated(){
   state._hoardNum = num;
   state.boss=null;                              // the boss is slain
   // clear the arena so the victory lap to the chest is safe
-  state.minis=[]; state.inks=[]; state.inkBalls=[]; state.bossSharks=[];
+  state.minis=[]; state.inks=[]; state.inkBalls=[]; state.bossSharks=[]; state.barnacles=[];
   state.whirls=[]; state.dolphin=null; state.orca=null; state.cannons=[]; state.rocks=[];
   // drop a treasure chest where the boss was — walk up and crack it
   state.chest={row:1, col:Math.floor(CONFIG.COLS/2)}; state.chestOpened=false; state.portal=null;
@@ -2009,116 +2038,159 @@ function drawWhirl(wpl){
   ctx.restore();
 }
 function drawTurtle(b,w,h){
-  const cx=b.x*CW+CW/2, cy=b.y*CH+CH/2, sz=Math.min(CW,CH)*1.85, T=state.t||0;
+  const cx=b.x*CW+CW/2, cy=b.y*CH+CH/2, sz=Math.min(CW,CH)*1.95, T=state.t||0;
   const stunned=b.stun>0, shell=(b.mode==='shell');
   const windBite=(b.mode==='bite'&&b.biteState==='wind'), lunging=(b.mode==='bite'&&b.biteState==='lunge');
   const windSweep=(b.mode==='sweep'&&b.sweepState==='wind'), striking=(b.mode==='sweep'&&b.sweepState==='strike');
   ctx.save(); ctx.translate(cx,cy);
 
-  // soft outer glow (state-coloured)
-  const gcol = shell?'rgba(120,225,210,0.45)' : (windBite||windSweep)?'rgba(255,165,95,0.5)' : 'rgba(110,210,170,0.32)';
-  const gl=ctx.createRadialGradient(0,0,2,0,0,sz*0.95); gl.addColorStop(0,gcol); gl.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(0,0,sz*0.95,0,Math.PI*2); ctx.fill();
+  // ominous glow
+  const gcol = shell?'rgba(120,235,170,0.5)' : (windBite||lunging||windSweep||striking)?'rgba(255,120,60,0.55)' : 'rgba(90,180,120,0.34)';
+  const gl=ctx.createRadialGradient(0,0,2,0,0,sz*0.98); gl.addColorStop(0,gcol); gl.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(0,0,sz*0.98,0,Math.PI*2); ctx.fill();
+  // shadow
+  ctx.fillStyle='rgba(2,8,14,0.32)'; ctx.beginPath(); ctx.ellipse(sz*0.05,sz*0.45,sz*0.52,sz*0.15,0,0,Math.PI*2); ctx.fill();
 
-  // drop shadow for depth
-  ctx.fillStyle='rgba(2,10,18,0.28)'; ctx.beginPath(); ctx.ellipse(sz*0.04,sz*0.42,sz*0.5,sz*0.16,0,0,Math.PI*2); ctx.fill();
+  // ── RECHARGE: flipped belly-up, helpless, dizzy ──
+  if(b.mode==='recharge'){
+    const fp=b.flop||0, pr=0.5+0.5*Math.sin(fp*7);
+    ctx.strokeStyle=`rgba(255,80,80,${(0.4+0.4*pr).toFixed(3)})`; ctx.lineWidth=Math.max(2,sz*0.03);
+    ctx.setLineDash([sz*0.12,sz*0.1]); ctx.beginPath(); ctx.arc(0,0,sz*0.64,fp,fp+Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#3f5630'; ctx.strokeStyle='#243a18'; ctx.lineWidth=Math.max(2,sz*0.03);
+    for(const c of [[-1,-1],[1,-1],[-1,1],[1,1]]){
+      ctx.save(); ctx.translate(c[0]*sz*0.42,c[1]*sz*0.34); ctx.rotate(c[0]*c[1]*Math.sin(fp*9)*0.5);
+      ctx.beginPath(); ctx.ellipse(0,0,sz*0.18,sz*0.09,0,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore(); }
+    const pg=ctx.createRadialGradient(-sz*0.1,-sz*0.12,sz*0.04,0,0,sz*0.5);
+    pg.addColorStop(0,'#e9dcb8'); pg.addColorStop(1,'#bfae82');
+    ctx.fillStyle=pg; ctx.strokeStyle='#8a7c54'; ctx.lineWidth=Math.max(2.5,sz*0.045);
+    ctx.beginPath(); ctx.ellipse(0,0,sz*0.48,sz*0.42,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle='rgba(110,98,62,0.55)'; ctx.lineWidth=Math.max(1.5,sz*0.022);
+    ctx.beginPath(); ctx.moveTo(0,-sz*0.42); ctx.lineTo(0,sz*0.42); ctx.stroke();
+    for(const yy of [-0.22,0,0.22]){ ctx.beginPath(); ctx.moveTo(-sz*0.4,yy*sz); ctx.lineTo(sz*0.4,yy*sz); ctx.stroke(); }
+    ctx.fillStyle='#3f5630'; ctx.strokeStyle='#243a18'; ctx.lineWidth=Math.max(2,sz*0.03);
+    ctx.beginPath(); ctx.ellipse(sz*0.02,sz*0.5,sz*0.15,sz*0.12,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle='#0e1f0d'; ctx.lineWidth=Math.max(1.5,sz*0.02);
+    for(const ex of [-0.05,0.09]){ ctx.beginPath();
+      for(let a=0;a<6.2;a+=0.4){ const rr=sz*0.005*a; const px=sz*0.02+ex*sz+Math.cos(a+fp*3)*rr, py=sz*0.48+Math.sin(a+fp*3)*rr; a===0?ctx.moveTo(px,py):ctx.lineTo(px,py); } ctx.stroke(); }
+    ctx.restore(); return;
+  }
 
-  // ── SHELL MODE: a polished armored dome, spinning, with motion arcs ──
+  // ── SHELL MODE: spiked spinning wrecking-ball ──
   if(shell){
     ctx.save(); ctx.rotate(b.spin||0);
-    // motion-blur arcs
-    ctx.strokeStyle='rgba(180,240,225,0.30)'; ctx.lineWidth=Math.max(2,sz*0.04); ctx.lineCap='round';
-    for(let i=0;i<3;i++){ const a0=i*2.1; ctx.beginPath(); ctx.arc(0,0,sz*0.6,a0,a0+1.1); ctx.stroke(); }
-    const cg=ctx.createRadialGradient(-sz*0.16,-sz*0.18,sz*0.04,0,0,sz*0.54);
-    cg.addColorStop(0,'#8fd9a6'); cg.addColorStop(0.5,'#3f9168'); cg.addColorStop(1,'#1c5240');
-    ctx.fillStyle=cg; ctx.strokeStyle='#123c2c'; ctx.lineWidth=Math.max(2.5,sz*0.05);
-    ctx.beginPath(); ctx.arc(0,0,sz*0.5,0,Math.PI*2); ctx.fill(); ctx.stroke();
-    // central scute + radiating seams + ring of plates
-    ctx.strokeStyle='rgba(12,46,32,0.65)'; ctx.lineWidth=Math.max(1.5,sz*0.028);
-    ctx.beginPath(); ctx.arc(0,0,sz*0.2,0,Math.PI*2); ctx.stroke();
-    for(let i=0;i<6;i++){ const a=i*Math.PI/3; ctx.beginPath();
-      ctx.moveTo(Math.cos(a)*sz*0.2,Math.sin(a)*sz*0.2); ctx.lineTo(Math.cos(a)*sz*0.5,Math.sin(a)*sz*0.5); ctx.stroke(); }
-    // outer plate scallops
-    ctx.beginPath(); ctx.arc(0,0,sz*0.36,0,Math.PI*2); ctx.stroke();
-    // glossy rim highlight
-    ctx.strokeStyle='rgba(220,255,235,0.55)'; ctx.lineWidth=Math.max(1.5,sz*0.03);
-    ctx.beginPath(); ctx.arc(0,0,sz*0.45,-2.2,-0.3); ctx.stroke();
+    // motion blur arcs
+    ctx.strokeStyle='rgba(150,235,180,0.30)'; ctx.lineWidth=Math.max(2,sz*0.045); ctx.lineCap='round';
+    for(let i=0;i<3;i++){ const a0=i*2.1; ctx.beginPath(); ctx.arc(0,0,sz*0.66,a0,a0+1.0); ctx.stroke(); }
+    // radial bony spikes
+    ctx.fillStyle='#cfc79a'; ctx.strokeStyle='#7c7048'; ctx.lineWidth=Math.max(1.5,sz*0.02);
+    for(let i=0;i<10;i++){ const a=i*Math.PI/5; const c=Math.cos(a), s=Math.sin(a);
+      ctx.beginPath(); ctx.moveTo(c*sz*0.4-s*sz*0.07, s*sz*0.4+c*sz*0.07);
+      ctx.lineTo(c*sz*0.62, s*sz*0.62); ctx.lineTo(c*sz*0.4+s*sz*0.07, s*sz*0.4-c*sz*0.07); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+    // dark armored dome
+    const cg=ctx.createRadialGradient(-sz*0.14,-sz*0.16,sz*0.04,0,0,sz*0.5);
+    cg.addColorStop(0,'#5d8048'); cg.addColorStop(0.55,'#2c4a22'); cg.addColorStop(1,'#13230d');
+    ctx.fillStyle=cg; ctx.strokeStyle='#0c1908'; ctx.lineWidth=Math.max(2.5,sz*0.05);
+    ctx.beginPath(); ctx.arc(0,0,sz*0.42,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    // keeled seams + central boss
+    ctx.strokeStyle='rgba(10,30,16,0.7)'; ctx.lineWidth=Math.max(1.5,sz*0.026);
+    for(let i=0;i<6;i++){ const a=i*Math.PI/3; ctx.beginPath(); ctx.moveTo(Math.cos(a)*sz*0.14,Math.sin(a)*sz*0.14); ctx.lineTo(Math.cos(a)*sz*0.42,Math.sin(a)*sz*0.42); ctx.stroke(); }
+    ctx.fillStyle='#1c3312'; ctx.beginPath(); ctx.arc(0,0,sz*0.13,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(190,240,200,0.4)'; ctx.lineWidth=Math.max(1.5,sz*0.025); ctx.beginPath(); ctx.arc(0,0,sz*0.36,-2.2,-0.4); ctx.stroke();
     ctx.restore(); ctx.restore(); return;
   }
 
   if(b.face<0) ctx.scale(-1,1);
+  const rage = windBite||lunging||windSweep||striking;
+  const skinT=stunned?'#7a8a6a':'#5e7a46', skinB=stunned?'#566048':'#3c5230', skinE=stunned?'#3a4230':'#21331a';
+  const cT=stunned?'#7e8e6e':'#557a40', cM=stunned?'#5a6450':'#2c4a22', cB=stunned?'#3e463400':'#13230d', cE='#0a1606';
+  const spikeF=stunned?'#a39e7e':'#cfc79a', spikeE='#7c7048';
+  const eyeGlow = stunned?'#7a6a3a':(rage?'#ff5a2a':'#ffb030');
 
-  // palette
-  const skinTop=stunned?'#94a487':'#8fbf78', skinBot=stunned?'#69745f':'#5d8f48', skinE=stunned?'#4a543f':'#3c6630';
-  const cTop=stunned?'#9fb094':'#74c98f', cMid=stunned?'#74806a':'#3f9168', cBot=stunned?'#525b49':'#1f5740', cE=stunned?'#3c4438':'#123c2c';
-
-  // ── rear flipper (behind) ──
-  ctx.fillStyle=skinBot; ctx.strokeStyle=skinE; ctx.lineWidth=Math.max(2,sz*0.03);
-  ctx.save(); ctx.translate(-sz*0.44,sz*0.2); ctx.rotate(0.7+Math.sin(T*1.8)*0.05);
-  ctx.beginPath(); ctx.ellipse(0,0,sz*0.2,sz*0.1,0,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
-
-  // ── front flipper (large, wing-like; raises/swings on sweep) ──
-  const fl=b.flipUp||0;
-  ctx.save(); ctx.translate(sz*0.22,sz*0.22);
-  const fang = striking ? -1.05 : (-0.12 - fl*1.15 + Math.sin(T*2.2)*0.05);
-  ctx.rotate(fang);
-  const fg=ctx.createLinearGradient(0,-sz*0.12,0,sz*0.12); fg.addColorStop(0,skinTop); fg.addColorStop(1,skinBot);
-  ctx.fillStyle=fg; ctx.strokeStyle=skinE; ctx.lineWidth=Math.max(2,sz*0.03);
-  ctx.beginPath(); ctx.moveTo(-sz*0.06,-sz*0.08);
-  ctx.quadraticCurveTo(sz*0.34,-sz*0.2, sz*0.46,-sz*0.02);
-  ctx.quadraticCurveTo(sz*0.34,sz*0.14, -sz*0.06,sz*0.1);
-  ctx.quadraticCurveTo(-sz*0.16,0,-sz*0.06,-sz*0.08); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // ── rear flipper (clawed) ──
+  ctx.fillStyle=skinB; ctx.strokeStyle=skinE; ctx.lineWidth=Math.max(2,sz*0.03);
+  ctx.save(); ctx.translate(-sz*0.46,sz*0.2); ctx.rotate(0.7+Math.sin(T*1.8)*0.05);
+  ctx.beginPath(); ctx.ellipse(0,0,sz*0.2,sz*0.1,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle=spikeF; for(let i=-1;i<=1;i++){ ctx.beginPath(); ctx.moveTo(sz*0.16,i*sz*0.05); ctx.lineTo(sz*0.26,i*sz*0.05+sz*0.012); ctx.lineTo(sz*0.16,i*sz*0.05+sz*0.03); ctx.closePath(); ctx.fill(); }
   ctx.restore();
 
-  // ── neck + head (front) ──
-  const rear = windBite ? sz*0.13*Math.min(1,(b.jaw||0)*1.6) : (lunging?-sz*0.05:0);
-  const hx=sz*0.46 - rear, hy=-sz*0.04;
-  // neck
-  ctx.fillStyle=skinBot; ctx.strokeStyle=skinE; ctx.lineWidth=Math.max(2,sz*0.03);
-  ctx.beginPath(); ctx.moveTo(sz*0.12,-sz*0.14); ctx.quadraticCurveTo(hx*0.7,hy-sz*0.06,hx,hy-sz*0.1);
-  ctx.lineTo(hx,hy+sz*0.12); ctx.quadraticCurveTo(sz*0.16,sz*0.06,sz*0.12,-sz*0.14); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // ── front flipper (large, clawed; raises on sweep) ──
+  const fl=b.flipUp||0;
+  ctx.save(); ctx.translate(sz*0.2,sz*0.24);
+  const fang = striking ? -1.1 : (-0.12 - fl*1.2 + Math.sin(T*2.2)*0.05); ctx.rotate(fang);
+  const fg=ctx.createLinearGradient(0,-sz*0.14,0,sz*0.14); fg.addColorStop(0,skinT); fg.addColorStop(1,skinB);
+  ctx.fillStyle=fg; ctx.strokeStyle=skinE; ctx.lineWidth=Math.max(2,sz*0.03);
+  ctx.beginPath(); ctx.moveTo(-sz*0.06,-sz*0.09);
+  ctx.quadraticCurveTo(sz*0.36,-sz*0.22, sz*0.5,-sz*0.02);
+  ctx.quadraticCurveTo(sz*0.36,sz*0.16, -sz*0.06,sz*0.11);
+  ctx.quadraticCurveTo(-sz*0.17,0,-sz*0.06,-sz*0.09); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // claws
+  ctx.fillStyle=spikeF; ctx.strokeStyle=spikeE; ctx.lineWidth=Math.max(1,sz*0.01);
+  for(let i=0;i<3;i++){ const yy=-sz*0.08+i*sz*0.08; ctx.beginPath(); ctx.moveTo(sz*0.46,yy); ctx.lineTo(sz*0.6,yy+sz*0.02); ctx.lineTo(sz*0.46,yy+sz*0.05); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+  ctx.restore();
+
+  // ── neck + head (heavy, angry) ──
+  const rear = windBite ? sz*0.14*Math.min(1,(b.jaw||0)*1.6) : (lunging?-sz*0.06:0);
+  const hx=sz*0.5 - rear, hy=-sz*0.03;
+  ctx.fillStyle=skinB; ctx.strokeStyle=skinE; ctx.lineWidth=Math.max(2,sz*0.03);
+  ctx.beginPath(); ctx.moveTo(sz*0.1,-sz*0.16); ctx.quadraticCurveTo(hx*0.7,hy-sz*0.08,hx,hy-sz*0.12);
+  ctx.lineTo(hx,hy+sz*0.14); ctx.quadraticCurveTo(sz*0.14,sz*0.08,sz*0.1,-sz*0.16); ctx.closePath(); ctx.fill(); ctx.stroke();
   // head
-  const hg=ctx.createRadialGradient(hx-sz*0.04,hy-sz*0.05,sz*0.02,hx,hy,sz*0.2);
-  hg.addColorStop(0,skinTop); hg.addColorStop(1,skinBot);
+  const hg=ctx.createRadialGradient(hx-sz*0.05,hy-sz*0.06,sz*0.02,hx,hy,sz*0.22);
+  hg.addColorStop(0,skinT); hg.addColorStop(1,skinB);
   ctx.fillStyle=hg; ctx.strokeStyle=skinE; ctx.lineWidth=Math.max(2,sz*0.03);
-  ctx.beginPath(); ctx.ellipse(hx,hy,sz*0.19,sz*0.15,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
-  // mottled scale spots on head
-  ctx.fillStyle='rgba(40,80,40,0.32)';
-  for(const p of [[0.04,-0.06],[0.1,0.02],[0.0,0.05],[-0.06,-0.02]]){ ctx.beginPath(); ctx.arc(hx+p[0]*sz,hy+p[1]*sz,sz*0.02,0,Math.PI*2); ctx.fill(); }
-  // jaw (opens on bite)
+  ctx.beginPath(); ctx.ellipse(hx,hy,sz*0.21,sz*0.17,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  // cheek/brow tubercle spikes
+  ctx.fillStyle=spikeF; ctx.strokeStyle=spikeE; ctx.lineWidth=Math.max(1,sz*0.01);
+  for(const p of [[-0.12,-0.13,0.05],[-0.04,-0.16,0.055],[0.05,-0.14,0.045]]){
+    ctx.beginPath(); ctx.moveTo(hx+p[0]*sz-sz*0.02,hy+p[1]*sz); ctx.lineTo(hx+p[0]*sz,hy+p[1]*sz-p[2]*sz); ctx.lineTo(hx+p[0]*sz+sz*0.02,hy+p[1]*sz); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+  // heavy brow ridge (angry)
+  ctx.fillStyle=skinE; ctx.beginPath(); ctx.moveTo(hx-sz*0.1,hy-sz*0.04); ctx.quadraticCurveTo(hx+sz*0.04,hy-sz*0.13,hx+sz*0.12,hy-sz*0.04); ctx.lineTo(hx+sz*0.1,hy-sz*0.01); ctx.quadraticCurveTo(hx,hy-sz*0.06,hx-sz*0.09,hy); ctx.closePath(); ctx.fill();
+  // glowing eye + slit
+  ctx.shadowColor=eyeGlow; ctx.shadowBlur=stunned?0:sz*0.18;
+  ctx.fillStyle=eyeGlow; ctx.beginPath(); ctx.ellipse(hx+sz*0.02,hy-sz*0.01,sz*0.05,sz*0.045,0,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+  ctx.fillStyle='#1a0f06'; ctx.beginPath(); ctx.ellipse(hx+sz*0.03,hy-sz*0.01,sz*0.013,sz*0.04,0,0,Math.PI*2); ctx.fill();
+  // hooked beak with serrated tomium
+  ctx.fillStyle=stunned?'#c2b27a':'#e2d094'; ctx.strokeStyle='#8f7a40'; ctx.lineWidth=Math.max(1,sz*0.012);
+  ctx.beginPath(); ctx.moveTo(hx+sz*0.12,hy-sz*0.06); ctx.quadraticCurveTo(hx+sz*0.34,hy-sz*0.02,hx+sz*0.2,hy+sz*0.1);
+  ctx.lineTo(hx+sz*0.16,hy+sz*0.05); ctx.quadraticCurveTo(hx+sz*0.12,hy,hx+sz*0.12,hy-sz*0.06); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // open maw on bite
   const jaw=(b.mode==='bite')?(b.jaw||0):0;
-  if(jaw>0.02){ ctx.fillStyle='#6e1f2b'; ctx.beginPath();
-    ctx.moveTo(hx+sz*0.06,hy); ctx.lineTo(hx+sz*0.28,hy-sz*0.13*jaw); ctx.lineTo(hx+sz*0.28,hy+sz*0.13*jaw); ctx.closePath(); ctx.fill(); }
-  // beak
-  ctx.fillStyle=stunned?'#c6a45e':'#dfb45a'; ctx.strokeStyle='#9c7a32'; ctx.lineWidth=Math.max(1,sz*0.012);
-  ctx.beginPath(); ctx.moveTo(hx+sz*0.13,hy-sz*0.08); ctx.quadraticCurveTo(hx+sz*0.3,hy-sz*0.01,hx+sz*0.15,hy+sz*0.06);
-  ctx.quadraticCurveTo(hx+sz*0.12,hy,hx+sz*0.13,hy-sz*0.08); ctx.closePath(); ctx.fill(); ctx.stroke();
-  // eye
-  ctx.fillStyle='#0e1f0d'; ctx.beginPath(); ctx.arc(hx-sz*0.01,hy-sz*0.05,sz*0.034,0,Math.PI*2); ctx.fill();
-  if(!stunned){ ctx.fillStyle='#eafff0'; ctx.beginPath(); ctx.arc(hx+sz*0.005,hy-sz*0.065,sz*0.013,0,Math.PI*2); ctx.fill(); }
+  if(jaw>0.02){ ctx.fillStyle='#5c1822'; ctx.beginPath();
+    ctx.moveTo(hx+sz*0.1,hy+sz*0.02); ctx.lineTo(hx+sz*0.3,hy+sz*0.02+sz*0.14*jaw); ctx.lineTo(hx+sz*0.16,hy+sz*0.04+sz*0.14*jaw); ctx.closePath(); ctx.fill();
+    // lower serrations
+    ctx.fillStyle='#e2d094'; for(let i=0;i<3;i++){ const xx=hx+sz*0.16+i*sz*0.045; ctx.beginPath(); ctx.moveTo(xx,hy+sz*0.04+sz*0.14*jaw); ctx.lineTo(xx+sz*0.02,hy+sz*0.02+sz*0.14*jaw); ctx.lineTo(xx+sz*0.04,hy+sz*0.04+sz*0.14*jaw); ctx.closePath(); ctx.fill(); } }
 
-  // ── carapace (leatherback dome with ridges) ──
-  const cgr=ctx.createRadialGradient(-sz*0.18,-sz*0.2,sz*0.04,-sz*0.04,0,sz*0.55);
-  cgr.addColorStop(0,cTop); cgr.addColorStop(0.55,cMid); cgr.addColorStop(1,cBot);
-  ctx.fillStyle=cgr; ctx.strokeStyle=cE; ctx.lineWidth=Math.max(2.5,sz*0.045);
-  ctx.beginPath(); ctx.ellipse(-sz*0.04,-sz*0.02,sz*0.52,sz*0.44,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
-  // longitudinal ridges (leatherback look)
-  ctx.strokeStyle='rgba(14,50,34,0.5)'; ctx.lineWidth=Math.max(1.5,sz*0.022); ctx.lineCap='round';
-  for(let i=-2;i<=2;i++){ const off=i*sz*0.17; ctx.beginPath();
-    ctx.moveTo(-sz*0.5, off*0.5); ctx.quadraticCurveTo(-sz*0.04, off, sz*0.42, off*0.5); ctx.stroke(); }
-  // scattered pale scute speckles for detail
-  ctx.fillStyle='rgba(225,245,225,0.18)';
-  for(const p of [[-0.28,-0.16],[-0.05,-0.24],[0.2,-0.12],[-0.18,0.12],[0.12,0.16],[0.3,0.04]]){
-    ctx.beginPath(); ctx.arc(p[0]*sz,p[1]*sz,sz*0.022,0,Math.PI*2); ctx.fill(); }
-  // top sheen
-  ctx.fillStyle='rgba(235,255,240,0.16)'; ctx.beginPath(); ctx.ellipse(-sz*0.18,-sz*0.2,sz*0.2,sz*0.1,-0.5,0,Math.PI*2); ctx.fill();
+  // ── carapace: dark spiked battle-dome ──
+  const cgr=ctx.createRadialGradient(-sz*0.2,-sz*0.22,sz*0.04,-sz*0.04,0,sz*0.56);
+  cgr.addColorStop(0,cT); cgr.addColorStop(0.5,cM); cgr.addColorStop(1,'#13230d');
+  ctx.fillStyle=cgr; ctx.strokeStyle=cE; ctx.lineWidth=Math.max(2.5,sz*0.05);
+  ctx.beginPath(); ctx.ellipse(-sz*0.04,-sz*0.02,sz*0.53,sz*0.45,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  // rim spikes around the back/top edge
+  ctx.fillStyle=spikeF; ctx.strokeStyle=spikeE; ctx.lineWidth=Math.max(1,sz*0.012);
+  for(let i=0;i<9;i++){ const a=Math.PI*0.15 + i*(Math.PI*1.0/8); // upper-left around to lower-left (the exposed back)
+    const ex=-sz*0.04+Math.cos(a)*sz*0.53, ey=-sz*0.02+Math.sin(a)*sz*0.45;
+    const nx=Math.cos(a), ny=Math.sin(a), L=sz*(0.1+0.04*Math.sin(i*1.7));
+    ctx.beginPath(); ctx.moveTo(ex- ny*sz*0.04, ey+ nx*sz*0.04); ctx.lineTo(ex+nx*L, ey+ny*L); ctx.lineTo(ex+ ny*sz*0.04, ey- nx*sz*0.04); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+  // central keel ridge of bigger spikes
+  ctx.fillStyle=spikeF; ctx.strokeStyle=spikeE;
+  for(let i=0;i<4;i++){ const px=-sz*0.28+i*sz*0.18, py=-sz*0.02-sz*0.36+Math.abs(i-1.5)*sz*0.03, L=sz*(0.16-Math.abs(i-1.5)*0.02);
+    ctx.beginPath(); ctx.moveTo(px-sz*0.05,py+sz*0.04); ctx.lineTo(px,py-L); ctx.lineTo(px+sz*0.05,py+sz*0.04); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+  // angular scute plates + battle scars
+  ctx.strokeStyle='rgba(8,22,10,0.6)'; ctx.lineWidth=Math.max(1.5,sz*0.022);
+  ctx.beginPath(); ctx.ellipse(-sz*0.04,-sz*0.02,sz*0.26,sz*0.24,0,0,Math.PI*2); ctx.stroke();
+  for(let i=0;i<6;i++){ const a=i*Math.PI/3+0.2; ctx.beginPath(); ctx.moveTo(-sz*0.04+Math.cos(a)*sz*0.26,-sz*0.02+Math.sin(a)*sz*0.24); ctx.lineTo(-sz*0.04+Math.cos(a)*sz*0.53,-sz*0.02+Math.sin(a)*sz*0.45); ctx.stroke(); }
+  ctx.strokeStyle='rgba(200,220,190,0.22)'; ctx.lineWidth=Math.max(1,sz*0.014);
+  ctx.beginPath(); ctx.moveTo(-sz*0.22,-sz*0.18); ctx.lineTo(-sz*0.05,-sz*0.05); ctx.moveTo(sz*0.12,-sz*0.1); ctx.lineTo(sz*0.2,0); ctx.stroke();
+  // top rim light
+  ctx.strokeStyle='rgba(170,220,160,0.3)'; ctx.lineWidth=Math.max(1.5,sz*0.02);
+  ctx.beginPath(); ctx.ellipse(-sz*0.04,-sz*0.02,sz*0.5,sz*0.42,0,-2.4,-0.6); ctx.stroke();
 
-  // labels / telegraphs (upright)
+  // telegraph labels (upright)
   if(b.face<0) ctx.scale(-1,1);
   ctx.textAlign='center'; ctx.textBaseline='alphabetic';
-  if(windBite||lunging){ ctx.fillStyle='rgba(255,150,80,0.95)'; ctx.font=`700 ${Math.floor(sz*0.15)}px 'DM Mono',monospace`; ctx.fillText('BITE!',0,-sz*0.6); }
-  else if(windSweep){ ctx.fillStyle='rgba(255,200,85,0.95)'; ctx.font=`700 ${Math.floor(sz*0.15)}px 'DM Mono',monospace`; ctx.fillText('SWEEP!',0,-sz*0.6); }
-  if(stunned){ ctx.font=`${Math.floor(sz*0.34)}px serif`; ctx.textBaseline='middle'; ctx.fillText('💫',0,-sz*0.62); }
+  if(windBite||lunging){ ctx.fillStyle='rgba(255,120,60,0.97)'; ctx.font=`700 ${Math.floor(sz*0.15)}px 'DM Mono',monospace`; ctx.fillText('BITE!',0,-sz*0.64); }
+  else if(windSweep){ ctx.fillStyle='rgba(255,180,70,0.97)'; ctx.font=`700 ${Math.floor(sz*0.15)}px 'DM Mono',monospace`; ctx.fillText('SWEEP!',0,-sz*0.64); }
+  if(stunned){ ctx.font=`${Math.floor(sz*0.34)}px serif`; ctx.textBaseline='middle'; ctx.fillText('💫',0,-sz*0.66); }
   ctx.restore();
 }
 
@@ -2194,6 +2266,26 @@ function renderBoss(w,h){
     ctx.fillStyle=`rgba(255,180,80,${a.toFixed(3)})`; ctx.fillRect(0,rowY(r0),w,(r1-r0+1)*CH);
   }
   if(b){ if(b.type==='turtle') drawTurtle(b,w,h); else drawKraken(b,w,h); }
+  // flying barnacles
+  if(state.barnacles) for(const bn of state.barnacles){
+    const x=bn.x*CW+CW/2, y=bn.y*CH+CH/2, r=Math.max(5,CW*0.16);
+    ctx.save(); ctx.translate(x,y);
+    ctx.fillStyle='#9aa7ad'; ctx.strokeStyle='#5f6b70'; ctx.lineWidth=Math.max(1,r*0.16);
+    ctx.beginPath(); ctx.moveTo(0,-r); ctx.lineTo(r*0.7,r*0.7); ctx.lineTo(-r*0.7,r*0.7); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#d7dee1'; ctx.beginPath(); ctx.arc(0,r*0.1,r*0.28,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  // recharge prompt — the turtle is exposed, pelt it!
+  if(b && b.type==='turtle' && b.mode==='recharge'){
+    const pulse=0.55+0.45*Math.sin((state.t||0)*7);
+    ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
+    const msg = IS_MOBILE ? '🪨 TAP TO THROW BARNACLES!' : '🪨 SPACEBAR / TAP TO THROW!';
+    const fs=Math.min(18,w*0.05); ctx.font=`${fs}px 'Bebas Neue',sans-serif`;
+    const tw=ctx.measureText(msg).width;
+    ctx.fillStyle=`rgba(6,12,22,0.72)`; roundRect(w/2-tw/2-12, h*0.5-fs*0.9, tw+24, fs*1.8, 8); ctx.fill();
+    ctx.globalAlpha=pulse; ctx.fillStyle='#ffd24a'; ctx.fillText(msg, w/2, h*0.5); ctx.globalAlpha=1;
+    ctx.restore();
+  }
   // hoard chest + portal after the Kraken is slain
   if(state.hoardPhase){
     drawChest(state.chestOpened);
@@ -2272,9 +2364,9 @@ function renderBoss(w,h){
     ctx.fillStyle='rgba(220,200,255,0.8)'; ctx.font=`600 ${Math.min(13,pw*0.034)}px 'DM Mono',monospace`;
     ctx.fillText(b.type==='turtle' ? 'THE GUARDIAN OF THE DEEP' : `BOSS ${b.num} / 5`, w/2, py+pw*0.115+20);
     const lines = b.type==='turtle' ? [
-      ['🐢','BAIT the BITE & dodge','— a miss stuns it: your hit window'],
-      ['🐬','DOLPHINS & cannon hit it','— while head & flippers are out'],
-      ['🛡','DODGE the spinning SHELL','— armored; just avoid it'],
+      ['🛡','DODGE the spinning SHELL','— armored & fast; survive it (~10s)'],
+      ['🪨','Then THROW BARNACLES','— it lands helpless: tap / space to pelt it'],
+      ['🐢','Or BAIT its BITE','— a miss crashes & stuns it for free hits'],
     ] : [
       ['🌀','Lure it onto a WHIRLPOOL','— rips its health, but they hurt you too'],
       ['🐬','Let DOLPHINS ram it','— a strike briefly freezes it'],
@@ -2468,11 +2560,12 @@ window.addEventListener('keydown',e=>{
   if(k==='arrowup'||k==='w')d='up'; else if(k==='arrowdown'||k==='s')d='down';
   else if(k==='arrowleft'||k==='a')d='left'; else if(k==='arrowright'||k==='d')d='right';
   if(d){ e.preventDefault(); move(...DIRS[d]); }
+  if(k===' ' && state.phase==='play'){ e.preventDefault(); throwBarnacle(); }
   if((k===' '||k==='enter') && (state.phase==='idle'||state.phase==='over')) startRun();
 });
 // touch: drag to steer — throttled so a fast drag can't zoom the whale across
-let tsx=0,tsy=0,lastSwipe=0;
-cv.addEventListener('touchstart',e=>{ const t=e.changedTouches[0]; tsx=t.clientX; tsy=t.clientY; },{passive:true});
+let tsx=0,tsy=0,lastSwipe=0,tMoved=false;
+cv.addEventListener('touchstart',e=>{ const t=e.changedTouches[0]; tsx=t.clientX; tsy=t.clientY; tMoved=false; },{passive:true});
 cv.addEventListener('touchmove',e=>{
   const t=e.changedTouches[0]; const dx=t.clientX-tsx, dy=t.clientY-tsy;
   const TH=Math.max(18, CW*0.5);
@@ -2481,9 +2574,11 @@ cv.addEventListener('touchmove',e=>{
     if(Math.abs(dx)>Math.abs(dy)) move(...DIRS[dx>0?'right':'left']);
     else move(...DIRS[dy>0?'down':'up']);
     tsx=t.clientX; tsy=t.clientY; // reset origin so a continuous drag keeps moving
-    lastSwipe=now;
+    lastSwipe=now; tMoved=true;
   }
 },{passive:true});
+cv.addEventListener('touchend',e=>{ if(!tMoved) throwBarnacle(); },{passive:true});   // a tap = hurl a barnacle
+cv.addEventListener('mousedown',e=>{ if(state.phase==='play') throwBarnacle(); });
 // pad with hold-repeat
 let holdTimer=null;
 function startHold(dir){ move(...DIRS[dir]); clearInterval(holdTimer); holdTimer=setInterval(()=>move(...DIRS[dir]),CONFIG.holdRepeat); }
@@ -2558,7 +2653,7 @@ function selectWhale(url,id,tier,lit,bub){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v56`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v58`;
   // default PUP whale — always available to pick (for non-holders and holders alike)
   {
     const dc=document.createElement('div'); dc.className='pcard'+(state.skinId==null?' sel':'');
