@@ -501,14 +501,15 @@ const CONFIG = {
   turtleSpeed: 1.7,    // stalking chase speed (cells/sec) — keeps it on the move
   turtleTouchO2: 14,   // oxygen lost bumping the turtle (head/flippers out)
   turtleAtkGap: 1.3,   // seconds between attacks while stalking
-  turtleSweepDash: 7.5,// how fast it slides across your row during a flipper sweep
+  turtleSweepDash: 11, // how fast it slides across your row during a flipper sweep
+  turtleBiteNeck: 2.0, // how far the NECK extends on a bite (cells) — it strikes, not just rushes
   turtleBiteWind: 0.55,// bite tell — turtle rears back this long before lunging
   turtleBiteSpeed: 11, // how fast the turtle lunges on a bite
   turtleBiteReach: 1.2,// how far PAST you the lunge carries (longer reach)
   turtleBiteO2: 18,    // oxygen lost from a bite that connects
   turtleBiteSelfDmg: 15,// damage the turtle takes when it bites & MISSES (crashes)
   turtleBiteStun: 1.4, // seconds the turtle is stunned after a missed bite (hit it now!)
-  turtleSweepWind: 0.48,// flipper-strike tell
+  turtleSweepWind: 0.34,// flipper-strike tell
   turtleSweepO2: 13,   // oxygen lost from a flipper strike (hits turtle's row ±1)
   turtleShellWind: 0.45,// tuck-in tell before the shell starts bouncing
   turtleShellSpeed: 11.5,// how fast the shell pinballs around the arena (Sonic-style)
@@ -927,7 +928,7 @@ function setupTurtle(L){
     type:'turtle', hp, maxHp:hp, num:1,
     x:(CONFIG.COLS-1)/2, y:1.2, speed:CONFIG.turtleSpeed*SPD, face:1,
     hitCd:0, stun:0, mode:'stalk', atkCd:CONFIG.turtleAtkGap, atkT:0,
-    armored:false, flipUp:0, jaw:0, vx:0, vy:0, tuck:0, spin:0,
+    armored:false, flipUp:0, jaw:0, headExt:0, vx:0, vy:0, tuck:0, spin:0,
     intro:true, introT:9
   };
   state.whirls=[]; state.bossSharks=[]; state.minis=[]; state.inks=[]; state.inkBalls=[];
@@ -952,7 +953,7 @@ function startShell(b){ b.mode='shell'; b.armored=true; b.tuck=0; b.spin=0; b.at
   const dx=state.whale.col-b.x, dy=state.whale.row-b.y, d=Math.hypot(dx,dy)||1, sp=CONFIG.turtleShellSpeed*SPD, a=Math.random()*Math.PI*2;
   b.vx=(dx/d)*sp*0.7 + Math.cos(a)*sp*0.35; b.vy=(dy/d)*sp*0.7 + Math.sin(a)*sp*0.35; sfxSwept();
 }
-function toStalk(b,gap){ b.mode='stalk'; b.armored=false; b.flipUp=0; b.jaw=0; b.tuck=0; b.atkCd=gap; b.hitCd=0.6; }
+function toStalk(b,gap){ b.mode='stalk'; b.armored=false; b.flipUp=0; b.jaw=0; b.headExt=0; b.tuck=0; b.atkCd=gap; b.hitCd=0.6; }
 function turtleHurtWhale(o2){
   if(state.invuln>0) return;
   const b=state.boss;
@@ -993,16 +994,21 @@ function updateTurtle(dt){
   else if(b.mode==='bite'){
     b.atkT-=dt;
     if(b.biteState==='wind'){
-      b.jaw=Math.min(1,b.jaw+dt*3);
-      if(b.atkT<=0){ b.biteState='lunge'; b.atkT=0.8;
-        const dx=state.whale.col-b.x, dy=state.whale.row-b.y, d=Math.hypot(dx,dy)||1, R=CONFIG.turtleBiteReach;
-        b.lungeTo={x:Math.max(0.3,Math.min(CONFIG.COLS-1.3, state.whale.col+(dx/d)*R)),
-                   y:Math.max(0.5,Math.min(CONFIG.ROWS-1.5, state.whale.row+(dy/d)*R))}; }
+      b.jaw=Math.min(1,b.jaw+dt*4);
+      b.headExt += (-0.35 - (b.headExt||0))*Math.min(1,dt*7);   // rear the head back
+      b.face = (state.whale.col>=b.x)?1:-1;
+      if(b.atkT<=0){ b.biteState='lunge'; b.atkT=0.4; b.struck=false; b.biteRow=b.y; }
     } else {
-      const dx=b.lungeTo.x-b.x, dy=b.lungeTo.y-b.y, d=Math.hypot(dx,dy), step=CONFIG.turtleBiteSpeed*SPD*dt;
-      if(d>0.05){ b.x=Math.max(0.3,Math.min(CONFIG.COLS-1.3, b.x+(dx/d)*step)); b.y=Math.max(0.5,Math.min(CONFIG.ROWS-1.5, b.y+(dy/d)*step)); b.face=dx>=0?1:-1; }
-      if(Math.hypot(b.x-state.whale.col,b.y-state.whale.row)<1.0 && state.invuln<=0){ turtleHurtWhale(CONFIG.turtleBiteO2); toStalk(b,CONFIG.turtleAtkGap); }
-      else if(d<=step || b.atkT<=0){ b.hp-=CONFIG.turtleBiteSelfDmg; b.stun=CONFIG.turtleBiteStun; state.stingFlash=0.9; sfxPing(); toStalk(b,CONFIG.turtleAtkGap+0.4); }
+      // SNAP: the neck shoots the head forward; the body only scoots a little
+      b.headExt = Math.min(1.25, (b.headExt||0) + dt*8);
+      b.x = Math.max(0.4, Math.min(CONFIG.COLS-1.4, b.x + b.face*2.2*dt));
+      const tipX = b.x + b.face*(0.5 + Math.max(0,b.headExt)*CONFIG.turtleBiteNeck);
+      if(!b.struck && Math.hypot(tipX-state.whale.col, b.y-state.whale.row)<0.9 && state.invuln<=0){
+        b.struck=true; turtleHurtWhale(CONFIG.turtleBiteO2); }
+      if(b.atkT<=0){
+        if(!b.struck){ b.hp-=CONFIG.turtleBiteSelfDmg; b.stun=CONFIG.turtleBiteStun; state.stingFlash=0.9; sfxPing(); } // overstretched → crash
+        b.headExt=0; b.jaw=0; toStalk(b, b.struck?CONFIG.turtleAtkGap:CONFIG.turtleAtkGap+0.4);
+      }
     }
   }
   else if(b.mode==='sweep'){
@@ -2135,9 +2141,9 @@ function drawTurtle(b,w,h){
   for(let i=0;i<3;i++){ const yy=-sz*0.08+i*sz*0.08; ctx.beginPath(); ctx.moveTo(sz*0.46,yy); ctx.lineTo(sz*0.6,yy+sz*0.02); ctx.lineTo(sz*0.46,yy+sz*0.05); ctx.closePath(); ctx.fill(); ctx.stroke(); }
   ctx.restore();
 
-  // ── neck + head (heavy, angry) ──
-  const rear = windBite ? sz*0.14*Math.min(1,(b.jaw||0)*1.6) : (lunging?-sz*0.06:0);
-  const hx=sz*0.5 - rear, hy=-sz*0.03;
+  // ── neck + head (heavy, angry) — extends on a bite ──
+  const ext = b.headExt||0;                 // -0.35 reared … 1.25 fully snapped out
+  const hx=sz*0.5 + ext*sz*0.42, hy=-sz*0.03;
   ctx.fillStyle=skinB; ctx.strokeStyle=skinE; ctx.lineWidth=Math.max(2,sz*0.03);
   ctx.beginPath(); ctx.moveTo(sz*0.1,-sz*0.16); ctx.quadraticCurveTo(hx*0.7,hy-sz*0.08,hx,hy-sz*0.12);
   ctx.lineTo(hx,hy+sz*0.14); ctx.quadraticCurveTo(sz*0.14,sz*0.08,sz*0.1,-sz*0.16); ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -2660,7 +2666,7 @@ function selectWhale(url,id,tier,lit,bub){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v61`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v62`;
   // default PUP whale — always available to pick (for non-holders and holders alike)
   {
     const dc=document.createElement('div'); dc.className='pcard'+(state.skinId==null?' sel':'');
