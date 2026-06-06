@@ -219,7 +219,6 @@
 <body>
 <div class="wrap">
   <header>
-    <a class="back-link" href="/thetrench">← The Trench</a>
     <p class="eyebrow">Secret Society of Whales</p>
     <h1 class="title">SOLO <span>DIVE</span></h1>
     <p class="sub">one whale · dodge the predators · go deeper</p>
@@ -317,7 +316,7 @@
   </div>
   <p class="hint">Swipe the board · arrow keys / WASD · or tap the pad</p>
 
-  <footer>The Trench · Solo Dive · Fan-made · #TogetherWeWhale</footer>
+  <footer>Solo Dive · #TogetherWeWhale</footer>
 </div>
 
 <!-- FULL-SCREEN GUIDE / LEGEND -->
@@ -2666,7 +2665,7 @@ function selectWhale(url,id,tier,lit,bub){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v62`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v63`;
   // default PUP whale — always available to pick (for non-holders and holders alike)
   {
     const dc=document.createElement('div'); dc.className='pcard'+(state.skinId==null?' sel':'');
