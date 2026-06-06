@@ -210,6 +210,9 @@
     .pad{margin:0.6rem auto 0.25rem;}
     .hint{margin:0.2rem 0 0.9rem;}
     footer{padding:0.3rem 0 1.2rem;}
+    .wrap{padding:0 5px; max-width:100%;}      /* let the board use the full phone width */
+    canvas{max-width:100%;}
+    .hud{max-width:100%;}
   }
 </style>
 </head>
@@ -2174,7 +2177,7 @@ function loop(now){
 // ── sizing ──  board fits available width AND height (so the d-pad stays visible)
 function resize(){
   const stage=cv.parentElement;
-  const availW=Math.min(stage.clientWidth, 440);
+  const availW = IS_MOBILE ? stage.clientWidth : Math.min(stage.clientWidth, 440);
   const header=document.querySelector('header');
   const hud=document.querySelector('.hud');
   const reserved=(header?header.offsetHeight:90)+(hud?hud.offsetHeight:48)+165; // smaller pad+hint+margins
@@ -2288,7 +2291,22 @@ function selectWhale(url,id,tier,lit,bub){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v51`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v52`;
+  // default PUP whale — always available to pick (for non-holders and holders alike)
+  {
+    const dc=document.createElement('div'); dc.className='pcard'+(state.skinId==null?' sel':'');
+    const dim=document.createElement('img');
+    dim.width=116; dim.height=116; dim.loading='lazy';
+    dim.style.cssText='display:block;width:100%;height:116px;object-fit:contain;background:#061a28;';
+    dim.src=DEFAULT_SKIN;
+    const dm=document.createElement('div'); dm.style.cssText='padding:6px 8px 8px;line-height:1.25;';
+    dm.innerHTML=`<div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:0.04em;color:${TIERS.common.color};">PUP</div>`+
+                 `<div style="font-size:9px;letter-spacing:0.05em;color:#7aa6c8;">default whale</div>`;
+    dc.appendChild(dim); dc.appendChild(dm);
+    dc.addEventListener('click',()=>{ pickerGrid.querySelectorAll('.pcard').forEach(x=>x.classList.remove('sel')); dc.classList.add('sel');
+      selectWhale(DEFAULT_SKIN, null, TIERS.common, false, false); });
+    pickerGrid.appendChild(dc);
+  }
   sorted.forEach(n=>{
     const id=n.identifier||n.token_id||'?';
     const url=n.display_image_url||n.image_url||'';
