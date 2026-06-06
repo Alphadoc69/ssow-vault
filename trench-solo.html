@@ -497,20 +497,21 @@ const CONFIG = {
   bossInkO2: 8,       // oxygen lost from a direct ink-ball hit
   bossInkLife: 1.2,   // how long an ink splat lingers where a ball lands
   // ── Giant Sea Turtle boss (level 20) ──
-  turtleHp: 120,       // turtle health
-  turtleSpeed: 0.95,   // slow stalking chase speed (cells/sec)
+  turtleHp: 165,       // turtle health (tougher)
+  turtleSpeed: 1.0,    // slow stalking chase speed (cells/sec)
   turtleTouchO2: 14,   // oxygen lost bumping the turtle (head/flippers out)
-  turtleAtkGap: 1.9,   // seconds between attacks while stalking
-  turtleBiteWind: 0.62,// bite tell — turtle rears back this long before lunging
-  turtleBiteSpeed: 9.5,// how fast the turtle lunges on a bite
+  turtleAtkGap: 1.7,   // seconds between attacks while stalking
+  turtleBiteWind: 0.6, // bite tell — turtle rears back this long before lunging
+  turtleBiteSpeed: 10.5,// how fast the turtle lunges on a bite
+  turtleBiteReach: 1.1,// how far PAST you the lunge carries (longer reach)
   turtleBiteO2: 18,    // oxygen lost from a bite that connects
-  turtleBiteSelfDmg: 16,// damage the turtle takes when it bites & MISSES (crashes)
-  turtleBiteStun: 1.5, // seconds the turtle is stunned after a missed bite (hit it now!)
+  turtleBiteSelfDmg: 15,// damage the turtle takes when it bites & MISSES (crashes)
+  turtleBiteStun: 1.4, // seconds the turtle is stunned after a missed bite (hit it now!)
   turtleSweepWind: 0.5,// flipper-strike tell
   turtleSweepO2: 13,   // oxygen lost from a flipper strike (hits turtle's row ±1)
   turtleShellWind: 0.45,// tuck-in tell before the shell starts bouncing
-  turtleShellSpeed: 6.5,// how fast the shell pinballs around the arena
-  turtleShellTime: 3.6,// how long the shell bounces before it pops back out
+  turtleShellSpeed: 8.0,// how fast the shell pinballs around the arena
+  turtleShellTime: 10,  // how long the shell bounces before it pops back out
   turtleShellO2: 15,   // oxygen lost when the bouncing shell hits you
   // Wealthy Whales — XP multiplier, pearls, per-run upgrades
   xpBase: 0.20,       // +20% XP for owning a Wealthy Whale
@@ -974,11 +975,14 @@ function updateTurtle(dt){
     b.atkT-=dt;
     if(b.biteState==='wind'){
       b.jaw=Math.min(1,b.jaw+dt*3);
-      if(b.atkT<=0){ b.biteState='lunge'; b.atkT=0.65; b.lungeTo={x:state.whale.col,y:state.whale.row}; }
+      if(b.atkT<=0){ b.biteState='lunge'; b.atkT=0.8;
+        const dx=state.whale.col-b.x, dy=state.whale.row-b.y, d=Math.hypot(dx,dy)||1, R=CONFIG.turtleBiteReach;
+        b.lungeTo={x:Math.max(0.3,Math.min(CONFIG.COLS-1.3, state.whale.col+(dx/d)*R)),
+                   y:Math.max(0.5,Math.min(CONFIG.ROWS-1.5, state.whale.row+(dy/d)*R))}; }
     } else {
       const dx=b.lungeTo.x-b.x, dy=b.lungeTo.y-b.y, d=Math.hypot(dx,dy), step=CONFIG.turtleBiteSpeed*SPD*dt;
       if(d>0.05){ b.x=Math.max(0.3,Math.min(CONFIG.COLS-1.3, b.x+(dx/d)*step)); b.y=Math.max(0.5,Math.min(CONFIG.ROWS-1.5, b.y+(dy/d)*step)); b.face=dx>=0?1:-1; }
-      if(Math.hypot(b.x-state.whale.col,b.y-state.whale.row)<0.8 && state.invuln<=0){ turtleHurtWhale(CONFIG.turtleBiteO2); toStalk(b,CONFIG.turtleAtkGap); }
+      if(Math.hypot(b.x-state.whale.col,b.y-state.whale.row)<1.0 && state.invuln<=0){ turtleHurtWhale(CONFIG.turtleBiteO2); toStalk(b,CONFIG.turtleAtkGap); }
       else if(d<=step || b.atkT<=0){ b.hp-=CONFIG.turtleBiteSelfDmg; b.stun=CONFIG.turtleBiteStun; state.stingFlash=0.9; sfxPing(); toStalk(b,CONFIG.turtleAtkGap+0.4); }
     }
   }
@@ -994,10 +998,13 @@ function updateTurtle(dt){
     }
   }
   else if(b.mode==='shell'){
-    b.atkT-=dt; b.tuck=Math.min(1,b.tuck+dt*5); b.spin=(b.spin||0)+dt*11;
+    b.atkT-=dt; b.tuck=Math.min(1,b.tuck+dt*5); b.spin=(b.spin||0)+dt*13;
     b.x+=b.vx*dt; b.y+=b.vy*dt;
-    if(b.x<=0.5){ b.x=0.5; b.vx=Math.abs(b.vx); } if(b.x>=CONFIG.COLS-1.5){ b.x=CONFIG.COLS-1.5; b.vx=-Math.abs(b.vx); }
-    if(b.y<=0.6){ b.y=0.6; b.vy=Math.abs(b.vy); } if(b.y>=CONFIG.ROWS-1.5){ b.y=CONFIG.ROWS-1.5; b.vy=-Math.abs(b.vy); }
+    const sp=CONFIG.turtleShellSpeed*SPD; let bounced=false;
+    if(b.x<=0.5){ b.x=0.5; b.vx=Math.abs(b.vx); bounced=true; } if(b.x>=CONFIG.COLS-1.5){ b.x=CONFIG.COLS-1.5; b.vx=-Math.abs(b.vx); bounced=true; }
+    if(b.y<=0.6){ b.y=0.6; b.vy=Math.abs(b.vy); bounced=true; } if(b.y>=CONFIG.ROWS-1.5){ b.y=CONFIG.ROWS-1.5; b.vy=-Math.abs(b.vy); bounced=true; }
+    if(bounced){ b.vx+=(Math.random()-0.5)*sp*0.5; b.vy+=(Math.random()-0.5)*sp*0.5; sfxSwept(); } // ricochet at fresh angles
+    const v=Math.hypot(b.vx,b.vy)||1; b.vx=b.vx/v*sp; b.vy=b.vy/v*sp;   // keep it fast & roaming
     if(b.hitCd>0) b.hitCd-=dt;
     if(Math.hypot(b.x-state.whale.col,b.y-state.whale.row)<0.85 && b.hitCd<=0){ turtleHurtWhale(CONFIG.turtleShellO2); b.hitCd=0.8; }
     if(b.atkT<=0) toStalk(b,1.0);
@@ -2001,68 +2008,116 @@ function drawWhirl(wpl){
   ctx.restore();
 }
 function drawTurtle(b,w,h){
-  const cx=b.x*CW+CW/2, cy=b.y*CH+CH/2, sz=Math.min(CW,CH)*1.7, T=state.t||0;
+  const cx=b.x*CW+CW/2, cy=b.y*CH+CH/2, sz=Math.min(CW,CH)*1.85, T=state.t||0;
   const stunned=b.stun>0, shell=(b.mode==='shell');
-  const windBite=(b.mode==='bite'&&b.biteState==='wind'), windSweep=(b.mode==='sweep'&&b.sweepState==='wind'), striking=(b.mode==='sweep'&&b.sweepState==='strike');
+  const windBite=(b.mode==='bite'&&b.biteState==='wind'), lunging=(b.mode==='bite'&&b.biteState==='lunge');
+  const windSweep=(b.mode==='sweep'&&b.sweepState==='wind'), striking=(b.mode==='sweep'&&b.sweepState==='strike');
   ctx.save(); ctx.translate(cx,cy);
-  const gcol = shell?'rgba(190,235,250,0.5)' : (windBite||windSweep)?'rgba(255,170,110,0.5)' : 'rgba(150,225,175,0.38)';
-  const gl=ctx.createRadialGradient(0,0,2,0,0,sz*1.05); gl.addColorStop(0,gcol); gl.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(0,0,sz*1.05,0,Math.PI*2); ctx.fill();
 
+  // soft outer glow (state-coloured)
+  const gcol = shell?'rgba(120,225,210,0.45)' : (windBite||windSweep)?'rgba(255,165,95,0.5)' : 'rgba(110,210,170,0.32)';
+  const gl=ctx.createRadialGradient(0,0,2,0,0,sz*0.95); gl.addColorStop(0,gcol); gl.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(0,0,sz*0.95,0,Math.PI*2); ctx.fill();
+
+  // drop shadow for depth
+  ctx.fillStyle='rgba(2,10,18,0.28)'; ctx.beginPath(); ctx.ellipse(sz*0.04,sz*0.42,sz*0.5,sz*0.16,0,0,Math.PI*2); ctx.fill();
+
+  // ── SHELL MODE: a polished armored dome, spinning, with motion arcs ──
   if(shell){
     ctx.save(); ctx.rotate(b.spin||0);
-    const cg=ctx.createRadialGradient(-sz*0.12,-sz*0.12,sz*0.05,0,0,sz*0.55);
-    cg.addColorStop(0,'#6fae5e'); cg.addColorStop(1,'#2f6b3a');
-    ctx.fillStyle=cg; ctx.strokeStyle='#1c4a28'; ctx.lineWidth=Math.max(2,sz*0.05);
+    // motion-blur arcs
+    ctx.strokeStyle='rgba(180,240,225,0.30)'; ctx.lineWidth=Math.max(2,sz*0.04); ctx.lineCap='round';
+    for(let i=0;i<3;i++){ const a0=i*2.1; ctx.beginPath(); ctx.arc(0,0,sz*0.6,a0,a0+1.1); ctx.stroke(); }
+    const cg=ctx.createRadialGradient(-sz*0.16,-sz*0.18,sz*0.04,0,0,sz*0.54);
+    cg.addColorStop(0,'#8fd9a6'); cg.addColorStop(0.5,'#3f9168'); cg.addColorStop(1,'#1c5240');
+    ctx.fillStyle=cg; ctx.strokeStyle='#123c2c'; ctx.lineWidth=Math.max(2.5,sz*0.05);
     ctx.beginPath(); ctx.arc(0,0,sz*0.5,0,Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.strokeStyle='rgba(20,60,32,0.7)'; ctx.lineWidth=Math.max(1.5,sz*0.025);
-    ctx.beginPath(); ctx.arc(0,0,sz*0.22,0,Math.PI*2); ctx.stroke();
-    for(let i=0;i<6;i++){ const a=i*Math.PI/3; ctx.beginPath(); ctx.moveTo(Math.cos(a)*sz*0.22,Math.sin(a)*sz*0.22); ctx.lineTo(Math.cos(a)*sz*0.5,Math.sin(a)*sz*0.5); ctx.stroke(); }
-    ctx.strokeStyle='rgba(220,255,230,0.55)'; ctx.lineWidth=Math.max(1.5,sz*0.03); ctx.beginPath(); ctx.arc(0,0,sz*0.46,0,Math.PI*2); ctx.stroke();
+    // central scute + radiating seams + ring of plates
+    ctx.strokeStyle='rgba(12,46,32,0.65)'; ctx.lineWidth=Math.max(1.5,sz*0.028);
+    ctx.beginPath(); ctx.arc(0,0,sz*0.2,0,Math.PI*2); ctx.stroke();
+    for(let i=0;i<6;i++){ const a=i*Math.PI/3; ctx.beginPath();
+      ctx.moveTo(Math.cos(a)*sz*0.2,Math.sin(a)*sz*0.2); ctx.lineTo(Math.cos(a)*sz*0.5,Math.sin(a)*sz*0.5); ctx.stroke(); }
+    // outer plate scallops
+    ctx.beginPath(); ctx.arc(0,0,sz*0.36,0,Math.PI*2); ctx.stroke();
+    // glossy rim highlight
+    ctx.strokeStyle='rgba(220,255,235,0.55)'; ctx.lineWidth=Math.max(1.5,sz*0.03);
+    ctx.beginPath(); ctx.arc(0,0,sz*0.45,-2.2,-0.3); ctx.stroke();
     ctx.restore(); ctx.restore(); return;
   }
 
   if(b.face<0) ctx.scale(-1,1);
-  const skin=stunned?'#8a9a80':'#7cae63', skinE=stunned?'#5a6650':'#4d7a3a', shellE=stunned?'#566150':'#235233';
 
-  // flippers (behind shell)
-  ctx.fillStyle=skin; ctx.strokeStyle=skinE; ctx.lineWidth=Math.max(2,sz*0.035);
-  ctx.save(); ctx.translate(-sz*0.42,sz*0.28); ctx.rotate(0.5+Math.sin(T*2)*0.06);
-  ctx.beginPath(); ctx.ellipse(0,0,sz*0.20,sz*0.11,0,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
+  // palette
+  const skinTop=stunned?'#94a487':'#8fbf78', skinBot=stunned?'#69745f':'#5d8f48', skinE=stunned?'#4a543f':'#3c6630';
+  const cTop=stunned?'#9fb094':'#74c98f', cMid=stunned?'#74806a':'#3f9168', cBot=stunned?'#525b49':'#1f5740', cE=stunned?'#3c4438':'#123c2c';
+
+  // ── rear flipper (behind) ──
+  ctx.fillStyle=skinBot; ctx.strokeStyle=skinE; ctx.lineWidth=Math.max(2,sz*0.03);
+  ctx.save(); ctx.translate(-sz*0.44,sz*0.2); ctx.rotate(0.7+Math.sin(T*1.8)*0.05);
+  ctx.beginPath(); ctx.ellipse(0,0,sz*0.2,sz*0.1,0,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
+
+  // ── front flipper (large, wing-like; raises/swings on sweep) ──
   const fl=b.flipUp||0;
-  ctx.save(); ctx.translate(sz*0.30,sz*0.26);
-  const fang = striking ? -1.0 : (-0.2 - fl*1.1 + Math.sin(T*2.5)*0.05);
+  ctx.save(); ctx.translate(sz*0.22,sz*0.22);
+  const fang = striking ? -1.05 : (-0.12 - fl*1.15 + Math.sin(T*2.2)*0.05);
   ctx.rotate(fang);
-  ctx.beginPath(); ctx.ellipse(0,0,sz*0.30,sz*0.13,0,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
+  const fg=ctx.createLinearGradient(0,-sz*0.12,0,sz*0.12); fg.addColorStop(0,skinTop); fg.addColorStop(1,skinBot);
+  ctx.fillStyle=fg; ctx.strokeStyle=skinE; ctx.lineWidth=Math.max(2,sz*0.03);
+  ctx.beginPath(); ctx.moveTo(-sz*0.06,-sz*0.08);
+  ctx.quadraticCurveTo(sz*0.34,-sz*0.2, sz*0.46,-sz*0.02);
+  ctx.quadraticCurveTo(sz*0.34,sz*0.14, -sz*0.06,sz*0.1);
+  ctx.quadraticCurveTo(-sz*0.16,0,-sz*0.06,-sz*0.08); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.restore();
 
-  // head (front, +x)
-  const rear = windBite ? sz*0.12*Math.min(1,(b.jaw||0)*1.5) : 0;
-  const hx=sz*0.52 - rear;
-  ctx.fillStyle=skin; ctx.strokeStyle=skinE; ctx.lineWidth=Math.max(2,sz*0.035);
-  ctx.beginPath(); ctx.ellipse(hx,-sz*0.02,sz*0.20,sz*0.16,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  // ── neck + head (front) ──
+  const rear = windBite ? sz*0.13*Math.min(1,(b.jaw||0)*1.6) : (lunging?-sz*0.05:0);
+  const hx=sz*0.46 - rear, hy=-sz*0.04;
+  // neck
+  ctx.fillStyle=skinBot; ctx.strokeStyle=skinE; ctx.lineWidth=Math.max(2,sz*0.03);
+  ctx.beginPath(); ctx.moveTo(sz*0.12,-sz*0.14); ctx.quadraticCurveTo(hx*0.7,hy-sz*0.06,hx,hy-sz*0.1);
+  ctx.lineTo(hx,hy+sz*0.12); ctx.quadraticCurveTo(sz*0.16,sz*0.06,sz*0.12,-sz*0.14); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // head
+  const hg=ctx.createRadialGradient(hx-sz*0.04,hy-sz*0.05,sz*0.02,hx,hy,sz*0.2);
+  hg.addColorStop(0,skinTop); hg.addColorStop(1,skinBot);
+  ctx.fillStyle=hg; ctx.strokeStyle=skinE; ctx.lineWidth=Math.max(2,sz*0.03);
+  ctx.beginPath(); ctx.ellipse(hx,hy,sz*0.19,sz*0.15,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  // mottled scale spots on head
+  ctx.fillStyle='rgba(40,80,40,0.32)';
+  for(const p of [[0.04,-0.06],[0.1,0.02],[0.0,0.05],[-0.06,-0.02]]){ ctx.beginPath(); ctx.arc(hx+p[0]*sz,hy+p[1]*sz,sz*0.02,0,Math.PI*2); ctx.fill(); }
+  // jaw (opens on bite)
   const jaw=(b.mode==='bite')?(b.jaw||0):0;
-  if(jaw>0.02){ ctx.fillStyle='#7a2230'; ctx.beginPath();
-    ctx.moveTo(hx+sz*0.07,-sz*0.02); ctx.lineTo(hx+sz*0.26,-sz*0.02-sz*0.12*jaw); ctx.lineTo(hx+sz*0.26,-sz*0.02+sz*0.12*jaw); ctx.closePath(); ctx.fill(); }
-  ctx.fillStyle=stunned?'#caa15a':'#e6b15a'; ctx.beginPath(); ctx.moveTo(hx+sz*0.17,-sz*0.07); ctx.lineTo(hx+sz*0.27,-sz*0.02); ctx.lineTo(hx+sz*0.17,sz*0.03); ctx.closePath(); ctx.fill();
-  ctx.fillStyle='#10210f'; ctx.beginPath(); ctx.arc(hx-sz*0.02,-sz*0.06,sz*0.035,0,Math.PI*2); ctx.fill();
-  if(!stunned){ ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(hx-sz*0.005,-sz*0.075,sz*0.012,0,Math.PI*2); ctx.fill(); }
+  if(jaw>0.02){ ctx.fillStyle='#6e1f2b'; ctx.beginPath();
+    ctx.moveTo(hx+sz*0.06,hy); ctx.lineTo(hx+sz*0.28,hy-sz*0.13*jaw); ctx.lineTo(hx+sz*0.28,hy+sz*0.13*jaw); ctx.closePath(); ctx.fill(); }
+  // beak
+  ctx.fillStyle=stunned?'#c6a45e':'#dfb45a'; ctx.strokeStyle='#9c7a32'; ctx.lineWidth=Math.max(1,sz*0.012);
+  ctx.beginPath(); ctx.moveTo(hx+sz*0.13,hy-sz*0.08); ctx.quadraticCurveTo(hx+sz*0.3,hy-sz*0.01,hx+sz*0.15,hy+sz*0.06);
+  ctx.quadraticCurveTo(hx+sz*0.12,hy,hx+sz*0.13,hy-sz*0.08); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // eye
+  ctx.fillStyle='#0e1f0d'; ctx.beginPath(); ctx.arc(hx-sz*0.01,hy-sz*0.05,sz*0.034,0,Math.PI*2); ctx.fill();
+  if(!stunned){ ctx.fillStyle='#eafff0'; ctx.beginPath(); ctx.arc(hx+sz*0.005,hy-sz*0.065,sz*0.013,0,Math.PI*2); ctx.fill(); }
 
-  // carapace
-  const cg=ctx.createRadialGradient(-sz*0.12,-sz*0.14,sz*0.05,0,0,sz*0.52);
-  cg.addColorStop(0,stunned?'#92a386':'#56a062'); cg.addColorStop(1,shellE);
-  ctx.fillStyle=cg; ctx.strokeStyle=shellE; ctx.lineWidth=Math.max(2.5,sz*0.05);
-  ctx.beginPath(); ctx.ellipse(-sz*0.05,0,sz*0.5,sz*0.42,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
-  ctx.strokeStyle='rgba(20,55,30,0.6)'; ctx.lineWidth=Math.max(1.5,sz*0.025);
-  ctx.beginPath(); ctx.ellipse(-sz*0.05,0,sz*0.22,sz*0.2,0,0,Math.PI*2); ctx.stroke();
-  for(let i=0;i<6;i++){ const a=i*Math.PI/3+0.3; ctx.beginPath();
-    ctx.moveTo(-sz*0.05+Math.cos(a)*sz*0.22,Math.sin(a)*sz*0.2);
-    ctx.lineTo(-sz*0.05+Math.cos(a)*sz*0.5,Math.sin(a)*sz*0.42); ctx.stroke(); }
+  // ── carapace (leatherback dome with ridges) ──
+  const cgr=ctx.createRadialGradient(-sz*0.18,-sz*0.2,sz*0.04,-sz*0.04,0,sz*0.55);
+  cgr.addColorStop(0,cTop); cgr.addColorStop(0.55,cMid); cgr.addColorStop(1,cBot);
+  ctx.fillStyle=cgr; ctx.strokeStyle=cE; ctx.lineWidth=Math.max(2.5,sz*0.045);
+  ctx.beginPath(); ctx.ellipse(-sz*0.04,-sz*0.02,sz*0.52,sz*0.44,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  // longitudinal ridges (leatherback look)
+  ctx.strokeStyle='rgba(14,50,34,0.5)'; ctx.lineWidth=Math.max(1.5,sz*0.022); ctx.lineCap='round';
+  for(let i=-2;i<=2;i++){ const off=i*sz*0.17; ctx.beginPath();
+    ctx.moveTo(-sz*0.5, off*0.5); ctx.quadraticCurveTo(-sz*0.04, off, sz*0.42, off*0.5); ctx.stroke(); }
+  // scattered pale scute speckles for detail
+  ctx.fillStyle='rgba(225,245,225,0.18)';
+  for(const p of [[-0.28,-0.16],[-0.05,-0.24],[0.2,-0.12],[-0.18,0.12],[0.12,0.16],[0.3,0.04]]){
+    ctx.beginPath(); ctx.arc(p[0]*sz,p[1]*sz,sz*0.022,0,Math.PI*2); ctx.fill(); }
+  // top sheen
+  ctx.fillStyle='rgba(235,255,240,0.16)'; ctx.beginPath(); ctx.ellipse(-sz*0.18,-sz*0.2,sz*0.2,sz*0.1,-0.5,0,Math.PI*2); ctx.fill();
 
+  // labels / telegraphs (upright)
   if(b.face<0) ctx.scale(-1,1);
   ctx.textAlign='center'; ctx.textBaseline='alphabetic';
-  if(windBite){ ctx.fillStyle='rgba(255,160,90,0.95)'; ctx.font=`700 ${Math.floor(sz*0.16)}px 'DM Mono',monospace`; ctx.fillText('BITE!',0,-sz*0.62); }
-  else if(windSweep){ ctx.fillStyle='rgba(255,205,90,0.95)'; ctx.font=`700 ${Math.floor(sz*0.16)}px 'DM Mono',monospace`; ctx.fillText('SWEEP!',0,-sz*0.62); }
-  if(stunned){ ctx.font=`${Math.floor(sz*0.36)}px serif`; ctx.textBaseline='middle'; ctx.fillText('💫',0,-sz*0.66); }
+  if(windBite||lunging){ ctx.fillStyle='rgba(255,150,80,0.95)'; ctx.font=`700 ${Math.floor(sz*0.15)}px 'DM Mono',monospace`; ctx.fillText('BITE!',0,-sz*0.6); }
+  else if(windSweep){ ctx.fillStyle='rgba(255,200,85,0.95)'; ctx.font=`700 ${Math.floor(sz*0.15)}px 'DM Mono',monospace`; ctx.fillText('SWEEP!',0,-sz*0.6); }
+  if(stunned){ ctx.font=`${Math.floor(sz*0.34)}px serif`; ctx.textBaseline='middle'; ctx.fillText('💫',0,-sz*0.62); }
   ctx.restore();
 }
 
@@ -2180,7 +2235,7 @@ function renderBoss(w,h){
     const grd=ctx.createLinearGradient(bx,0,bx+bw,0); grd.addColorStop(0,'#ff5a7a'); grd.addColorStop(1,'#b06bff');
     ctx.fillStyle=grd; ctx.fillRect(bx,by,bw*frac,bh);
     ctx.font=`600 ${Math.max(9,Math.floor(CW*0.18))}px 'DM Mono',monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillStyle='#fff'; ctx.fillText(b.type==='turtle' ? 'GIANT SEA TURTLE  ·  THE GUARDIAN' : `THE KRAKEN  ·  BOSS ${b.num}/5`, w/2, by+bh/2);
+    ctx.fillStyle='#fff'; ctx.fillText(b.type==='turtle' ? 'GIANT SEA TURTLE' : `THE KRAKEN  ·  BOSS ${b.num}/5`, w/2, by+bh/2);
   }
   // clearing celebration (gem rise)
   if(state.phase==='clear' && state.clearGem){
@@ -2216,9 +2271,9 @@ function renderBoss(w,h){
     ctx.fillStyle='rgba(220,200,255,0.8)'; ctx.font=`600 ${Math.min(13,pw*0.034)}px 'DM Mono',monospace`;
     ctx.fillText(b.type==='turtle' ? 'THE GUARDIAN OF THE DEEP' : `BOSS ${b.num} / 5`, w/2, py+pw*0.115+20);
     const lines = b.type==='turtle' ? [
-      ['🐢','BAIT its BITE, then dodge','— a missed bite makes it crash & stun (hit it!)'],
-      ['🐬','Let DOLPHINS / cannon strike','— while its head & flippers are out'],
-      ['🛡','AVOID the spinning SHELL','— it\'s armored & bounces — just don\'t get hit'],
+      ['🐢','BAIT the BITE & dodge','— a miss stuns it: your hit window'],
+      ['🐬','DOLPHINS & cannon hit it','— while head & flippers are out'],
+      ['🛡','DODGE the spinning SHELL','— armored; just avoid it'],
     ] : [
       ['🌀','Lure it onto a WHIRLPOOL','— rips its health, but they hurt you too'],
       ['🐬','Let DOLPHINS ram it','— a strike briefly freezes it'],
@@ -2502,7 +2557,7 @@ function selectWhale(url,id,tier,lit,bub){
 function openPicker(){
   pickerGrid.innerHTML='';
   const sorted=[...loadedNfts].sort((a,b)=>rankOf(a)-rankOf(b));
-  pickerSub.textContent=`${sorted.length} whales · rarest first · v53`;
+  pickerSub.textContent=`${sorted.length} whales · rarest first · v54`;
   // default PUP whale — always available to pick (for non-holders and holders alike)
   {
     const dc=document.createElement('div'); dc.className='pcard'+(state.skinId==null?' sel':'');
