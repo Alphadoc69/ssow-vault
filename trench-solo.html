@@ -530,8 +530,8 @@ const CONFIG = {
     bubbles: {name:'🫧 Bubble Bloom', desc:'more air bubbles, each worth more', cost:8},
     revive:  {name:'❤️ Revive',       desc:'resurface once instead of dying', cost:15},
   },
-  bossBubbleMax: 2,   // max air bubbles present at once in a boss fight
-  bossBubbleSpawn: 3.6,// seconds between new air bubbles popping up
+  bossBubbleMax: 5,   // max air bubbles present at once in a boss fight
+  bossBubbleSpawn: 2.2,// seconds between new air bubbles popping up
   bossTouchO2: 16,    // oxygen lost if the Kraken catches you
   boltO2: 16,         // oxygen lost by a lightning strike
   bossDrain: 1.6,     // starting oxygen drain during a boss fight
@@ -896,7 +896,7 @@ function setupBoss(L){
     state.bossSharks.push({row, x:Math.random()*CONFIG.COLS, dir, speed:(0.9+num*0.12)*SPD, face:dir});
   }
   // air pockets to survive on — more on the tougher Krakens, spread across the arena
-  const nBubbles = 1 + Math.floor(num*0.4);   // boss 1 → 1 … boss 5 → 3
+  const nBubbles = 3 + Math.floor(num*0.5);   // boss 1 → 1 … boss 5 → 3
   const usedB = new Set(state.rocks.map(k=>k.row+'-'+k.col));
   for(let i=0;i<nBubbles;i++){
     let row,col,tries=0;
@@ -933,7 +933,7 @@ function setupTurtle(L){
   state.whirls=[]; state.bossSharks=[]; state.minis=[]; state.inks=[]; state.inkBalls=[];
   state.barnacles=[]; state.barnacleCd=0;
   const used=new Set();
-  for(let i=0;i<2;i++){ let row,col,tries=0;
+  for(let i=0;i<4;i++){ let row,col,tries=0;
     do{ row=2+Math.floor(Math.random()*(CONFIG.ROWS-3)); col=Math.floor(Math.random()*CONFIG.COLS); tries++; }
     while(used.has(row+'-'+col)&&tries<16); used.add(row+'-'+col);
     state.bubbles.push({row,col,taken:false,pop:0}); }
