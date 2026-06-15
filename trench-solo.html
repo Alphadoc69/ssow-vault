@@ -526,10 +526,14 @@ const CONFIG = {
   xpCap: 0.50,        // capped at +50%
   bossPearls: 8,      // base pearls for defeating a Kraken (×boss number)
   UPGRADES: {
-    slow:    {name:'🐢 Slow Drain',  desc:'oxygen drains 25% slower this run', cost:12},
-    shield:  {name:'🛡 Spare Shield', desc:'a shield every level (absorbs one hit)', cost:10},
-    bubbles: {name:'🫧 Bubble Bloom', desc:'more air bubbles, each worth more', cost:8},
-    revive:  {name:'❤️ Revive',       desc:'resurface once instead of dying', cost:15},
+    slow:    {name:'🐢 Slow Drain',   desc:'oxygen drains 30% slower this run', cost:10},
+    shield:  {name:'🛡 Iron Shell',   desc:'a shield every 2 levels — absorbs one hit', cost:12},
+    bubbles: {name:'🫧 Bubble Bloom', desc:'more air bubbles, each worth +50% more O2', cost:8},
+    revive:  {name:'❤️ Extra Life',   desc:'resurface once instead of dying — stackable up to 3×', cost:15, maxStack:3},
+    turbo:   {name:'⚡ Turbo Fins',   desc:'+25% move speed this run', cost:14},
+    vault:   {name:'💎 Pearl Vault',  desc:'+50% pearls earned this run', cost:18},
+    oShield: {name:'🔵 Orca Shield',  desc:'orca fires twice as fast · cannonballs deal +50% boss damage', cost:20},
+    ghosted: {name:'👻 Ghost Step',   desc:'first hit each level does 0 damage (intangible step)', cost:22},
   },
   bossBubbleMax: 5,   // max air bubbles present at once in a boss fight
   bossBubbleSpawn: 2.2,// seconds between new air bubbles popping up
@@ -3233,6 +3237,9 @@ function startRun(){
   state.level=1; state.score=0; state.o2=100; state.gems=[];
   state.invuln=0; state.habName='';
   state.runPearls=0; state.revived=false; state.hoardPhase=false; state.lootReveal=0;
+  state.revivesLeft=state.upg.revive?Math.min(3,1):0;
+  state.ghostReady=!!state.upg.ghosted;
+  if(state.upg.turbo) CONFIG.holdRepeat=65; else CONFIG.holdRepeat=120;
   if(state.best<1) state.best=1;
   setupLevel(1); state.phase='play'; state.last=performance.now();
   document.getElementById('overlayStart').classList.add('hidden');
@@ -4549,6 +4556,7 @@ function setOrcaImgs(urls){
 function showOrcaBadge(images,count){
   const box=document.getElementById('orcaBadge'); if(!box) return;
   box.style.display='flex';
+  state.hasOrca=true; state.orcaEnabled=(state.orcaEnabled!==false);  // default on
   state.orcaCount = count||1;
   const boost = Math.round(Math.min(CONFIG.orcaRateCap, CONFIG.orcaRatePerOrca*(state.orcaCount-1))*100);
   document.getElementById('orcaName').textContent=`🐳 Security Orca${count>1?`s ×${count}`:''} — cannon ally${boost>0?` · +${boost}% fire rate`:''}`;
