@@ -215,6 +215,15 @@
     canvas{max-width:100%;}
     .hud{max-width:100%;}
   }
+  .mid-upg-card{display:flex;flex-direction:column;align-items:flex-start;gap:3px;background:rgba(20,40,60,0.85);border:1.5px solid rgba(91,200,232,0.3);border-radius:10px;padding:12px 14px;cursor:pointer;text-align:left;transition:border-color 0.15s,background 0.15s;width:100%;box-sizing:border-box;}
+  .mid-upg-card:hover{border-color:rgba(91,200,232,0.8);background:rgba(30,60,90,0.9);}
+  .mid-upg-card.wealthy{border-color:rgba(255,210,80,0.4);}
+  .mid-upg-card.wealthy:hover{border-color:rgba(255,210,80,0.9);}
+  .mid-upg-card.locked{opacity:0.45;cursor:not-allowed;}
+  .mid-upg-icon{font-size:1.4rem;}
+  .mid-upg-name{font-family:'Bebas Neue',sans-serif;font-size:1.0rem;letter-spacing:0.07em;color:#e8f4ff;}
+  .mid-upg-desc{font-size:0.72rem;color:rgba(180,210,230,0.7);font-family:'DM Mono',monospace;}
+  .mid-upg-lock{font-size:0.65rem;color:#ffd060;letter-spacing:0.06em;margin-top:2px;}
 </style>
 </head>
 <body>
@@ -286,7 +295,15 @@
       <button class="btn" id="rewardBtn">Collect &amp; Dive On ▼</button>
     </div>
 
-    <div class="overlay hidden" id="overlayWin">
+    <div class="overlay hidden" id="overlayMidUpgrade" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(8,14,28,0.96);align-items:center;justify-content:center;flex-direction:column;">
+  <div style="max-width:380px;width:90%;padding:24px;text-align:center;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:0.08em;color:#5bc8e8;margin-bottom:4px;">⚡ DEPTH REWARD</div>
+    <div style="font-size:0.72rem;color:rgba(160,210,230,0.65);margin-bottom:18px;letter-spacing:0.1em;">CHOOSE AN UPGRADE</div>
+    <div id="midUpgCards" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;"></div>
+    <button id="midUpgSkip" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:rgba(200,220,230,0.55);font-family:'Bebas Neue',sans-serif;font-size:0.85rem;letter-spacing:0.08em;padding:8px 24px;border-radius:8px;cursor:pointer;width:100%">SKIP →</button>
+  </div>
+</div>
+<div class="overlay hidden" id="overlayWin">
       <h2 class="cyan" style="font-size:1.6rem;line-height:1.15;text-align:center">A SEAT AT THE TABLE</h2>
       <p class="small" id="winSub" style="margin:0.3rem 0 0.1rem;text-align:center">Congratulations — you conquered all 100 levels of the Trench.</p>
       <div class="win-scene">
@@ -2191,7 +2208,7 @@ function updatePhio(dt){
       ib.x+=ib.vx*dt; ib.y+=ib.vy*dt;
       if(ib.t>2.0||ib.x<-1||ib.x>CONFIG.COLS+1||ib.y<-1||ib.y>CONFIG.ROWS+1){ state.inkBalls.splice(i,1); continue; }
       if(state.invuln<=0 && Math.hypot(ib.x-state.whale.col,ib.y-state.whale.row)<0.65){
-        state.o2=Math.max(0,state.o2-(CONFIG.inkBallO2||12)*0.6);
+        if(!state.midUpgrades.inkresist) state.o2=Math.max(0,state.o2-(CONFIG.inkBallO2||12)*0.6);
         state.invuln=CONFIG.invuln; state.stingFlash=0.8; sfxSwept();
         state.inks.push({x:ib.x,y:ib.y,r:0.85,t:0,life:1.2});
         state.inkBalls.splice(i,1);
@@ -2966,7 +2983,8 @@ function updateBoss(dt){
   if(state.whirlSelfCd<=0){
     for(const wpl of state.whirls){
       if(wpl.age>0.3 && wpl.row===state.whale.row && wpl.col===state.whale.col){
-        state.o2-=CONFIG.whirlSelfO2*state.tier.sweepMul; state.whirlSelfCd=1.0; state.stingFlash=0.7; sfxSwept();
+        const wdMul=state.midUpgrades&&state.midUpgrades.whirldodge?0.6:1;
+        state.o2-=CONFIG.whirlSelfO2*state.tier.sweepMul*wdMul; state.whirlSelfCd=1.0; state.stingFlash=0.7; sfxSwept();
         const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
         // spun out — shoved a cell away
         state.whale.row=clampi(state.whale.row+(state.whale.row>2?-1:1),0,CONFIG.ROWS-1);
@@ -3192,13 +3210,77 @@ function sweep(){
   state.invuln=CONFIG.invuln;
   if(state.o2<=0){ state.o2=0; gameOver(); }
 }
+
+// ── MID-DIVE UPGRADES (every 5 levels, skip boss levels) ──
+const MID_PERKS = [
+  {id:'o2cache',    name:'O2 Cache',      icon:'🫧', desc:'+20 max oxygen this run',         wealthy:false},
+  {id:'speedfins',  name:'Speed Fins',    icon:'🏄', desc:'Move costs 30% less O2',           wealthy:false},
+  {id:'thickskin',  name:'Thick Hide',    icon:'🛡', desc:'Sweeps hurt 20% less this run',    wealthy:false},
+  {id:'currentread',name:'Current Read',  icon:'🌊', desc:'Predators 15% slower this run',    wealthy:false},
+  {id:'sonarboost', name:'Sonar Boost',   icon:'📡', desc:'Grants +1 sonar ping per level',   wealthy:false},
+  {id:'pearlaura',  name:'Pearl Aura',    icon:'🐚', desc:'Pearls worth 2× this run',         wealthy:true},
+  {id:'deepluck',   name:'Deep Luck',     icon:'👑', desc:'Chest rolls rarity twice, keep best', wealthy:true},
+  {id:'dolphinpact',name:'Dolphin Pact',  icon:'🐬', desc:'Dolphins appear twice as often',   wealthy:true},
+  {id:'whirldodge', name:'Whirl Dodge',   icon:'🌀', desc:'Whirlpools deal 40% less damage',  wealthy:true},
+  {id:'inkresist',  name:'Ink Resist',    icon:'🦑', desc:'Ink balls deal 0 damage',          wealthy:true},
+  {id:'pearlpull',  name:'Pearl Pull',    icon:'🧲', desc:'Auto-collect nearby pearls',       wealthy:true},
+];
+
+function showMidUpgradeScreen(){
+  state.phase='midupgrade';
+  const overlay=document.getElementById('overlayMidUpgrade');
+  if(!overlay) return;
+  // pick 2 free + 1 wealthy locked
+  const free=MID_PERKS.filter(p=>!p.wealthy&&!state.midUpgrades[p.id]);
+  const wealthy=MID_PERKS.filter(p=>p.wealthy&&!state.midUpgrades[p.id]);
+  // shuffle
+  for(let i=free.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [free[i],free[j]]=[free[j],free[i]]; }
+  for(let i=wealthy.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [wealthy[i],wealthy[j]]=[wealthy[j],wealthy[i]]; }
+  const picks=[...(free.slice(0,2)), wealthy[0]].filter(Boolean);
+  const cards=document.getElementById('midUpgCards');
+  if(!cards) return;
+  cards.innerHTML='';
+  picks.forEach(p=>{
+    const btn=document.createElement('button');
+    btn.className='mid-upg-card'+(p.wealthy?' wealthy':'');
+    btn.innerHTML=`<span class="mid-upg-icon">${p.icon}</span><span class="mid-upg-name">${p.name}</span><span class="mid-upg-desc">${p.desc}</span>${p.wealthy?'<span class="mid-upg-lock">🔒 WEALTHY WHALE</span>':''}`;
+    btn.onclick=()=>{
+      if(p.wealthy && !state.hasWealthy) return;
+      applyMidUpgrade(p.id);
+      overlay.style.display='none';
+      setupLevel(state.level); state.phase='play'; state.last=performance.now();
+    };
+    if(p.wealthy && !state.hasWealthy) btn.classList.add('locked');
+    cards.appendChild(btn);
+  });
+  // skip button
+  const skip=document.getElementById('midUpgSkip');
+  if(skip) skip.onclick=()=>{
+    overlay.style.display='none';
+    setupLevel(state.level); state.phase='play'; state.last=performance.now();
+  };
+  overlay.style.display='flex';
+}
+
+function applyMidUpgrade(id){
+  state.midUpgrades[id]=true;
+  if(id==='o2cache') state.o2=Math.min(state.o2+20,120);
+  if(id==='pearlaura') state.midUpgrades.pearlaura=true;
+  if(id==='dolphinpact') state.midUpgrades.dolphinpact=true;
+}
+
 function levelComplete(){
   state.phase='clear'; state.clearAnim=0; state.clearGem=null; sfxBubble();
   setTimeout(()=>{
     state.o2=Math.min(100, state.o2+CONFIG.levelRefill);
     if(state.level>=CONFIG.maxLevel){ win(); return; }   // bottom of the Trench — you win
     state.level++; if(state.level>state.best){ state.best=state.level; saveBest(); }
-    setupLevel(state.level); state.phase='play'; state.last=performance.now();
+    // every 5 levels except level 100 (final boss) — offer a mid-dive upgrade
+    if(state.level%5===0 && state.level<100){
+      showMidUpgradeScreen();
+    } else {
+      setupLevel(state.level); state.phase='play'; state.last=performance.now();
+    }
   }, 650);
 }
 function win(){
@@ -3237,7 +3319,8 @@ function startRun(){
   state.level=1; state.score=0; state.o2=100; state.gems=[];
   state.invuln=0; state.habName='';
   state.runPearls=0; state.revived=false; state.hoardPhase=false; state.lootReveal=0;
-  state.revivesLeft=state.upg.revive?Math.min(3,1):0;
+  state.midUpgrades={};
+  state.revivesLeft=state.upg.revive?Math.min(3,state.upg.reviveStack||1):0;
   state.ghostReady=!!state.upg.ghosted;
   if(state.upg.turbo) CONFIG.holdRepeat=65; else CONFIG.holdRepeat=120;
   if(state.best<1) state.best=1;
@@ -4610,6 +4693,7 @@ wInput.addEventListener('keydown',e=>{ if(e.key==='Enter') loadWallet(); });
 
 // ── Wealthy Whales: XP multiplier, pearls, vault, per-run shop ──
 let shopSel = new Set();
+let shopCounts = {};   // tracks stack count for stackable upgrades
 async function checkWealthy(wallet){
   try{
     const res=await fetch(`/api/wealthy?wallet=${encodeURIComponent(wallet)}`);
@@ -4651,17 +4735,31 @@ function showWealthyBadge(images,count){
 function buildShop(){
   const shop=document.getElementById('shop'); if(!shop) return; shop.innerHTML='';
   Object.entries(CONFIG.UPGRADES).forEach(([key,u])=>{
-    const b=document.createElement('button'); b.className='shop-item'+(shopSel.has(key)?' on':'');
-    b.innerHTML=`<span class="shop-name">${u.name}</span><span class="shop-cost"><span class="pearl-ico"></span> ${u.cost}</span><span class="shop-desc">${u.desc}</span><span class="shop-eq">✓ EQUIPPED</span>`;
+    const cnt=shopCounts[key]||0;
+    const on=shopSel.has(key)||cnt>0;
+    const b=document.createElement('button'); b.className='shop-item'+(on?' on':'');
+    const stackLabel=u.maxStack&&cnt>0?` <b style="color:#ffd060">×${cnt}</b>`:'';
+    b.innerHTML=`<span class="shop-name">${u.name}${stackLabel}</span><span class="shop-cost"><span class="pearl-ico"></span> ${u.cost}</span><span class="shop-desc">${u.desc}</span><span class="shop-eq">✓ EQUIPPED</span>`;
     b.addEventListener('click',()=>toggleUpgrade(key));
     shop.appendChild(b);
   });
   updateVaultUI();
 }
-function selectedTotal(){ let t=0; shopSel.forEach(k=>t+=CONFIG.UPGRADES[k].cost); return t; }
+function selectedTotal(){ let t=0; shopSel.forEach(k=>{ const cnt=shopCounts[k]||1; t+=CONFIG.UPGRADES[k].cost*cnt; }); return t; }
 function toggleUpgrade(key){
-  if(shopSel.has(key)) shopSel.delete(key);
-  else { if(selectedTotal()+CONFIG.UPGRADES[key].cost > state.pearls){ flashVault(); return; } shopSel.add(key); }
+  const u=CONFIG.UPGRADES[key];
+  if(u.maxStack){
+    // stackable — toggle adds one, at max removes all
+    const cnt=shopCounts[key]||0;
+    if(cnt>=u.maxStack){ delete shopCounts[key]; shopSel.delete(key); }
+    else {
+      if(selectedTotal()+u.cost > state.pearls){ flashVault(); return; }
+      shopCounts[key]=(cnt+1); shopSel.add(key);
+    }
+  } else {
+    if(shopSel.has(key)) shopSel.delete(key);
+    else { if(selectedTotal()+u.cost > state.pearls){ flashVault(); return; } shopSel.add(key); }
+  }
   buildShop();
 }
 function flashVault(){ const el=document.getElementById('pearlCount'); if(!el)return; el.style.color='#ff6b6b'; setTimeout(()=>el.style.color='',350); }
@@ -4678,8 +4776,8 @@ function commitUpgrades(){
   state.upg={};
   if(!state.hasWealthy || shopSel.size===0) return;
   const total=selectedTotal();
-  if(total>state.pearls){ shopSel.clear(); buildShop(); return; }
-  shopSel.forEach(k=> state.upg[k]=true);
+  if(total>state.pearls){ shopSel.clear(); shopCounts={}; buildShop(); return; }
+  shopSel.forEach(k=>{ state.upg[k]=true; if(shopCounts[k]) state.upg[k+'Stack']=shopCounts[k]; });
   // spend (optimistic, then confirm with server)
   state.pearls-=total; updateVaultUI();
   if(state.wallet){ fetch('/api/pearls',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet:state.wallet,action:'spend',amount:total})})
