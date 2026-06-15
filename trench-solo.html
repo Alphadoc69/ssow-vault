@@ -2511,7 +2511,7 @@ function updateOrca(dt){
     let row=null, dir=Math.random()<0.5?1:-1;
     if(boss && state.boss && state.boss.type==='stampede'){
       // in stampede: orca targets moose rows (2-6), not the wolf on row 0
-      const mooseRows=b.moose&&b.moose.length?b.moose.map(m=>Math.floor(m.y||1)):[2,3,4];
+      const mooseRows=state.boss.moose&&state.boss.moose.length?state.boss.moose.map(m=>Math.floor(m.y||1)):[2,3,4];
       row=mooseRows[Math.floor(Math.random()*mooseRows.length)];
     } else if(boss && state.boss){ row=Math.round(state.boss.y); }
     else { const act=state.lanes.filter(l=>l.active); if(act.length) row=act[Math.floor(Math.random()*act.length)].row; }
@@ -2531,9 +2531,8 @@ function updateOrca(dt){
     c.x += c.dir*c.speed*dt;
     if(boss && state.boss && state.boss.type==='stampede'){
       // orca cannonballs knock out moose
-      const b2=state.boss;
-      if(b2.moose) for(let mi=b2.moose.length-1;mi>=0;mi--){
-        const m=b2.moose[mi];
+      if(state.boss.moose) for(let mi=state.boss.moose.length-1;mi>=0;mi--){
+        const m=state.boss.moose[mi];
         if(Math.abs(c.x-m.col)<0.7 && Math.abs(c.row-(m.y||0))<1.2){
           b2.moose.splice(mi,1); state.stingFlash=0.3; sfxGem(false); break;
         }
