@@ -3713,7 +3713,9 @@ function drawPearl(p){
 }
 function drawLoadout(y){
   const ic=[];
-  if(state.upg){ if(state.upg.slow)ic.push('🐢'); if(state.upg.bubbles)ic.push('🫧'); if(state.upg.revive&&!state.revived)ic.push('❤️'); }
+  if(state.upg){ if(state.upg.slow)ic.push('🐢'); if(state.upg.bubbles)ic.push('🫧');
+    const lives=state.revivesLeft||0; for(let li=0;li<lives;li++) ic.push('❤️');
+    if(state.ghostReady) ic.push('👻'); }
   if(!ic.length) return;
   ctx.save(); ctx.font=`${Math.max(12,Math.floor(CW*0.3))}px serif`; ctx.textAlign='left'; ctx.textBaseline='top';
   ctx.globalAlpha=0.95; ctx.fillText(ic.join(' '), 8, y); ctx.restore();
