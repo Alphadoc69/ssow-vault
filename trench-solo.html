@@ -54,9 +54,8 @@
   .hud .val{font-family:var(--font-display); font-size:1.3rem; letter-spacing:0.06em; color:#fff; line-height:1;}
   .hud .val.cyan{color:var(--cyan-lt);}
   .o2wrap{flex:1; max-width:150px;}
-  .o2bar{position:relative; height:16px; border:1px solid rgba(91,200,232,0.3); border-radius:6px; overflow:hidden; background:rgba(0,0,0,0.3); margin-top:4px;}
+  .o2bar{height:10px; border:1px solid rgba(91,200,232,0.3); border-radius:6px; overflow:hidden; background:rgba(0,0,0,0.3); margin-top:4px;}
   .o2fill{height:100%; width:100%; background:linear-gradient(90deg,#1a9abf,#5bc8e8); transition:width 0.15s linear, background 0.3s;}
-  .o2pct{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:0.52rem; font-weight:600; letter-spacing:0.05em; color:rgba(255,255,255,0.9); pointer-events:none; text-shadow:0 1px 3px rgba(0,0,0,0.8);}
 
   /* STAGE */
   .stage{position:relative; width:100%; display:flex; justify-content:center;}
@@ -215,27 +214,6 @@
     canvas{max-width:100%;}
     .hud{max-width:100%;}
   }
-
-  /* MID-DIVE UPGRADE OVERLAY */
-  #overlayUpgrade{justify-content:center;}
-  .upgrade-cards{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin:1rem 0; max-width:420px;}
-  .upg-card{
-    position:relative; cursor:pointer; width:110px; padding:14px 10px 12px;
-    border-radius:12px; text-align:center; border:2px solid rgba(91,200,232,0.25);
-    background:rgba(5,20,34,0.92); transition:transform 0.12s, border-color 0.15s, box-shadow 0.15s;
-    display:flex; flex-direction:column; align-items:center; gap:6px;
-  }
-  .upg-card:active{transform:scale(0.94);}
-  .upg-card:hover{border-color:var(--cyan); box-shadow:0 0 18px rgba(91,200,232,0.3);}
-  .upg-card.locked{opacity:0.55; cursor:default; border-color:rgba(255,170,50,0.3);}
-  .upg-card.locked:hover{border-color:rgba(255,170,50,0.5); box-shadow:0 0 12px rgba(255,170,50,0.2);}
-  .upg-card .upg-icon{font-size:2.2rem; line-height:1; filter:drop-shadow(0 0 8px rgba(91,200,232,0.5));}
-  .upg-card.locked .upg-icon{filter:drop-shadow(0 0 6px rgba(255,170,50,0.4));}
-  .upg-card .upg-name{font-family:var(--font-display); font-size:0.9rem; letter-spacing:0.06em; color:#fff; line-height:1.1;}
-  .upg-card .upg-desc{font-size:0.48rem; letter-spacing:0.06em; color:var(--dim); line-height:1.4;}
-  .upg-card .upg-lock{position:absolute; top:6px; right:8px; font-size:0.6rem; color:rgba(255,170,50,0.8);}
-  .upg-card .upg-whale{position:absolute; top:5px; left:7px; font-size:0.55rem; color:rgba(255,210,90,0.9); letter-spacing:0.04em;}
-
 </style>
 </head>
 <body>
@@ -248,7 +226,7 @@
 
   <div class="hud">
     <div class="stat"><span class="label">Level</span><span class="val" id="hudLevel">1</span></div>
-    <div class="o2wrap"><span class="label">Oxygen</span><div class="o2bar"><div class="o2fill" id="o2fill"></div><span class="o2pct" id="o2pct">100%</span></div></div>
+    <div class="o2wrap"><span class="label">Oxygen</span><div class="o2bar"><div class="o2fill" id="o2fill"></div></div></div>
     <div class="stat" style="text-align:right"><span class="label">Score</span><span class="val cyan" id="hudScore">0</span></div>
   </div>
 
@@ -305,14 +283,6 @@
       <p class="small" id="rewardSub">Loot spills from the wreck…</p>
       <div class="reward-items" id="rewardItems"></div>
       <button class="btn" id="rewardBtn">Collect &amp; Dive On ▼</button>
-    </div>
-
-
-    <div class="overlay hidden" id="overlayUpgrade">
-      <h2 class="cyan" style="font-size:1.6rem;margin-bottom:0.2rem">DEPTH UPGRADE</h2>
-      <p class="small" id="upgradeSubtitle">Choose one perk for the dive ahead</p>
-      <div class="upgrade-cards" id="upgradeCards"></div>
-      <p class="small" style="margin-top:0.3rem;opacity:0.6">🐚 Wealthy Whale perks unlock with your NFT</p>
     </div>
 
     <div class="overlay hidden" id="overlayWin">
@@ -482,8 +452,7 @@ const CONFIG = {
   swipeRepeat: 130,   // min ms between hops when drag-steering (stops the whale zooming)
   bubbleO2: 20,       // oxygen restored per air bubble
   bubblesBase: 4,     // air bubbles per level
-  invuln: 0.9,        // seconds of safety after a squid hit (no chain hits)
-  invulnMoveCd: 0.28,  // min seconds between moves while invulnerable (anti-speedrun)
+  invuln: 0.5,        // seconds of safety after a squid hit (no chain hits)
   pingInterval: 2.6,  // seconds between sonar pings on dark levels
   pingSpeed: 7,       // sonar ring expansion (cells/sec)
   stunTime: 1.7,      // seconds a squid is stunned by sonar
@@ -550,22 +519,6 @@ const CONFIG = {
   turtleBarnacleCd: 0.4,// min seconds between barnacle throws
   turtleBarnacleDur: 0.3,// barnacle flight time (whale → turtle)
   turtleDolphinGap: 5.5,// seconds between dolphin allies in the turtle fight (rarer = harder)
-  // ── Megalodon boss (level 60) ──
-  megHp: 480,           // health pool — slow but tanks hits
-  megSpeed: 0.9,        // base patrol speed (slow — historically a sluggish swimmer)
-  megChargeSpeed: 7.5,  // burst charge speed when it lunges
-  megChargeCd: 2.8,     // seconds between charges
-  megChargeWind: 0.7,   // telegraph time before charge
-  megBiteO2: 22,        // oxygen lost from a direct bite
-  megRamO2: 18,         // oxygen lost from a body ram
-  megChestO2: 26,       // signature move: chest-cavity shatter (high damage)
-  megChestWind: 1.0,    // telegraph time for chest attack
-  megTouchO2: 18,       // passive contact damage
-  megIceShardDmg: 35,   // damage an ice shard deals (weakness!)
-  megIceShardCd: 0.5,   // min seconds between ice shard throws
-  megIceShardDur: 0.35, // flight time whale → meg
-  megIceSelfStun: 2.2,  // seconds meg is stunned by an ice shard hit
-  megDolphinGap: 6.0,   // seconds between dolphin allies (orcas distract it)
   // Wealthy Whales — XP multiplier, pearls, per-run upgrades
   xpBase: 0.20,       // +20% XP for owning a Wealthy Whale
   xpPer: 0.03,        // +3% per extra whale
@@ -577,21 +530,6 @@ const CONFIG = {
     bubbles: {name:'🫧 Bubble Bloom', desc:'more air bubbles, each worth more', cost:8},
     revive:  {name:'❤️ Revive',       desc:'resurface once instead of dying', cost:15},
   },
-  // ── Mid-dive upgrade cards (every 5 levels) ──
-  midDiveUpgradeEvery: 5,  // show upgrade screen every N levels
-  MID_UPGRADES: [
-    {id:'o2boost',    name:'O2 Cache',      icon:'🫧', desc:'+15 max oxygen per stack',        wealthy:false, maxStack:3},
-    {id:'speedfins',  name:'Speed Fins',    icon:'🏄', desc:'Move costs 15% less O2 per stack',  wealthy:false, maxStack:3},
-    {id:'thickskin',  name:'Thick Hide',    icon:'🛡', desc:'Sweeps hurt 10% less per stack',    wealthy:false, maxStack:3},
-    {id:'currentread',name:'Current Read',  icon:'🌊', desc:'Predators 8% slower per stack',     wealthy:false, maxStack:3},
-    {id:'sonarboost', name:'Sonar Boost',   icon:'📡', desc:'Sonar stuns 25% longer per stack',  wealthy:false, maxStack:3},
-    {id:'pearlaura',  name:'Pearl Aura',    icon:'🐚', desc:'Pearls worth 2× this run',         wealthy:true},
-    {id:'deepluck',   name:'Deep Luck',     icon:'👑', desc:'Next chest rolls rarity twice, keep best', wealthy:true},
-    {id:'dolphinpact', name:'Dolphin Pact', icon:'🐬', desc:'Dolphins appear 50% more often',      wealthy:true},
-    {id:'whirldodge',  name:'Whirl Dodge',  icon:'🌀', desc:'Whirlpools can\'t catch you',         wealthy:true},
-    {id:'inkresist',   name:'Ink Resist',   icon:'🦑', desc:'Kraken ink balls do 0 damage',        wealthy:true},
-    {id:'pearlpull',   name:'Pearl Pull',   icon:'🧲', desc:'Pearls auto-collect within 1 cell',   wealthy:true},
-  ],
   bossBubbleMax: 5,   // max air bubbles present at once in a boss fight
   bossBubbleSpawn: 2.2,// seconds between new air bubbles popping up
   bossTouchO2: 16,    // oxygen lost if the Kraken catches you
@@ -615,16 +553,12 @@ const state = {
   lanes: [], chest: {row:0,col:0}, whale: {row:0,col:3,facing:1,hop:0},
   gems: [], cfg: null, last: 0, clearAnim: 0, clearGem: null,
   skinImg: null, skinId: null, bubbles: [], lightningImmune: false, extraBubble: false, shrug: 0,
-  midUpgrades: {},      // active mid-dive upgrades this run
-  midUpgradeO2Max: 100, // base max o2, raised by o2boost
-  pendingUpgrade: false,// upgrade screen is waiting to show
   invuln: 0, t: 0, habitat: null, habName: '', bannerT: 0,
   dark: false, ping: null, pingCd: 0, reveal: 0,
   dolphin: null, dolphinCd: 0,
   mode: 'dive', boss: null, whirls: [], rocks: [], jellies: [], stingFlash: 0, bossSharks: [],
   chestOpened: false, portal: null, hintT: 0, lootReveal: 0, hoardPhase: false,
   hasOrca: false, orca: null, orcaCd: 0, cannons: [], orcaImg: null, orcaImgs: [], orcaCount: 1, minis: [], miniCd: 0,
-  invulnMoveLast: 0,
   hasWealthy: false, wealthyCount: 0, xpMult: 1, pearls: 0, runPearls: 0,
   pearlsList: [], upg: {}, revived: false, wallet: '', barnacles: [], barnacleCd: 0,
 };
@@ -785,7 +719,6 @@ const HAB={
   reef2:     {name:'CORAL GARDENS',    sub:'teeming reef',          top:[34,150,150],bot:[10,70,108],seabed:[190,160,120],decor:'coral',enemy:'shark'},
   // the final 20: dark + colossal + everything
   abyss:     {name:'THE ABYSS',        sub:'colossal squid · sonar',top:[10,22,40],  bot:[1,4,12],   seabed:[12,16,26],  decor:'biolum',dark:true, enemy:['shark','squid','colossal','bear','moose']},
-  megalodon:  {name:'THE MEGALODON',     sub:'throw ice shards — cold water is its weakness',top:[8,18,38],bot:[2,6,18], seabed:[20,14,30], decor:'biolum'},
   kraken:    {name:'THE KRAKEN',       sub:'lure it into the whirlpools',top:[18,10,40],bot:[3,1,14], seabed:[20,12,34], decor:'biolum'},
 };
 const MIDPOOL=[HAB.channels, HAB.openocean, HAB.kelp, HAB.krill, HAB.reef2, HAB.arctic, HAB.channels];
@@ -905,45 +838,40 @@ function setupLevel(L){
 }
 
 
-// ── MEGALODON BOSS (level 60) ──
+// ════════════════════════════════════════════════════════════
+// MEGALODON BOSS (level 60) — the cave IS the mouth
+// ════════════════════════════════════════════════════════════
+const HAB_MEG = {name:'THE MEGALODON', sub:'throw ice shards — cold water is its weakness',
+  top:[8,4,14], bot:[4,2,8], seabed:[10,4,14], decor:'biolum'};
+
 function setupMegalodon(L){
-  state.cfg={drain:CONFIG.bossDrain+0.9};   // faster drain — it's a race
+  state.cfg={drain:CONFIG.bossDrain+0.9};
   state.lanes=[]; state.bubbles=[]; state.jellies=[]; state.rocks=[];
-  state.habitat=HAB.megalodon; state.dark=false;
+  state.habitat=HAB_MEG; state.dark=false;
   state.whale={row:CONFIG.ROWS-2, col:Math.floor(CONFIG.COLS/2), facing:1, hop:0};
-  state.shieldReady=state.tier.shield || !!state.upg.shield;
-  const hp=CONFIG.megHp;
+  state.shieldReady=state.tier.shield||!!state.upg.shield;
+  const hp=480;
   state.boss={
-    type:'megalodon', hp, maxHp:hp, num:3,   // counts as boss 3 for hoard purposes
-    x:(CONFIG.COLS-1)/2, y:1.4,
-    speed:CONFIG.megSpeed*SPD, face:1,
-    hitCd:0, stun:0,
-    mode:'patrol',   // patrol | chargeWind | charge | chestWind | chest | stunned
-    chargeCd:CONFIG.megChargeCd*0.5,
-    chargeDir:1, chargeTarget:0,
-    chestCd:4.0, chestWarned:false,
-    jaw:0, jawDir:1,
+    type:'megalodon', hp, maxHp:hp, num:3,
+    jawOpen:1, snapState:'open', snapCd:4.0, snapWind:0.8, snapT:0,
+    sharkSpawnCd:3.0,
+    stun:0, hitCd:0, face:1, x:3.5, y:1,
     intro:true, introT:9,
   };
-  // ice shards — the player throws these (like barnacles vs turtle)
-  state.iceShards=[];  state.iceShardCd=0;
-  // roaming smaller sharks as distractions
+  state.iceShards=[]; state.iceShardCd=0;
   state.bossSharks=[];
-  for(let i=0;i<2;i++){
-    const row=2+Math.floor(Math.random()*(CONFIG.ROWS-3));
-    const dir=Math.random()<0.5?1:-1;
-    state.bossSharks.push({row, x:Math.random()*CONFIG.COLS, dir, speed:1.4*SPD, face:dir, stun:0});
-  }
   state.whirls=[]; state.minis=[]; state.inks=[]; state.inkBalls=[];
   state.barnacles=[];
-  // bubbles
   const used=new Set();
-  for(let i=0;i<4;i++){ let row,col,tries=0;
+  for(let i=0;i<4;i++){
+    let row,col,tries=0;
     do{ row=2+Math.floor(Math.random()*(CONFIG.ROWS-3)); col=Math.floor(Math.random()*CONFIG.COLS); tries++; }
-    while(used.has(row+'-'+col)&&tries<16); used.add(row+'-'+col);
-    state.bubbles.push({row,col,taken:false,pop:0}); }
+    while(used.has(row+'-'+col)&&tries<16);
+    used.add(row+'-'+col);
+    state.bubbles.push({row,col,taken:false,pop:0});
+  }
   state.bubbleCd=CONFIG.bossBubbleSpawn*0.5;
-  state.dolphin=null; state.dolphinCd=CONFIG.megDolphinGap;
+  state.dolphin=null; state.dolphinCd=6.0;
   state.orca=null; state.cannons=[]; state.orcaCd=CONFIG.orcaIntervalBoss*0.6;
   state.ping=null; state.reveal=0; state.stingFlash=0;
   state.habName='THE MEGALODON'; state.bannerT=0;
@@ -952,14 +880,15 @@ function setupMegalodon(L){
 
 function throwIceShard(){
   const b=state.boss;
-  if(!b || b.type!=='megalodon') return;
+  if(!b||b.type!=='megalodon') return;
   if((state.iceShardCd||0)>0) return;
-  state.iceShardCd=CONFIG.megIceShardCd;
+  state.iceShardCd=0.5;
   if(!state.iceShards) state.iceShards=[];
+  // target: center top of canvas (the throat)
   state.iceShards.push({
     x0:state.whale.col, y0:state.whale.row,
-    x:state.whale.col,  y:state.whale.row,
-    tx:b.x, ty:b.y, t:0, dur:CONFIG.megIceShardDur
+    x:state.whale.col, y:state.whale.row,
+    tx:CONFIG.COLS/2, ty:0.5, t:0, dur:0.35
   });
   state.whale.hop=1; sfxPing();
 }
@@ -969,143 +898,114 @@ function megHurtWhale(o2){
   const b=state.boss;
   if(state.shieldReady){ state.shieldReady=false; sfxShield(); state.invuln=CONFIG.invuln;
     const v=document.getElementById('vignette'); v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),200); return; }
-  const skinMul = 1 - 0.10*(state.midUpgrades.thickskin||0);
-  state.o2 -= o2*state.tier.sweepMul*skinMul; sfxSwept();
+  state.o2-=o2*state.tier.sweepMul; sfxSwept();
   const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),180);
-  const dc=Math.sign(state.whale.col-b.x)||1, dr=Math.sign(state.whale.row-b.y)||1;
-  state.whale.col=clampi(state.whale.col+dc*2,0,CONFIG.COLS-1);
-  state.whale.row=clampi(state.whale.row+dr,0,CONFIG.ROWS-1);
-  state.invuln=CONFIG.invuln; state.stingFlash=0.7;
+  state.whale.row=clampi(state.whale.row+1,0,CONFIG.ROWS-1);
+  state.invuln=CONFIG.invuln; state.stingFlash=0.8;
   if(state.o2<=0){ state.o2=0; gameOver(); }
 }
 
 function updateMegalodon(dt){
   const b=state.boss;
-  if(b.stun>0){ b.stun=Math.max(0,b.stun-dt); }
+  if(b.stun>0) b.stun=Math.max(0,b.stun-dt);
 
-  // jaw animation — opens and closes slowly while patrolling
-  b.jaw=(b.jaw||0)+(b.jawDir||1)*dt*0.8;
-  if(b.jaw>=1){ b.jaw=1; b.jawDir=-1; }
-  if(b.jaw<=0){ b.jaw=0; b.jawDir=1; }
-
-  if(b.mode==='patrol'){
-    if(b.stun<=0){
-      // slow side-to-side patrol at the top, drifting toward player column
-      const dx=state.whale.col-b.x;
-      b.x=Math.max(0.6,Math.min(CONFIG.COLS-1.6, b.x+dx*0.4*dt));
-      b.y=Math.max(0.7,Math.min(1.8, b.y+Math.sin((state.t||0)*0.8)*0.3*dt));
-      b.face=dx>=0?1:-1;
-      // charge cooldown
-      b.chargeCd-=dt;
-      b.chestCd-=dt;
-      // chest attack (signature) — winds up visibly
-      if(b.chestCd<=0 && !b.chestWarned){
-        b.mode='chestWind'; b.atkT=CONFIG.megChestWind; b.chestWarned=true;
-        b.chestTarget={row:state.whale.row, col:state.whale.col};
-      }
-      // charge lunge
-      else if(b.chargeCd<=0){
-        b.mode='chargeWind'; b.atkT=CONFIG.megChargeWind;
-        b.chargeTarget=state.whale.row; b.chargeDir=(state.whale.col>b.x)?1:-1;
-        b.face=b.chargeDir;
-      }
-    }
-    // contact damage
-    if(b.hitCd>0) b.hitCd-=dt;
-    if(Math.hypot(b.x-state.whale.col,b.y-state.whale.row)<1.1 && b.hitCd<=0 && b.stun<=0){
-      megHurtWhale(CONFIG.megTouchO2); b.hitCd=1.2; }
-  }
-  else if(b.mode==='chargeWind'){
-    b.atkT-=dt;
-    // telegraph: jaw opens wide, body tilts toward target row
-    b.jaw=Math.min(1,b.jaw+dt*3);
-    const dy=b.chargeTarget-b.y; b.y+=Math.sign(dy)*Math.min(Math.abs(dy),3*dt);
-    if(b.atkT<=0){ b.mode='charge'; b.chargeT=0; b.chargeHit=false; }
-  }
-  else if(b.mode==='charge'){
-    // LUNGE — fast horizontal dash across the arena
-    b.chargeT=(b.chargeT||0)+dt;
-    b.x=Math.max(-0.5,Math.min(CONFIG.COLS+0.5, b.x+b.chargeDir*CONFIG.megChargeSpeed*SPD*dt));
-    b.jaw=1;
-    if(!b.chargeHit && Math.abs(b.y-state.whale.row)<0.9 && Math.abs(b.x-state.whale.col)<0.85 && state.invuln<=0){
-      megHurtWhale(CONFIG.megBiteO2); b.chargeHit=true; }
-    // done when it exits the arena
-    if(b.x<-0.4 || b.x>CONFIG.COLS+0.4 || b.chargeT>1.8){
-      // loop back to opposite side
-      b.x = b.chargeDir>0 ? 0.6 : CONFIG.COLS-1.6;
-      b.mode='patrol'; b.chargeCd=CONFIG.megChargeCd; b.jaw=0; b.hitCd=0.8; }
-  }
-  else if(b.mode==='chestWind'){
-    // telegraph: CHEST ATTACK warning — meg rears up, jaw fully open
-    b.atkT-=dt; b.jaw=1;
-    const dy=(b.chestTarget.row||2)-b.y; b.y+=Math.sign(dy)*Math.min(Math.abs(dy),4*dt);
-    const dx=(b.chestTarget.col||3)-b.x; b.x+=Math.sign(dx)*Math.min(Math.abs(dx),2*dt);
-    if(b.atkT<=0){ b.mode='chest'; b.atkT=0.3; b.chestHit=false; }
-  }
-  else if(b.mode==='chest'){
-    b.atkT-=dt; b.jaw=1;
-    if(!b.chestHit && Math.hypot(b.x-state.whale.col,b.y-state.whale.row)<1.0 && state.invuln<=0){
-      megHurtWhale(CONFIG.megChestO2); b.chestHit=true; }
-    if(b.atkT<=0){
-      b.mode='patrol'; b.chestCd=9.0; b.chestWarned=false; b.hitCd=1.0; b.jaw=0; }
+  // ── JAW STATE MACHINE ──
+  const jawSpeed=1.6;
+  if(b.snapState==='open'){
+    b.jawOpen=Math.min(1,b.jawOpen+jawSpeed*dt);
+    b.snapCd-=dt;
+    if(b.snapCd<=0 && b.stun<=0){ b.snapState='warning'; b.snapT=b.snapWind; sfxBolt(); }
+  } else if(b.snapState==='warning'){
+    b.jawOpen=Math.max(0.5,b.jawOpen-0.25*dt);
+    b.snapT-=dt;
+    if(b.snapT<=0){ b.snapState='snapping'; b.snapT=0.2; }
+  } else if(b.snapState==='snapping'){
+    b.jawOpen=Math.max(0,b.jawOpen-10*dt);
+    b.snapT-=dt;
+    // crush damage if in top 2 or bottom 2 rows
+    if((state.whale.row<=1||state.whale.row>=CONFIG.ROWS-2) && state.invuln<=0 && b.stun<=0){
+      megHurtWhale(22); }
+    if(b.snapT<=0){ b.snapState='recovering'; b.snapT=0.7; }
+  } else if(b.snapState==='recovering'){
+    b.jawOpen=Math.min(0.7,b.jawOpen+jawSpeed*dt);
+    b.snapT-=dt;
+    if(b.snapT<=0){ b.snapState='open'; b.snapCd=3.5+(b.hp/b.maxHp)*1.5; }
   }
 
-  // ice shard cooldown
-  if((state.iceShardCd||0)>0) state.iceShardCd=Math.max(0,state.iceShardCd-dt);
-
-  // ice shards fly toward meg, deal big damage + stun on hit
-  if(!state.iceShards) state.iceShards=[];
-  for(let i=state.iceShards.length-1;i>=0;i--){ const sh=state.iceShards[i];
-    sh.t+=dt; const k=Math.min(1,sh.t/sh.dur);
-    sh.x=sh.x0+(sh.tx-sh.x0)*k; sh.y=sh.y0+(sh.ty-sh.y0)*k - Math.sin(k*Math.PI)*1.1;
-    if(k>=1){
-      state.iceShards.splice(i,1);
-      // hit! cold water = weakness
-      b.hp-=CONFIG.megIceShardDmg;
-      b.stun=Math.max(b.stun, CONFIG.megIceSelfStun);
-      b.mode='patrol'; b.chargeCd=Math.max(b.chargeCd,1.5);
-      state.stingFlash=1.2; sfxShield();
-      if(b.hp<=0){ bossDefeated(); return; }
-    }
+  // ── SPAWN SHARKS FROM THROAT ──
+  b.sharkSpawnCd-=dt;
+  const maxSharks=3+(b.hp<b.maxHp*0.5?2:0);
+  if(b.sharkSpawnCd<=0 && state.bossSharks.length<maxSharks && b.stun<=0){
+    const dir=Math.random()<0.5?1:-1;
+    const row=1+Math.floor(Math.random()*2);
+    state.bossSharks.push({row, x:CONFIG.COLS/2, dir, speed:(1.5+Math.random()*0.7)*SPD, face:dir, stun:0});
+    b.sharkSpawnCd=Math.max(1.5, 3.5-(1-b.hp/b.maxHp)*2.0); sfxSwept();
   }
 
-  // roaming sharks
+  // ── MOVE SHARKS ──
   if(state.bossSharks) for(const sh of state.bossSharks){
     if(sh.stun>0){ sh.stun=Math.max(0,sh.stun-dt); continue; }
-    sh.face=sh.dir;
-    sh.x=((sh.x+sh.dir*sh.speed*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
-    if(sh.row===state.whale.row && state.invuln<=0){
+    if(sh.row===state.whale.row){
+      const d=state.whale.col-sh.x; const dir=Math.abs(d)<0.05?0:Math.sign(d);
+      if(dir!==0) sh.face=dir;
+      sh.x=Math.max(0,Math.min(CONFIG.COLS-1,sh.x+dir*sh.speed*CONFIG.chaseMult*dt));
+    } else {
+      sh.face=sh.dir;
+      sh.x=((sh.x+sh.dir*sh.speed*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
+    }
+    if(state.invuln<=0 && sh.row===state.whale.row){
       let dd=Math.abs(sh.x-state.whale.col); dd=Math.min(dd,CONFIG.COLS-dd);
       if(dd<CONFIG.hitRadius){
-        state.o2-=CONFIG.bossSharkO2*state.tier.sweepMul; state.invuln=CONFIG.invuln; state.stingFlash=0.4; sfxSwept();
+        state.o2-=CONFIG.bossSharkO2*state.tier.sweepMul; state.invuln=CONFIG.invuln;
+        state.stingFlash=0.5; sfxSwept();
         const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
         if(state.o2<=0){ state.o2=0; gameOver(); }
       }
     }
   }
 
-  // dolphin allies (orcas harass it, historically accurate)
+  // ── ICE SHARDS ──
+  if((state.iceShardCd||0)>0) state.iceShardCd=Math.max(0,state.iceShardCd-dt);
+  if(!state.iceShards) state.iceShards=[];
+  for(let i=state.iceShards.length-1;i>=0;i--){
+    const sh=state.iceShards[i]; sh.t+=dt;
+    const k=Math.min(1,sh.t/sh.dur);
+    sh.x=sh.x0+(sh.tx-sh.x0)*k; sh.y=sh.y0+(sh.ty-sh.y0)*k-Math.sin(k*Math.PI)*0.8;
+    if(k>=1){
+      state.iceShards.splice(i,1);
+      b.hp-=35; b.stun=Math.max(b.stun,2.2);
+      b.snapState='open'; b.snapCd=3.0; b.jawOpen=1;
+      state.stingFlash=1.5; sfxShield();
+      if(b.hp<=0){ bossDefeated(); return; }
+    }
+  }
+
+  // ── DOLPHIN (slips through, distracts meg) ──
   if(!state.dolphin){ state.dolphinCd-=dt;
-    if(state.dolphinCd<=0){ const row=Math.round(b.y); const dir=Math.random()<0.5?1:-1;
-      state.dolphin={row, x:(dir>0?-1.5:CONFIG.COLS+1.5), dir, hit:false};
-      state.dolphinCd=CONFIG.megDolphinGap*(state.midUpgrades.dolphinpact?0.5:1); sfxDolphin(); }
+    if(state.dolphinCd<=0){
+      const row=2+Math.floor(Math.random()*(CONFIG.ROWS-4));
+      const dir=Math.random()<0.5?1:-1;
+      state.dolphin={row,x:(dir>0?-1.5:CONFIG.COLS+1.5),dir,hit:false};
+      state.dolphinCd=6.0*(state.midUpgrades&&state.midUpgrades.dolphinpact?0.5:1); sfxDolphin();
+    }
   } else {
     state.dolphin.x+=state.dolphin.dir*CONFIG.dolphinSpeed*dt;
-    if(!state.dolphin.hit && Math.abs(state.dolphin.x-b.x)<0.7 && Math.abs(state.dolphin.row-b.y)<0.9 && b.stun<=0){
+    if(!state.dolphin.hit && state.dolphin.row<=2 && b.stun<=0 &&
+       state.dolphin.x>CONFIG.COLS*0.25 && state.dolphin.x<CONFIG.COLS*0.75){
       b.hp-=CONFIG.bossDolphinDmg; b.stun=Math.max(b.stun,CONFIG.bossDolphinStun);
-      state.dolphin.hit=true; state.stingFlash=0.5; sfxGem(false); }
+      state.dolphin.hit=true; state.stingFlash=0.5; sfxGem(false);
+    }
     if(state.dolphin.x<-2.5||state.dolphin.x>CONFIG.COLS+2.5) state.dolphin=null;
   }
 
-  // orca cannon
   updateOrca(dt);
 
-  // air bubbles
+  // bubbles
   state.bubbleCd-=dt;
   const liveB=state.bubbles.filter(bub=>!bub.taken).length;
-  if(state.bubbleCd<=0 && liveB<CONFIG.bossBubbleMax){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn; }
+  if(state.bubbleCd<=0&&liveB<CONFIG.bossBubbleMax){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn; }
   for(let i=state.bubbles.length-1;i>=0;i--){ const bub=state.bubbles[i];
-    if(!bub.taken && bub.row===state.whale.row && bub.col===state.whale.col){
+    if(!bub.taken&&bub.row===state.whale.row&&bub.col===state.whale.col){
       state.o2=Math.min(100,state.o2+CONFIG.bubbleO2); sfxBubble(); state.bubbles.splice(i,1); } }
 
   if(b.hp<=0){ bossDefeated(); return; }
@@ -1115,217 +1015,147 @@ function updateMegalodon(dt){
 
 function drawMegalodon(b,w,h){
   const T=state.t||0;
-  // Megalodon fills most of the upper arena — it IS the threat
-  // Draw relative to canvas coords, not just b.x/b.y, so the jaw spans the full width
-  const sz=Math.min(w,h*0.5);   // jaw width relative to arena width
-  const cx=b.x*CW+CW/2, cy=b.y*CH+CH/2;
+  const jaw=b.jawOpen||0;
   const stunned=b.stun>0;
-  const charging=b.mode==='charge'||b.mode==='chargeWind';
-  const chest=b.mode==='chestWind'||b.mode==='chest';
-  const jaw=b.jaw||0;
-  const jawOpen=jaw * sz*0.38;   // max gape — nearly half the arena height
+  const warning=b.snapState==='warning';
+  const snapping=b.snapState==='snapping';
 
-  ctx.save();
+  const toothH=Math.min(CW,CH)*0.62;
+  const gumThick=Math.min(CW,CH)*0.28;
+  // upper jaw bottom / lower jaw top — based on jaw openness
+  const upperY=h*(1-jaw)*0.46;
+  const lowerY=h-h*(1-jaw)*0.46;
+  const midY=(upperY+lowerY)*0.5;
 
-  // ── MASSIVE AMBIENT GLOW fills the top third ──
-  const gcol=stunned?'rgba(80,200,255,0.45)':charging?'rgba(255,80,30,0.55)':chest?'rgba(255,20,20,0.65)':'rgba(20,50,100,0.5)';
-  const gl=ctx.createRadialGradient(cx,cy,sz*0.1,cx,cy,sz*1.1);
-  gl.addColorStop(0,gcol); gl.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=gl; ctx.fillRect(0,0,w,h*0.55);
+  // ── CAVE BACKGROUND ──
+  const bg=snapping?'#3a0202':warning?'#280808':stunned?'#061828':'#040c14';
+  ctx.fillStyle=bg; ctx.fillRect(0,0,w,h);
 
-  ctx.translate(cx,cy);
-  if(b.face<0) ctx.scale(-1,1);
+  // flesh texture on walls
+  const ugrd=ctx.createLinearGradient(0,0,0,upperY+gumThick);
+  ugrd.addColorStop(0,stunned?'#0a2030':'#1a0606');
+  ugrd.addColorStop(0.6,stunned?'#1a4060':'#4a1010');
+  ugrd.addColorStop(1,stunned?'#2a6080':'#9a2828');
+  ctx.fillStyle=ugrd; ctx.fillRect(0,0,w,upperY+gumThick);
 
-  // ── BODY — wide, massive, takes up top half ──
-  const bodyW=sz*0.72, bodyH=sz*0.19;
-  const bodyG=ctx.createLinearGradient(0,-bodyH,0,bodyH);
-  bodyG.addColorStop(0, stunned?'#8a9ea8':'#4a6070');
-  bodyG.addColorStop(0.5, stunned?'#6a8090':'#2a3e4e');
-  bodyG.addColorStop(1,'#0e1e28');
-  ctx.fillStyle=bodyG; ctx.strokeStyle=stunned?'#5a7080':'#0a1820';
-  ctx.lineWidth=Math.max(3,sz*0.018);
+  const lgrd=ctx.createLinearGradient(0,lowerY-gumThick,0,h);
+  lgrd.addColorStop(0,stunned?'#2a6080':'#9a2828');
+  lgrd.addColorStop(0.4,stunned?'#1a4060':'#4a1010');
+  lgrd.addColorStop(1,stunned?'#0a2030':'#1a0606');
+  ctx.fillStyle=lgrd; ctx.fillRect(0,lowerY-gumThick,w,h-(lowerY-gumThick));
 
-  // Body shape — huge torpedo, blunt nose
-  ctx.beginPath();
-  ctx.moveTo(bodyW*0.55, 0);
-  ctx.quadraticCurveTo(bodyW*0.62,-bodyH*0.3, bodyW*0.48,-bodyH);
-  ctx.quadraticCurveTo(0,-bodyH*1.1,-bodyW*0.52,-bodyH*0.55);
-  ctx.quadraticCurveTo(-bodyW*0.66,0,-bodyW*0.52,bodyH*0.55);
-  ctx.quadraticCurveTo(0,bodyH*1.1,bodyW*0.48,bodyH);
-  ctx.quadraticCurveTo(bodyW*0.62,bodyH*0.3, bodyW*0.55,0);
-  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // gum ridges
+  const gumCol=stunned?'rgba(40,140,200,0.6)':'rgba(200,40,40,0.7)';
+  ctx.fillStyle=gumCol;
+  ctx.fillRect(0,upperY+gumThick*0.55,w,gumThick*0.45);
+  ctx.fillRect(0,lowerY-gumThick,w,gumThick*0.45);
 
-  // White belly
-  ctx.fillStyle=stunned?'#b0c8d4':'rgba(215,235,240,0.85)';
-  ctx.beginPath();
-  ctx.moveTo(bodyW*0.4, bodyH*0.22);
-  ctx.quadraticCurveTo(0,bodyH*0.72,-bodyW*0.42,bodyH*0.28);
-  ctx.quadraticCurveTo(0,bodyH*0.52,bodyW*0.4,bodyH*0.22);
-  ctx.fill();
-
-  // Lateral line
-  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=Math.max(1.5,sz*0.01);
-  ctx.beginPath(); ctx.moveTo(-bodyW*0.5,0); ctx.quadraticCurveTo(0,-bodyH*0.15,bodyW*0.44,bodyH*0.04); ctx.stroke();
-
-  // ── ICONIC DORSAL FIN — tall, dominant ──
-  const finCol=stunned?'#7a8e9a':'#3a4e5a';
-  ctx.fillStyle=finCol; ctx.strokeStyle=stunned?'#4a5e6a':'#0a1820'; ctx.lineWidth=Math.max(2,sz*0.016);
-  ctx.beginPath();
-  ctx.moveTo(bodyW*0.08,-bodyH);
-  ctx.lineTo(-bodyW*0.06,-bodyH*3.2);  // towering spike — the iconic silhouette
-  ctx.lineTo(-bodyW*0.28,-bodyH);
-  ctx.closePath(); ctx.fill(); ctx.stroke();
-
-  // Second dorsal
-  ctx.beginPath();
-  ctx.moveTo(-bodyW*0.30,-bodyH);
-  ctx.lineTo(-bodyW*0.38,-bodyH*1.7);
-  ctx.lineTo(-bodyW*0.50,-bodyH);
-  ctx.closePath(); ctx.fill(); ctx.stroke();
-
-  // Pectoral fin — huge swept wing
-  ctx.beginPath();
-  ctx.moveTo(bodyW*0.22,bodyH*0.5);
-  ctx.lineTo(bodyW*0.10,bodyH*2.4);
-  ctx.lineTo(-bodyW*0.14,bodyH*0.9);
-  ctx.quadraticCurveTo(bodyW*0.04,bodyH*0.62,bodyW*0.22,bodyH*0.5);
-  ctx.closePath(); ctx.fill(); ctx.stroke();
-
-  // Caudal fin — big crescent tail
-  ctx.beginPath();
-  ctx.moveTo(-bodyW*0.52,-bodyH*0.12);
-  ctx.lineTo(-bodyW*0.80,-bodyH*1.0);
-  ctx.lineTo(-bodyW*0.66,-bodyH*0.08);
-  ctx.moveTo(-bodyW*0.52,bodyH*0.12);
-  ctx.lineTo(-bodyW*0.80,bodyH*0.9);
-  ctx.lineTo(-bodyW*0.66,bodyH*0.08);
-  ctx.closePath(); ctx.fill(); ctx.stroke();
-
-  // ── GILLS — 5 deep slits ──
-  ctx.strokeStyle='rgba(10,24,34,0.75)'; ctx.lineWidth=Math.max(2,sz*0.016); ctx.lineCap='round';
-  for(let i=0;i<5;i++){
-    const gx=bodyW*0.30-i*sz*0.048;
-    ctx.beginPath(); ctx.moveTo(gx,-bodyH*0.55); ctx.lineTo(gx-sz*0.008,bodyH*0.45); ctx.stroke();
-  }
-
-  // ── EYE — tiny, cold, dead ──
-  ctx.fillStyle='#060c10';
-  ctx.beginPath(); ctx.ellipse(bodyW*0.30,-bodyH*0.18,sz*0.032,sz*0.026,0,0,Math.PI*2); ctx.fill();
-  if(!stunned){
-    ctx.fillStyle='rgba(180,210,220,0.4)';
-    ctx.beginPath(); ctx.arc(bodyW*0.294,-bodyH*0.195,sz*0.010,0,Math.PI*2); ctx.fill();
-  }
-
-  // ── THE JAW — this is the whole point ──
-  // Upper jaw extends forward as a massive shelf
-  ctx.fillStyle=stunned?'#5a7080':'#2a3e4e';
-  ctx.strokeStyle=stunned?'#3a5060':'#080e14';
-  ctx.lineWidth=Math.max(3,sz*0.022);
-
-  // Upper jaw plate
-  ctx.beginPath();
-  ctx.moveTo(bodyW*0.55, 0);
-  ctx.lineTo(bodyW*0.80, -jawOpen*0.15);
-  ctx.lineTo(bodyW*0.80, -jawOpen*0.5-sz*0.02);
-  ctx.lineTo(bodyW*0.46, -jawOpen*0.5-sz*0.02);
-  ctx.lineTo(bodyW*0.40, -sz*0.02);
-  ctx.closePath(); ctx.fill(); ctx.stroke();
-
-  // Lower jaw plate — drops down dramatically
-  ctx.beginPath();
-  ctx.moveTo(bodyW*0.55, 0);
-  ctx.lineTo(bodyW*0.80, jawOpen*0.15);
-  ctx.lineTo(bodyW*0.80,  jawOpen*0.5+sz*0.02);
-  ctx.lineTo(bodyW*0.46,  jawOpen*0.5+sz*0.02);
-  ctx.lineTo(bodyW*0.40,  sz*0.02);
-  ctx.closePath(); ctx.fill(); ctx.stroke();
-
-  // ── TEETH — massive, triangular, multiple rows ──
-  const toothRows=[
-    {count:7, size:sz*0.09, upper:true,  xStart:bodyW*0.78, xStep:-sz*0.046, yBase:-jawOpen*0.22},
-    {count:7, size:sz*0.09, upper:false, xStart:bodyW*0.78, xStep:-sz*0.046, yBase: jawOpen*0.22},
-    {count:5, size:sz*0.065,upper:true,  xStart:bodyW*0.74, xStep:-sz*0.046, yBase:-jawOpen*0.14, inner:true},
-    {count:5, size:sz*0.065,upper:false, xStart:bodyW*0.74, xStep:-sz*0.046, yBase: jawOpen*0.14, inner:true},
-  ];
-  for(const row of toothRows){
-    ctx.fillStyle=row.inner?(stunned?'#bac8ce':'#d8e4e8'):(stunned?'#ccd8de':'#eef4f6');
-    ctx.strokeStyle=stunned?'#8a9ea8':'#9ab0b8';
-    ctx.lineWidth=Math.max(1,sz*0.008);
-    for(let i=0;i<row.count;i++){
-      const tx=row.xStart+i*row.xStep;
-      const ty=row.yBase;
-      const th=row.size*(jaw>0.1?jaw:0.1);   // teeth hide when jaw closed
+  // ── TEETH — upper (pointing down) ──
+  const nTeeth=Math.ceil(w/(CW*0.9))+1;
+  const tW=w/nTeeth;
+  for(let pass=0;pass<2;pass++){
+    // pass 0 = outer row, pass 1 = inner (smaller, offset)
+    const scale=pass===0?1.0:0.6;
+    const offset=pass===1?tW*0.5:0;
+    const col=pass===0?(stunned?'#c8e0ea':'#f0f5f2'):(stunned?'#a0c8d8':'#d8ecde');
+    const edge=stunned?'#7aa8be':'#a0b8a8';
+    ctx.fillStyle=col; ctx.strokeStyle=edge; ctx.lineWidth=Math.max(1,tW*0.05);
+    for(let i=0;i<nTeeth+1;i++){
+      const tx=i*tW+offset;
+      const th=toothH*scale*(0.65+0.35*Math.abs(Math.sin(i*2.1+pass)));
+      // upper tooth
       ctx.beginPath();
-      ctx.moveTo(tx,ty);
-      ctx.lineTo(tx-sz*0.018, ty+(row.upper?-th:th));
-      ctx.lineTo(tx-sz*0.036, ty);
+      ctx.moveTo(tx,upperY+gumThick*0.5);
+      ctx.lineTo(tx+tW*0.5,upperY+gumThick*0.5+th);
+      ctx.lineTo(tx+tW,upperY+gumThick*0.5);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // lower tooth
+      ctx.beginPath();
+      ctx.moveTo(tx+(pass===0?tW*0.5:0),lowerY-gumThick*0.5);
+      ctx.lineTo(tx+(pass===0?tW*0.5:0)+tW*0.5,lowerY-gumThick*0.5-th);
+      ctx.lineTo(tx+(pass===0?tW*0.5:0)+tW,lowerY-gumThick*0.5);
       ctx.closePath(); ctx.fill(); ctx.stroke();
     }
   }
 
-  // Dark throat / gullet when jaw open
-  if(jaw>0.3){
-    const tg=ctx.createRadialGradient(bodyW*0.62,0,sz*0.01,bodyW*0.62,0,jawOpen*0.8);
-    tg.addColorStop(0,'rgba(2,4,8,0.95)'); tg.addColorStop(1,'rgba(2,4,8,0)');
+  // ── THROAT — dark void the sharks come from ──
+  if(jaw>0.15){
+    const throatH=(lowerY-upperY)*0.25;
+    const tg=ctx.createRadialGradient(w*0.5,midY,throatH*0.1,w*0.5,midY,throatH*2.2);
+    tg.addColorStop(0,'rgba(0,0,0,1)');
+    tg.addColorStop(0.55,'rgba(8,2,2,0.85)');
+    tg.addColorStop(1,'rgba(8,2,2,0)');
     ctx.fillStyle=tg;
-    ctx.beginPath();
-    ctx.ellipse(bodyW*0.62,0,sz*0.14,jawOpen*0.42,0,0,Math.PI*2);
-    ctx.fill();
+    ctx.beginPath(); ctx.ellipse(w*0.5,midY,throatH*1.8,throatH,0,0,Math.PI*2); ctx.fill();
+    // uvula
+    ctx.fillStyle=stunned?'#1a5070':'#6a1414';
+    ctx.beginPath(); ctx.ellipse(w*0.5,midY-throatH*0.1,throatH*0.22,throatH*0.32,0,0,Math.PI*2); ctx.fill();
   }
 
-  // ── CHARGE / CHEST attack overlays ──
-  if(charging){
-    // speed lines
-    ctx.strokeStyle='rgba(255,100,40,0.4)'; ctx.lineWidth=Math.max(2,sz*0.014); ctx.lineCap='round';
-    for(let i=0;i<6;i++){
-      const y=(-bodyH*0.8)+i*bodyH*0.32;
-      ctx.beginPath(); ctx.moveTo(-bodyW*0.4,y); ctx.lineTo(-bodyW*0.8-i*sz*0.04,y); ctx.stroke();
-    }
+  // ── WARNING FLASH ──
+  if(warning){
+    const p=0.08+0.08*Math.sin(T*22);
+    ctx.fillStyle=`rgba(255,0,0,${p.toFixed(3)})`; ctx.fillRect(0,0,w,h);
   }
-  if(chest){
-    ctx.fillStyle=`rgba(255,20,20,${(0.15+0.15*Math.sin(T*12)).toFixed(3)})`;
-    ctx.beginPath(); ctx.ellipse(bodyW*0.62,0,sz*0.22,jawOpen*0.55+sz*0.04,0,0,Math.PI*2); ctx.fill();
+  if(snapping){
+    ctx.fillStyle='rgba(255,30,0,0.22)'; ctx.fillRect(0,0,w,h);
   }
 
-  // ── STUN: ice crystal overlay ──
+  // ── ICE STUN ──
   if(stunned){
-    ctx.strokeStyle='rgba(140,230,255,0.9)'; ctx.lineWidth=Math.max(2,sz*0.022); ctx.lineCap='round';
-    for(let i=0;i<8;i++){
-      const a=i*Math.PI/4, r=sz*(0.12+0.14*(i%2));
-      const ox=(i%3-1)*bodyW*0.2, oy=(i%2-0.5)*bodyH*0.8;
-      ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ox+Math.cos(a)*r,oy+Math.sin(a)*r); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(ox+Math.cos(a)*r*0.5,oy+Math.sin(a)*r*0.5);
-      ctx.lineTo(ox+Math.cos(a+0.5)*r*0.3,oy+Math.sin(a+0.5)*r*0.3); ctx.stroke();
+    ctx.fillStyle='rgba(80,200,255,0.06)'; ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle='rgba(140,230,255,0.75)'; ctx.lineWidth=2; ctx.lineCap='round';
+    for(let i=0;i<6;i++){
+      const sx=w*0.08+i*w*0.17, sy=upperY+gumThick;
+      ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(sx+18,sy+toothH*0.55);
+      ctx.lineTo(sx-8,sy+toothH*0.85); ctx.stroke();
     }
-    // 🥶 emoji above
-    if(b.face<0) ctx.scale(-1,1);
-    ctx.font=`${Math.floor(sz*0.22)}px serif`;
+    ctx.font=`${Math.floor(Math.min(w,h)*0.14)}px serif`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('🥶',0,-bodyH*3.6);
-    if(b.face<0) ctx.scale(-1,1);
+    ctx.fillText('🥶',w*0.5,midY);
   }
 
-  // ── TELEGRAPH LABELS ──
-  if(b.face<0) ctx.scale(-1,1);
-  ctx.textAlign='center'; ctx.textBaseline='alphabetic';
-  if(b.mode==='chargeWind'){
-    const p=0.6+0.4*Math.sin(T*14);
-    ctx.globalAlpha=p;
-    ctx.fillStyle='rgba(255,140,60,0.97)'; ctx.font=`700 ${Math.floor(sz*0.11)}px 'DM Mono',monospace`;
-    ctx.fillText('⚡ INCOMING! ⚡', 0, -bodyH*3.8);
-    ctx.globalAlpha=1;
-  }
-  if(b.mode==='chestWind'){
-    const p=0.5+0.5*Math.sin(T*18);
-    ctx.globalAlpha=p;
-    ctx.fillStyle='rgba(255,30,30,0.97)'; ctx.font=`700 ${Math.floor(sz*0.11)}px 'DM Mono',monospace`;
-    ctx.fillText('💀 CHEST BITE! 💀', 0, -bodyH*3.8);
-    ctx.globalAlpha=1;
+  // ── ICE SHARDS in flight ──
+  if(state.iceShards) for(const sh of state.iceShards){
+    const sx=sh.x*CW+CW/2, sy=sh.y*CH+CH/2;
+    const r=Math.max(8,CW*0.22);
+    const k=Math.min(1,sh.t/(sh.dur||0.35));
+    ctx.save(); ctx.translate(sx,sy); ctx.rotate(k*Math.PI*4);
+    ctx.strokeStyle='rgba(160,235,255,0.95)'; ctx.lineWidth=Math.max(2,r*0.18); ctx.lineCap='round';
+    for(let i=0;i<6;i++){
+      const a=i*Math.PI/3;
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r); ctx.stroke();
+      const mx=Math.cos(a)*r*0.55, my=Math.sin(a)*r*0.55;
+      ctx.beginPath(); ctx.moveTo(mx,my); ctx.lineTo(mx+Math.cos(a+Math.PI/2)*r*0.24,my+Math.sin(a+Math.PI/2)*r*0.24); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(mx,my); ctx.lineTo(mx+Math.cos(a-Math.PI/2)*r*0.24,my+Math.sin(a-Math.PI/2)*r*0.24); ctx.stroke();
+    }
+    const cg=ctx.createRadialGradient(0,0,1,0,0,r*0.35);
+    cg.addColorStop(0,'rgba(255,255,255,0.95)'); cg.addColorStop(1,'rgba(140,220,255,0.3)');
+    ctx.fillStyle=cg; ctx.beginPath(); ctx.arc(0,0,r*0.35,0,Math.PI*2); ctx.fill();
+    ctx.restore();
   }
 
+  // ── LABELS ──
+  ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
+  if(warning||snapping){
+    const pulse=0.7+0.3*Math.sin(T*20);
+    ctx.globalAlpha=pulse;
+    ctx.fillStyle=snapping?'#ff1010':'#ff6020';
+    ctx.font=`700 ${Math.min(26,w*0.065)}px 'Bebas Neue',sans-serif`;
+    ctx.fillText(snapping?'💥  SNAP!  💥':'⚠  JAWS CLOSING  ⚠',w*0.5,midY);
+    ctx.globalAlpha=1;
+  }
+  // ice throw prompt
+  const froze=stunned;
+  const ptxt=IS_MOBILE?(froze?'🥶 KEEP THROWING ICE!':'❄️ TAP TO THROW ICE'):(froze?'🥶 KEEP THROWING! (SPACE)':'❄️ SPACE / TAP — THROW ICE');
+  const fs=Math.min(15,w*0.040); ctx.font=`${fs}px 'Bebas Neue',sans-serif`;
+  const tw=ctx.measureText(ptxt).width;
+  ctx.fillStyle='rgba(4,14,28,0.75)'; roundRect(w/2-tw/2-10,h*0.88-fs,tw+20,fs*2,6); ctx.fill();
+  const pp=froze?1:0.55+0.45*Math.sin(T*5);
+  ctx.globalAlpha=pp; ctx.fillStyle=froze?'#a0e8ff':'#d0f4ff'; ctx.fillText(ptxt,w*0.5,h*0.88);
+  ctx.globalAlpha=1;
   ctx.restore();
 }
-
 
 // ── KRAKEN BOSS ──
 function spawnBossBubble(){
@@ -1459,7 +1289,7 @@ function turtleHurtWhale(o2){
 }
 function throwBarnacle(){
   const b=state.boss;
-  if(b && b.type==='megalodon'){ throwIceShard(); return; }   // megalodon: throw ice shards any time
+  if(b && b.type==='megalodon'){ throwIceShard(); return; }
   if(!b || b.type!=='turtle' || b.mode!=='recharge') return;   // only when it's grounded & helpless
   if((state.barnacleCd||0)>0) return;
   state.barnacleCd=CONFIG.turtleBarnacleCd;
@@ -1662,7 +1492,7 @@ function updateBoss(dt){
   }
   // whirlpools catch YOU too — stay out of them
   if(state.whirlSelfCd>0) state.whirlSelfCd-=dt;
-  if(state.whirlSelfCd<=0 && !state.midUpgrades.whirldodge){
+  if(state.whirlSelfCd<=0){
     for(const wpl of state.whirls){
       if(wpl.age>0.3 && wpl.row===state.whale.row && wpl.col===state.whale.col){
         state.o2-=CONFIG.whirlSelfO2*state.tier.sweepMul; state.whirlSelfCd=1.0; state.stingFlash=0.7; sfxSwept();
@@ -1677,7 +1507,7 @@ function updateBoss(dt){
   // dolphin allies strike the Kraken — and freeze it
   if(!state.dolphin){ state.dolphinCd-=dt;
     if(state.dolphinCd<=0){ const row=Math.round(b.y); const dir=Math.random()<0.5?1:-1;
-      state.dolphin={row, x:(dir>0?-1.5:CONFIG.COLS+1.5), dir, hit:false}; state.dolphinCd=2.6*(state.midUpgrades.dolphinpact?0.5:1); sfxDolphin(); }
+      state.dolphin={row, x:(dir>0?-1.5:CONFIG.COLS+1.5), dir, hit:false}; state.dolphinCd=2.6; sfxDolphin(); }
   } else {
     state.dolphin.x+=state.dolphin.dir*CONFIG.dolphinSpeed*dt;
     if(!state.dolphin.hit && Math.abs(state.dolphin.x-b.x)<0.6 && Math.abs(state.dolphin.row-b.y)<0.9){
@@ -1745,7 +1575,7 @@ function updateBoss(dt){
     const off = bl.x<-1.2||bl.x>CONFIG.COLS+1.2||bl.y<-1.2||bl.y>CONFIG.ROWS+1.2;
     if(hit || bl.t>2.4 || off){
       state.inks.push({x:bl.x, y:bl.y, r:0.85, t:0, life:1.2});   // small local splat
-      if(hit && state.invuln<=0 && !state.midUpgrades.inkresist){
+      if(hit && state.invuln<=0){
         state.o2-=CONFIG.bossInkO2*state.tier.sweepMul; state.invuln=CONFIG.invuln; state.stingFlash=0.5;
         const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
         if(state.o2<=0){ state.o2=0; gameOver(); }
@@ -1819,30 +1649,23 @@ function move(dr,dc){
   const nc=clampi(state.whale.col+dc,0,CONFIG.COLS-1);
   if(nr===state.whale.row && nc===state.whale.col) return;
   if(state.rocks && state.rocks.some(k=>k.row===nr && k.col===nc)){ return; }   // rock blocks the cell
-  // anti-speedrun: throttle moves while invulnerable so players can't dash through lanes
-  if(state.invuln>0){
-    const now=performance.now();
-    if(now - (state.invulnMoveLast||0) < CONFIG.invulnMoveCd*1000) return;
-    state.invulnMoveLast=now;
-  }
   state.whale.row=nr; state.whale.col=nc; state.whale.hop=1;
   if(dc<0) state.whale.facing=-1; else if(dc>0) state.whale.facing=1;
   sfxMove();
   // every move costs a breath (dive mode)
   if(state.mode!=='boss'){
-    const moveCost = CONFIG.moveO2 * (1 - 0.15*(state.midUpgrades.speedfins||0));
-    state.o2 -= moveCost;
+    state.o2 -= CONFIG.moveO2;
     if(state.o2<=0){ state.o2=0; gameOver(); return; }
   }
   // grab an air bubble?
   for(const b of state.bubbles){
     if(!b.taken && b.row===nr && b.col===nc){
-      b.taken=true; b.pop=1; const bO2=CONFIG.bubbleO2*(state.upg.bubbles?1.5:1); state.o2=Math.min(state.midUpgradeO2Max, state.o2+bO2); sfxBubble();
+      b.taken=true; b.pop=1; state.o2=Math.min(100, state.o2+CONFIG.bubbleO2*(state.upg.bubbles?1.5:1)); sfxBubble();
     }
   }
   // grab a pearl?
   if(state.pearlsList) for(const p of state.pearlsList){
-    if(!p.taken && p.row===nr && p.col===nc){ p.taken=true; const pval=Math.max(1,Math.round(p.val*pearlMult()*(state.midUpgrades.pearlaura?2:1))); state.runPearls+=pval; sfxGem(false); }
+    if(!p.taken && p.row===nr && p.col===nc){ p.taken=true; state.runPearls+=Math.max(1,Math.round(p.val*pearlMult())); sfxGem(false); }
   }
   if(state.mode!=='boss'){
     if(!state.chestOpened && nr===state.chest.row && nc===state.chest.col){ openTreasure(); }
@@ -1883,8 +1706,7 @@ function sweep(){
     v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),200);
     return;
   }
-  const skinMul = 1 - 0.10*(state.midUpgrades.thickskin||0);
-  state.o2 -= CONFIG.sweepPenalty*state.tier.sweepMul*skinMul; sfxSwept();
+  state.o2 -= CONFIG.sweepPenalty*state.tier.sweepMul; sfxSwept();
   v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
   state.whale.row=Math.max(0, state.whale.row-CONFIG.knockbackRows);   // knocked back toward the surface
   state.invuln=CONFIG.invuln;
@@ -1894,14 +1716,9 @@ function levelComplete(){
   state.phase='clear'; state.clearAnim=0; state.clearGem=null; sfxBubble();
   setTimeout(()=>{
     state.o2=Math.min(100, state.o2+CONFIG.levelRefill);
-    if(state.level>=CONFIG.maxLevel){ win(); return; }
+    if(state.level>=CONFIG.maxLevel){ win(); return; }   // bottom of the Trench — you win
     state.level++; if(state.level>state.best){ state.best=state.level; saveBest(); }
-    // every 5 levels (but not on boss levels) show a mid-dive upgrade card
-    if(state.level%CONFIG.midDiveUpgradeEvery===0 && state.level%CONFIG.bossEvery!==0){
-      showMidUpgradeScreen();
-    } else {
-      setupLevel(state.level); state.phase='play'; state.last=performance.now();
-    }
+    setupLevel(state.level); state.phase='play'; state.last=performance.now();
   }, 650);
 }
 function win(){
@@ -1940,86 +1757,10 @@ function startRun(){
   state.level=1; state.score=0; state.o2=100; state.gems=[];
   state.invuln=0; state.habName='';
   state.runPearls=0; state.revived=false; state.hoardPhase=false; state.lootReveal=0;
-  state.midUpgrades={}; state.midUpgradeO2Max=100; state.pendingUpgrade=false;
   if(state.best<1) state.best=1;
   setupLevel(1); state.phase='play'; state.last=performance.now();
   document.getElementById('overlayStart').classList.add('hidden');
   document.getElementById('overlayOver').classList.add('hidden');
-}
-
-
-// ── MID-DIVE UPGRADE SCREEN ──
-const MID_UPG_POOL = CONFIG.MID_UPGRADES;
-function makeUpgCard(u, clickable){
-  const card = document.createElement('div');
-  const isLocked = u.wealthy && !state.hasWealthy;
-  card.className = 'upg-card' + (isLocked ? ' locked' : '');
-  const stack = state.midUpgrades[u.id]||0;
-  const maxStack = u.maxStack||1;
-  // star rating for stackable free perks
-  const stars = (!u.wealthy && maxStack>1)
-    ? '<div style="font-size:0.75rem;letter-spacing:3px;margin:3px 0;color:#ffd24a">'
-      + '★'.repeat(stack)
-      + '<span style="opacity:0.25">' + '★'.repeat(maxStack-stack) + '</span></div>'
-    : '';
-  // scale desc to show real next-stack value
-  let descText = u.desc;
-  if(!u.wealthy && stack>0){
-    const n = stack+1;
-    if(u.id==='o2boost')    descText=`+${15*n} max oxygen (×${n})`;
-    if(u.id==='speedfins')  descText=`Move costs ${Math.round((1-0.15*n)*100)}% O2 (×${n})`;
-    if(u.id==='thickskin')  descText=`Sweeps hurt ${Math.round((1-0.10*n)*100)}% (×${n})`;
-    if(u.id==='currentread')descText=`Predators ${Math.round((1-0.08*n)*100)}% speed (×${n})`;
-    if(u.id==='sonarboost') descText=`Sonar stuns ${Math.round((1+0.25*n)*100)}% longer (×${n})`;
-  }
-  card.innerHTML=
-    (u.wealthy ? '<span class="upg-whale">🐚 HOLDER</span>' : '')+
-    (isLocked  ? '<span class="upg-lock">🔒</span>' : '')+
-    `<div class="upg-icon">${u.icon}</div>`+
-    stars+
-    `<div class="upg-name">${u.name}</div>`+
-    `<div class="upg-desc">${descText}</div>`;
-  if(clickable && !isLocked){
-    card.addEventListener('click', ()=>applyMidUpgrade(u));
-  } else if(isLocked){
-    card.title = 'Load a Wealthy Whale wallet to unlock';
-  }
-  return card;
-}
-function showMidUpgradeScreen(){
-  state.phase='clear';
-  // 3 random free options (not yet maxed), + 1 random wealthy card
-  const freePool = MID_UPG_POOL.filter(u=>!u.wealthy && (state.midUpgrades[u.id]||0)<(u.maxStack||1));
-  const paidPool = MID_UPG_POOL.filter(u=> u.wealthy && !state.midUpgrades[u.id]);
-  // shuffle both pools
-  for(let i=freePool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [freePool[i],freePool[j]]=[freePool[j],freePool[i]]; }
-  for(let i=paidPool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [paidPool[i],paidPool[j]]=[paidPool[j],paidPool[i]]; }
-  const freeChoices = freePool.slice(0,3);
-  const wealthyChoice = paidPool[0]||null;
-  // if nothing left to offer, just continue
-  if(!freeChoices.length && !wealthyChoice){ launchNextLevel(); return; }
-  const sub=document.getElementById('upgradeSubtitle');
-  sub.textContent=`Level ${state.level} · Pick one perk — the rest are lost`;
-  const grid=document.getElementById('upgradeCards');
-  grid.innerHTML='';
-  // 3 free cards — all clickable for everyone
-  freeChoices.forEach(u=> grid.appendChild(makeUpgCard(u, true)));
-  // 1 wealthy card — clickable only for holders, locked otherwise
-  if(wealthyChoice) grid.appendChild(makeUpgCard(wealthyChoice, true));
-  document.getElementById('overlayUpgrade').classList.remove('hidden');
-  sfxLevel();
-}
-function applyMidUpgrade(u){
-  document.getElementById('overlayUpgrade').classList.add('hidden');
-  const prev = state.midUpgrades[u.id]||0;
-  state.midUpgrades[u.id] = prev + 1;
-  // instant effects (scale with stack)
-  if(u.id==='o2boost'){ state.midUpgradeO2Max=Math.min(145, state.midUpgradeO2Max+15); state.o2=Math.min(state.midUpgradeO2Max, state.o2+15); }
-  launchNextLevel();
-}
-function launchNextLevel(){
-  document.getElementById('overlayUpgrade').classList.add('hidden');
-  setupLevel(state.level); state.phase='play'; state.last=performance.now();
 }
 
 // ── update ──
@@ -2071,7 +1812,6 @@ function update(dt){
   if(state.bannerT>0) state.bannerT=Math.max(0,state.bannerT-dt);
   if(state.reveal>0) state.reveal=Math.max(0,state.reveal-dt*1.4);
   state.o2 -= state.cfg.drain*state.tier.drain*(state.upg.slow?0.75:1)*dt;
-  if(state.o2>state.midUpgradeO2Max) state.o2=state.midUpgradeO2Max;
   updateOrca(dt);
   // move predators (frozen ones hold still)
   for(const lane of state.lanes){ if(!lane.active) continue;
@@ -2086,8 +1826,7 @@ function update(dt){
         b.x=Math.max(0,Math.min(CONFIG.COLS-1, b.x + dir*lane.speed*CONFIG.chaseMult*dt));
       } else {
         b.face=lane.dir;
-        const lspd = lane.speed * (1 - 0.08*(state.midUpgrades.currentread||0));
-      b.x=((b.x+lane.dir*lspd*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
+        b.x=((b.x+lane.dir*lane.speed*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
       }
     }
   }
@@ -2114,8 +1853,7 @@ function update(dt){
         for(const b of lane.blocks){
           let dx=Math.abs(b.x-wx); dx=Math.min(dx,CONFIG.COLS-dx);
           const dist=Math.hypot(dx,dyr);
-          const stunMul = 1 + 0.25*(state.midUpgrades.sonarboost||0);
-          if(!b.pinged && dist<=state.ping.r){ b.stun=CONFIG.stunTime*stunMul*((ENEMY[lane.enemy]||ENEMY.squid).stun); b.pinged=true; }
+          if(!b.pinged && dist<=state.ping.r){ b.stun=CONFIG.stunTime*((ENEMY[lane.enemy]||ENEMY.squid).stun); b.pinged=true; }
         }
       }
       if(state.ping.r > CONFIG.COLS+CONFIG.ROWS){
@@ -2136,7 +1874,7 @@ function update(dt){
         for(const b of lane.blocks) b.stun=Math.max(b.stun, CONFIG.dolphinStun*((ENEMY[lane.enemy]||ENEMY.squid).stun));
         sfxDolphin();
       }
-      state.dolphinCd=CONFIG.dolphinInterval*(state.midUpgrades.dolphinpact?0.5:1);
+      state.dolphinCd=CONFIG.dolphinInterval;
     }
   } else {
     state.dolphin.x += state.dolphin.dir*CONFIG.dolphinSpeed*dt;
@@ -2150,14 +1888,6 @@ function update(dt){
     if(j.row===state.whale.row && j.cool<=0){
       let dx=Math.abs(j.x-state.whale.col); dx=Math.min(dx,CONFIG.COLS-dx);
       if(dx<0.55){ state.o2=Math.max(0,state.o2-CONFIG.jellyStingO2); j.cool=1.0; state.stingFlash=1; sfxSting(); }
-    }
-  }
-  // Pearl Pull: auto-collect pearls within 1 cell
-  if(state.midUpgrades.pearlpull && state.pearlsList){
-    for(const p of state.pearlsList){
-      if(!p.taken && Math.abs(p.row-state.whale.row)<=1 && Math.abs(p.col-state.whale.col)<=1){
-        p.taken=true; const pval=Math.max(1,Math.round(p.val*pearlMult()*(state.midUpgrades.pearlaura?2:1))); state.runPearls+=pval; sfxGem(false);
-      }
     }
   }
   const lane=state.lanes.find(l=>l.row===state.whale.row);
@@ -2873,85 +2603,14 @@ function renderBoss(w,h){
   if(b){ if(b.type==='turtle') drawTurtle(b,w,h); else if(b.type==='megalodon') drawMegalodon(b,w,h); else drawKraken(b,w,h); }
   // flying barnacles
   if(state.barnacles) for(const bn of state.barnacles){
-    const x=bn.x*CW+CW/2, y=bn.y*CH+CH/2, r=Math.max(6,CW*0.18);
-    const T=state.t||0, spin=bn.t*4;  // spin as it flies
-    ctx.save(); ctx.translate(x,y); ctx.rotate(spin);
-    // motion trail
-    ctx.strokeStyle='rgba(180,210,220,0.25)'; ctx.lineWidth=r*0.3; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,r*0.9); ctx.stroke();
-    // outer shell — ridged cone shape
-    const shellCol=ctx.createRadialGradient(-r*0.2,-r*0.3,r*0.05,0,0,r);
-    shellCol.addColorStop(0,'#d4dde2'); shellCol.addColorStop(0.5,'#8fa8b4'); shellCol.addColorStop(1,'#4a6270');
-    ctx.fillStyle=shellCol; ctx.strokeStyle='#3a5060'; ctx.lineWidth=Math.max(1,r*0.08);
-    // hexagonal barnacle shell (6 plates)
-    ctx.beginPath();
-    for(let i=0;i<6;i++){
-      const a=i*Math.PI/3 - Math.PI/6;
-      const rr = i%2===0 ? r : r*0.88;
-      i===0 ? ctx.moveTo(Math.cos(a)*rr, Math.sin(a)*rr) : ctx.lineTo(Math.cos(a)*rr, Math.sin(a)*rr);
-    }
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    // plate ridges (6 lines from center to edge)
-    ctx.strokeStyle='rgba(60,80,96,0.55)'; ctx.lineWidth=Math.max(1,r*0.06);
-    for(let i=0;i<6;i++){
-      const a=i*Math.PI/3 - Math.PI/6;
-      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*r*0.92, Math.sin(a)*r*0.92); ctx.stroke();
-    }
-    // barnacle opening — dark oval center
-    const opening=ctx.createRadialGradient(0,0,r*0.05,0,0,r*0.38);
-    opening.addColorStop(0,'#0a1820'); opening.addColorStop(0.6,'#1a3040'); opening.addColorStop(1,'rgba(26,48,64,0)');
-    ctx.fillStyle=opening; ctx.beginPath(); ctx.ellipse(0,0,r*0.38,r*0.34,0,0,Math.PI*2); ctx.fill();
-    // inner ridges of the opening
-    ctx.strokeStyle='rgba(80,120,140,0.6)'; ctx.lineWidth=Math.max(1,r*0.05);
-    for(let i=0;i<3;i++){
-      const rr=r*(0.14+i*0.08);
-      ctx.beginPath(); ctx.ellipse(0,0,rr,rr*0.85,0,0,Math.PI*2); ctx.stroke();
-    }
-    // barnacle cirri (feeding legs) peeking out — tiny white wisps
-    ctx.strokeStyle='rgba(220,235,240,0.7)'; ctx.lineWidth=Math.max(1,r*0.04); ctx.lineCap='round';
-    for(let i=0;i<4;i++){
-      const a=i*Math.PI/2+T*3; const len=r*0.18;
-      ctx.beginPath(); ctx.moveTo(Math.cos(a)*r*0.1,Math.sin(a)*r*0.1);
-      ctx.lineTo(Math.cos(a)*len, Math.sin(a)*len); ctx.stroke();
-    }
-    // highlight
-    ctx.fillStyle='rgba(255,255,255,0.22)'; ctx.beginPath(); ctx.ellipse(-r*0.22,-r*0.24,r*0.18,r*0.1,-0.6,0,Math.PI*2); ctx.fill();
-    ctx.restore();
-  }
-  // flying ice shards (megalodon fight)
-  if(state.iceShards) for(const sh of state.iceShards){
-    const x=sh.x*CW+CW/2, y=sh.y*CH+CH/2, r=Math.max(7,CW*0.20);
-    const k=Math.min(1,sh.t/(sh.dur||0.35));
-    ctx.save(); ctx.translate(x,y); ctx.rotate(k*Math.PI*3);
-    // ice crystal — 6-pointed star
-    ctx.strokeStyle='rgba(160,230,255,0.95)'; ctx.lineWidth=Math.max(2,r*0.18); ctx.lineCap='round';
-    for(let i=0;i<6;i++){
-      const a=i*Math.PI/3;
-      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r); ctx.stroke();
-      // crystal arms
-      const mx=Math.cos(a)*r*0.55, my=Math.sin(a)*r*0.55;
-      ctx.beginPath(); ctx.moveTo(mx,my); ctx.lineTo(mx+Math.cos(a+Math.PI/2)*r*0.22,my+Math.sin(a+Math.PI/2)*r*0.22); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(mx,my); ctx.lineTo(mx+Math.cos(a-Math.PI/2)*r*0.22,my+Math.sin(a-Math.PI/2)*r*0.22); ctx.stroke();
-    }
-    // bright core
-    const cg=ctx.createRadialGradient(0,0,1,0,0,r*0.32);
-    cg.addColorStop(0,'rgba(255,255,255,0.95)'); cg.addColorStop(1,'rgba(140,220,255,0.4)');
-    ctx.fillStyle=cg; ctx.beginPath(); ctx.arc(0,0,r*0.32,0,Math.PI*2); ctx.fill();
+    const x=bn.x*CW+CW/2, y=bn.y*CH+CH/2, r=Math.max(5,CW*0.16);
+    ctx.save(); ctx.translate(x,y);
+    ctx.fillStyle='#9aa7ad'; ctx.strokeStyle='#5f6b70'; ctx.lineWidth=Math.max(1,r*0.16);
+    ctx.beginPath(); ctx.moveTo(0,-r); ctx.lineTo(r*0.7,r*0.7); ctx.lineTo(-r*0.7,r*0.7); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#d7dee1'; ctx.beginPath(); ctx.arc(0,r*0.1,r*0.28,0,Math.PI*2); ctx.fill();
     ctx.restore();
   }
   // recharge prompt — the turtle is exposed, pelt it!
-  if(b && b.type==='megalodon'){
-    const pulse=0.5+0.5*Math.sin((state.t||0)*5);
-    const frozen=b.stun>0;
-    const msg = IS_MOBILE ? (frozen?'🥶 STUNNED — KEEP THROWING ICE!':'❄️ TAP TO THROW ICE SHARDS') : (frozen?'🥶 STUNNED — KEEP THROWING! (SPACE)':'❄️ SPACE / TAP — THROW ICE SHARDS');
-    const col = frozen ? '#a0e8ff' : '#d0f0ff';
-    ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
-    const fs=Math.min(16,w*0.042); ctx.font=`${fs}px 'Bebas Neue',sans-serif`;
-    const tw=ctx.measureText(msg).width;
-    ctx.fillStyle='rgba(4,14,28,0.75)'; roundRect(w/2-tw/2-12, h*0.88-fs*0.9, tw+24, fs*1.8, 8); ctx.fill();
-    ctx.globalAlpha=frozen?1:pulse; ctx.fillStyle=col; ctx.fillText(msg, w/2, h*0.88); ctx.globalAlpha=1;
-    ctx.restore();
-  }
   if(b && b.type==='turtle' && b.mode==='recharge'){
     const pulse=0.55+0.45*Math.sin((state.t||0)*7);
     ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
@@ -3004,7 +2663,7 @@ function renderBoss(w,h){
     const grd=ctx.createLinearGradient(bx,0,bx+bw,0); grd.addColorStop(0,'#ff5a7a'); grd.addColorStop(1,'#b06bff');
     ctx.fillStyle=grd; ctx.fillRect(bx,by,bw*frac,bh);
     ctx.font=`600 ${Math.max(9,Math.floor(CW*0.18))}px 'DM Mono',monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillStyle='#fff'; ctx.fillText(b.type==='turtle' ? 'GIANT SEA TURTLE' : b.type==='megalodon' ? 'MEGALODON  ·  APEX PREDATOR' : `THE KRAKEN  ·  BOSS ${b.num}/5`, w/2, by+bh/2);
+    ctx.fillStyle='#fff'; ctx.fillText(b.type==='turtle' ? 'GIANT SEA TURTLE' : `THE KRAKEN  ·  BOSS ${b.num}/5`, w/2, by+bh/2);
   }
   // clearing celebration (gem rise)
   if(state.phase==='clear' && state.clearGem){
@@ -3044,9 +2703,9 @@ function renderBoss(w,h){
       ['🪨','Then THROW BARNACLES','— it lands helpless: tap / space to pelt it'],
       ['🐢','Or BAIT its BITE','— a miss crashes & stuns it for free hits'],
     ] : b.type==='megalodon' ? [
-      ['❄️','THROW ICE SHARDS','— tap / space; cold water is its weakness'],
-      ['🐬','Let DOLPHINS & ORCAS harass it','— each hit briefly stuns the meg'],
-      ['⚠️','DODGE the CHEST BITE','— red warning = shatter attack, move fast'],
+      ['❄️','THROW ICE SHARDS','— tap / space; cold water is its only weakness'],
+      ['⚠️','DODGE the SNAP','— jaws closing = get to the middle rows fast'],
+      ['🦈','AVOID the SPAWNED SHARKS','— spit from the throat, they chase you'],
     ] : [
       ['🌀','Lure it onto a WHIRLPOOL','— rips its health, but they hurt you too'],
       ['🐬','Let DOLPHINS ram it','— a strike briefly freezes it'],
@@ -3196,7 +2855,6 @@ function syncHUD(){
   o2.style.background = state.o2<25 ? 'linear-gradient(90deg,#c0392b,#e74c3c)' :
                         state.o2<55 ? 'linear-gradient(90deg,#c98a1a,#e8b94a)' :
                                       'linear-gradient(90deg,#1a9abf,#5bc8e8)';
-  const o2pct=document.getElementById('o2pct'); if(o2pct) o2pct.textContent=Math.max(0,Math.round(state.o2))+'%';
 }
 
 // ── loop ──
@@ -3236,15 +2894,11 @@ window.addEventListener('orientationchange',()=>setTimeout(resize,200));
 
 // ── input ──
 const DIRS={up:[-1,0],down:[1,0],left:[0,-1],right:[0,1]};
-// Mobile: prevent duplicate moves from synthetic mouse events after touch
-let lastPadMove=0;
-const PAD_DEBOUNCE = IS_MOBILE ? 80 : 0;  // 80ms debounce on mobile only
-function tryMove(dr,dc){ const now=performance.now(); if(now-lastPadMove<PAD_DEBOUNCE) return; lastPadMove=now; move(dr,dc); }
 window.addEventListener('keydown',e=>{
   const k=e.key.toLowerCase(); let d=null;
   if(k==='arrowup'||k==='w')d='up'; else if(k==='arrowdown'||k==='s')d='down';
   else if(k==='arrowleft'||k==='a')d='left'; else if(k==='arrowright'||k==='d')d='right';
-  if(d){ e.preventDefault(); tryMove(...DIRS[d]); }
+  if(d){ e.preventDefault(); move(...DIRS[d]); }
   if(k===' ' && state.phase==='play'){ e.preventDefault(); throwBarnacle(); }
   if((k===' '||k==='enter') && (state.phase==='idle'||state.phase==='over')) startRun();
 });
@@ -3266,7 +2920,7 @@ cv.addEventListener('touchend',e=>{ if(!tMoved) throwBarnacle(); },{passive:true
 cv.addEventListener('mousedown',e=>{ if(state.phase==='play') throwBarnacle(); });
 // pad with hold-repeat
 let holdTimer=null;
-function startHold(dir){ tryMove(...DIRS[dir]); clearInterval(holdTimer); holdTimer=setInterval(()=>tryMove(...DIRS[dir]),CONFIG.holdRepeat); }
+function startHold(dir){ move(...DIRS[dir]); clearInterval(holdTimer); holdTimer=setInterval(()=>move(...DIRS[dir]),CONFIG.holdRepeat); }
 function stopHold(){ clearInterval(holdTimer); holdTimer=null; }
 document.querySelectorAll('.pad button[data-dir]').forEach(b=>{
   const dir=b.dataset.dir;
