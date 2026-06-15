@@ -2033,33 +2033,30 @@ function updatePhio(dt){
     const bn=b.barnacles[i]; bn.t+=dt;
     const k=Math.min(1,bn.t/bn.dur);
     bn.x=bn.x0+(bn.tx-bn.x0)*k; bn.y=bn.y0+(bn.ty-bn.y0)*k - Math.sin(k*Math.PI)*1.2;
-    // tick vulnerable window
+    // tick vulnerable window (only open after death roll ends)
     if((b.vulnerable||0)>0) b.vulnerable-=dt;
-    if(!bn.deflected && k>=0.8 && Math.hypot(bn.x-b.x,bn.y-b.y)<1.5 && (b.vulnerable||0)<=0){
-      // DEFLECT — barnacle bounces back toward whale
-      bn.deflected=true; bn.t=0; bn.dur=0.25;
-      bn.x0=bn.x; bn.y0=bn.y;
-      bn.tx=state.whale.col; bn.ty=state.whale.row;
-      sfxBolt();   // deflect sound
-    }
-    if(bn.deflected && k>=1){
-      // deflected barnacle hits whale
+    const isVulnerable=(b.vulnerable||0)>0;
+    if(k>=1){
       b.barnacles.splice(i,1);
-      if(state.invuln<=0){
-        state.o2=Math.max(0,state.o2-8); state.invuln=CONFIG.invuln*0.5;
-        state.stingFlash=0.8; sfxSwept();
-        if(state.o2<=0){ state.o2=0; gameOver(); return; }
+      if(isVulnerable){
+        // HIT — vulnerable post-roll window
+        b.o2=Math.max(0,b.o2-5);
+        b.speed=Math.max(b.speed*0.55,0.15*SPD);
+        b.y=Math.min(CONFIG.ROWS-1.5,b.y+0.8);
+        state.stingFlash=0.6; sfxPing();
+        if(b.o2<=0){ bossDefeated(); return; }
+      } else {
+        // DEFLECT — phio bats it back
+        bn.deflected=true; bn.t=0; bn.dur=0.22;
+        bn.x0=bn.x; bn.y0=bn.y;
+        bn.tx=state.whale.col; bn.ty=state.whale.row;
+        b.barnacles.splice(i,1);  // remove and respawn as returning
+        if(state.invuln<=0){
+          state.o2=Math.max(0,state.o2-6); state.invuln=CONFIG.invuln*0.5;
+          state.stingFlash=0.7; sfxSwept();
+          if(state.o2<=0){ state.o2=0; gameOver(); return; }
+        }
       }
-      continue;
-    }
-    if(!bn.deflected && k>=1){
-      // direct hit
-      b.barnacles.splice(i,1);
-      b.o2=Math.max(0,b.o2-4);
-      b.speed=Math.max(b.speed*0.55,0.15*SPD);
-      b.y=Math.min(CONFIG.ROWS-1.5,b.y+0.8);
-      state.stingFlash=0.5; sfxPing();
-      if(b.o2<=0){ bossDefeated(); return; }
     }
   }
 
