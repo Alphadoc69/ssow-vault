@@ -248,6 +248,13 @@
     <div class="overlay" id="overlayStart">
       <h2 class="cyan">SOLO DIVE</h2>
       <p class="small">Crack the chest, ride the portal, dive deeper. 100 levels down.</p>
+      <p class="small" style="color:rgba(160,210,230,0.6);font-size:0.7rem;margin-top:-6px;line-height:1.6;">
+        🧭 Dodge predators · grab air bubbles · crack the chest<br>
+        ⚡ Every 5 levels: choose a depth upgrade · persists until you die<br>
+        🐚 Wealthy Whale: unlock shop upgrades + exclusive depth rewards<br>
+        ❤️ Extra lives show as hearts on your whale · 👻 Ghost Step absorbs 1 hit/level<br>
+        🐳 Boss levels: 20 · 40 · 60 · 80 · 100 — each fight is unique
+      </p>
 
       <div class="wallet-box">
         <p class="wallet-title">Dive as your own whale</p>
@@ -3688,7 +3695,12 @@ function drawPearl(p){
 }
 function drawLoadout(y){
   const ic=[];
-  if(state.upg){ if(state.upg.slow)ic.push('🐢'); if(state.upg.bubbles)ic.push('🫧'); if(state.upg.revive&&!state.revived)ic.push('❤️'); }
+  if(state.upg){ if(state.upg.slow)ic.push('🐢'); if(state.upg.bubbles)ic.push('🫧');
+    // show remaining extra lives as hearts
+    const livesLeft=state.revivesLeft||0;
+    for(let li=0;li<livesLeft;li++) ic.push('❤️');
+    if(state.ghostReady) ic.push('👻');
+  }
   if(!ic.length) return;
   ctx.save(); ctx.font=`${Math.max(12,Math.floor(CW*0.3))}px serif`; ctx.textAlign='left'; ctx.textBaseline='top';
   ctx.globalAlpha=0.95; ctx.fillText(ic.join(' '), 8, y); ctx.restore();
