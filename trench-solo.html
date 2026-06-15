@@ -1034,7 +1034,7 @@ function updateMegalodon(dt){
     if(state.invuln<=0 && !sh.dropping && sh.row===state.whale.row){
       let dd=Math.abs(sh.x-state.whale.col); dd=Math.min(dd,CONFIG.COLS-dd);
       if(dd<CONFIG.hitRadius){
-        state.o2-=CONFIG.bossSharkO2*state.tier.sweepMul; state.invuln=CONFIG.invuln;
+        state.o2-=CONFIG.bossSharkO2*state.tier.sweepMul*(state.midUpgrades&&state.midUpgrades.thickskin?0.8:1); state.invuln=CONFIG.invuln;
         state.stingFlash=0.5; sfxSwept();
         const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
         if(state.o2<=0){ state.o2=0; gameOver(); }
@@ -1101,7 +1101,8 @@ function updateMegalodon(dt){
   if(state.bubbleCd<=0&&liveB<megBubMax){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn*0.4; }
   for(let i=state.bubbles.length-1;i>=0;i--){ const bub=state.bubbles[i];
     if(!bub.taken&&bub.row===state.whale.row&&bub.col===state.whale.col){
-      state.o2=Math.min(100,state.o2+CONFIG.bubbleO2); sfxBubble(); state.bubbles.splice(i,1); } }
+      const o2max=100+(state.midUpgrades&&state.midUpgrades.o2bonus||0);
+      state.o2=Math.min(o2max,state.o2+CONFIG.bubbleO2*(state.midUpgrades&&state.midUpgrades.o2cache?1:1)); sfxBubble(); state.bubbles.splice(i,1); } }
 
   if(b.hp<=0){ bossDefeated(); return; }
   if(state.o2<=0){ state.o2=0; gameOver(); }
@@ -1729,7 +1730,8 @@ function updateStampede(dt){
   if(state.bubbleCd<=0&&liveB<6){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn*0.4; }
   for(let i=state.bubbles.length-1;i>=0;i--){ const bub=state.bubbles[i];
     if(!bub.taken&&bub.row===state.whale.row&&bub.col===state.whale.col){
-      state.o2=Math.min(100,state.o2+CONFIG.bubbleO2); sfxBubble(); state.bubbles.splice(i,1); } }
+      const o2max=100+(state.midUpgrades&&state.midUpgrades.o2bonus||0);
+      state.o2=Math.min(o2max,state.o2+CONFIG.bubbleO2*(state.midUpgrades&&state.midUpgrades.o2cache?1:1)); sfxBubble(); state.bubbles.splice(i,1); } }
 
   if(b.hp<=0){ bossDefeated(); return; }
   if(state.o2<=0){ state.o2=0; gameOver(); }
@@ -2119,7 +2121,7 @@ function updatePhio(dt){
       if(state.invuln<=0&&sh.row===state.whale.row){
         let dd=Math.abs(sh.x-state.whale.col); dd=Math.min(dd,CONFIG.COLS-dd);
         if(dd<CONFIG.hitRadius){
-          state.o2-=CONFIG.bossSharkO2*state.tier.sweepMul; state.invuln=CONFIG.invuln;
+          state.o2-=CONFIG.bossSharkO2*state.tier.sweepMul*(state.midUpgrades&&state.midUpgrades.thickskin?0.8:1); state.invuln=CONFIG.invuln;
           state.stingFlash=0.5; sfxSwept();
           const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),140);
           if(state.o2<=0){ state.o2=0; gameOver(); return; }
@@ -2313,7 +2315,8 @@ function updatePhio(dt){
   if(state.bubbleCd<=0&&liveB<12){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn*0.18; }
   for(let i=state.bubbles.length-1;i>=0;i--){ const bub=state.bubbles[i];
     if(!bub.taken&&bub.row===state.whale.row&&bub.col===state.whale.col){
-      state.o2=Math.min(100,state.o2+CONFIG.bubbleO2); sfxBubble(); state.bubbles.splice(i,1); } }
+      const o2max=100+(state.midUpgrades&&state.midUpgrades.o2bonus||0);
+      state.o2=Math.min(o2max,state.o2+CONFIG.bubbleO2*(state.midUpgrades&&state.midUpgrades.o2cache?1:1)); sfxBubble(); state.bubbles.splice(i,1); } }
 
   if(state.o2<=0){ state.o2=0; gameOver(); }
   if(state.whale.hop>0) state.whale.hop=Math.max(0,state.whale.hop-dt*7);
@@ -3012,7 +3015,7 @@ function updateBoss(dt){
       sh.x=Math.max(0,Math.min(CONFIG.COLS-1, sh.x+dir*sh.speed*CONFIG.chaseMult*dt));
       if(state.invuln<=0){ let dd=Math.abs(sh.x-state.whale.col); dd=Math.min(dd,CONFIG.COLS-dd);
         if(dd<CONFIG.hitRadius){
-          state.o2-=CONFIG.bossSharkO2*state.tier.sweepMul; state.invuln=CONFIG.invuln; state.stingFlash=0.5; sfxSwept();
+          state.o2-=CONFIG.bossSharkO2*state.tier.sweepMul*(state.midUpgrades&&state.midUpgrades.thickskin?0.8:1); state.invuln=CONFIG.invuln; state.stingFlash=0.5; sfxSwept();
           const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
           if(state.o2<=0){ state.o2=0; gameOver(); }
         }
@@ -3103,7 +3106,8 @@ function updateBoss(dt){
   if(state.bubbleCd<=0 && liveB<CONFIG.bossBubbleMax){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn; }
   for(let i=state.bubbles.length-1;i>=0;i--){ const bub=state.bubbles[i];
     if(!bub.taken && bub.row===state.whale.row && bub.col===state.whale.col){
-      state.o2=Math.min(100,state.o2+CONFIG.bubbleO2); sfxBubble(); state.bubbles.splice(i,1);
+      const o2max=100+(state.midUpgrades&&state.midUpgrades.o2bonus||0);
+      state.o2=Math.min(o2max,state.o2+CONFIG.bubbleO2*(state.midUpgrades&&state.midUpgrades.o2cache?1:1)); sfxBubble(); state.bubbles.splice(i,1);
     }
   }
   updateOrca(dt);
@@ -3236,7 +3240,7 @@ function showMidUpgradeScreen(){
   // shuffle
   for(let i=free.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [free[i],free[j]]=[free[j],free[i]]; }
   for(let i=wealthy.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [wealthy[i],wealthy[j]]=[wealthy[j],wealthy[i]]; }
-  const picks=[...(free.slice(0,2)), wealthy[0]].filter(Boolean);
+  const picks=[...(free.slice(0,3)), wealthy[0]].filter(Boolean);
   const cards=document.getElementById('midUpgCards');
   if(!cards) return;
   cards.innerHTML='';
@@ -3263,10 +3267,24 @@ function showMidUpgradeScreen(){
 }
 
 function applyMidUpgrade(id){
-  state.midUpgrades[id]=true;
-  if(id==='o2cache') state.o2=Math.min(state.o2+20,120);
-  if(id==='pearlaura') state.midUpgrades.pearlaura=true;
-  if(id==='dolphinpact') state.midUpgrades.dolphinpact=true;
+  state.midUpgrades[id]=(state.midUpgrades[id]||0)+1;  // stackable — count applications
+  // immediate effects
+  if(id==='o2cache'){
+    // +20 max O2 — store as bonus max, applied to drain cap
+    state.midUpgrades.o2bonus=(state.midUpgrades.o2bonus||0)+20;
+    state.o2=Math.min(state.o2+20, 100+state.midUpgrades.o2bonus);
+  }
+  // all other perks are flag-based and checked in the game loop:
+  // speedfins: move O2 cost -30% (checked in drain)
+  // thickskin: sweep damage -20% (checked in sweepMul calculations)
+  // currentread: enemy speed -15% (checked in enemy speed)
+  // sonarboost: +1 sonar ping (checked in ping logic)
+  // pearlaura: pearl value ×2 (checked in gem rolling)
+  // deepluck: chest rolls twice (checked in openTreasure)
+  // dolphinpact: dolphin CD halved (already wired in dolphin spawn)
+  // whirldodge: whirl damage -40% (already wired)
+  // inkresist: ink does 0 damage (already wired)
+  // pearlpull: auto-collect (checked in update)
 }
 
 function levelComplete(){
