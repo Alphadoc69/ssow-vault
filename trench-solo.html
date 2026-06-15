@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+
+  drawNickname();<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -250,6 +251,13 @@
       <p class="small">Crack the chest, ride the portal, dive deeper. 100 levels down.</p>
 
       <div class="wallet-box">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+          <input id="nicknameInput" type="text" placeholder="Your nickname…" maxlength="20" autocomplete="off"
+            style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(91,200,232,0.3);border-radius:6px;
+            padding:7px 10px;color:#e8f4ff;font-family:'DM Mono',monospace;font-size:0.8rem;outline:none;"
+            oninput="saveNickname(this.value)" />
+          <span id="nickLabel" style="font-size:0.7rem;color:rgba(91,200,232,0.5);white-space:nowrap;"></span>
+        </div>
         <p class="wallet-title">Dive as your own whale</p>
         <div class="wallet-row">
           <input id="walletInput" type="text" placeholder="0x… your wallet" autocomplete="off" spellcheck="false" />
@@ -824,6 +832,7 @@ function setupLevel(L){
   state.chestOpened=false; state.portal=null; state.hintT=0;
   state.whale = {row:0, col:Math.floor(CONFIG.COLS/2), facing:1, hop:0};
   state.shieldReady = state.tier.shield || !!state.upg.shield;   // perk resets each level
+  state.ghostReady = !!state.upg.ghosted;   // ghost step resets each level
   const calm = state.lanes.filter(l=>!l.active).map(l=>l.row);
   // rock obstacles FIRST — sit on calm rows; you must path around them (never on the chest)
   state.rocks=[];
@@ -3244,6 +3253,8 @@ function sweep(){
     v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),200);
     return;
   }
+  if(state.ghostReady){ state.ghostReady=false; sfxShield(); state.invuln=CONFIG.invuln;
+    const v2=document.getElementById('vignette'); v2.classList.add('shield'); setTimeout(()=>v2.classList.remove('shield'),200); return; }
   state.o2 -= CONFIG.sweepPenalty*state.tier.sweepMul; sfxSwept();
   v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
   state.whale.row=Math.max(0, state.whale.row-CONFIG.knockbackRows);   // knocked back toward the surface
@@ -3413,7 +3424,7 @@ function updateOrca(dt){
       state.cannons.push({row,dir,x:startX+dir*0.6,speed:CONFIG.cannonSpeed});
       sfxCannon();
       const rateBoost = Math.min(CONFIG.orcaRateCap, CONFIG.orcaRatePerOrca*((state.orcaCount||1)-1));
-      state.orcaCd = (boss?CONFIG.orcaIntervalBoss:CONFIG.orcaIntervalDive) * (1 - rateBoost);
+      state.orcaCd = (boss?CONFIG.orcaIntervalBoss:CONFIG.orcaIntervalDive) * (1 - rateBoost) * (state.upg&&state.upg.oShield?0.5:1);
     } else { state.orcaCd=1.2; }
   }
   // move cannonballs and resolve hits
@@ -3429,7 +3440,7 @@ function updateOrca(dt){
       }
     } else if(boss && state.boss && !state.boss.armored){
       if(Math.abs(c.x-state.boss.x)<0.6 && Math.abs(c.row-state.boss.y)<1.0){
-        state.boss.hp-=CONFIG.cannonBossDmg; state.boss.stun=Math.max(state.boss.stun,CONFIG.cannonBossStun);
+        state.boss.hp-=CONFIG.cannonBossDmg*(state.upg&&state.upg.oShield?1.5:1); state.boss.stun=Math.max(state.boss.stun,CONFIG.cannonBossStun);
         state.stingFlash=0.6; state.cannons.splice(i,1); continue;
       }
       if(state.bossSharks) for(const sh of state.bossSharks){ if(sh.row===c.row && Math.abs(sh.x-c.x)<0.55) sh.stun=CONFIG.cannonStun; }
@@ -3711,6 +3722,17 @@ function drawPearl(p){
   ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(-r*0.32,-r*0.32,r*0.22,0,Math.PI*2); ctx.fill();
   ctx.restore();
 }
+function drawNickname(){
+  if(!state.nickname) return;
+  const sz=Math.max(10,Math.floor(CW*0.22));
+  ctx.save();
+  ctx.font=`600 ${sz}px 'DM Mono',monospace`;
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillStyle='rgba(255,255,255,0.55)';
+  ctx.fillText(state.nickname, 8, 8);
+  ctx.restore();
+}
+
 function drawLoadout(y){
   const ic=[];
   if(state.upg){ if(state.upg.slow)ic.push('🐢'); if(state.upg.bubbles)ic.push('🫧');
@@ -4292,7 +4314,7 @@ function renderBoss(w,h){
   }
   // sting / impact flash
   if(state.stingFlash>0){ ctx.fillStyle=`rgba(150,80,220,${(0.2*state.stingFlash).toFixed(3)})`; ctx.fillRect(0,0,w,h); }
-  if(state.phase==='play' && b && !b.intro) drawLoadout(8);
+  if(state.phase==='play' && b && !b.intro) drawLoadout(8); drawNickname();
   // boss HP bar
   if(b && b.type!=='megalodon' && b.type!=='stampede' && b.type!=='phio'){
     const bw=w*0.7, bx=(w-bw)/2, by=8, bh=Math.max(7,CH*0.12);
@@ -4479,7 +4501,7 @@ function render(){
     ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle='rgba(220,245,255,0.45)';
     ctx.fillText(state.habitat.name, 8, 24);
   }
-  if(state.phase==='play') drawLoadout(40);
+  if(state.phase==='play'){ drawLoadout(40); drawNickname(); }
   // portal hint
   if(state.hintT>0){
     state.hintT=Math.max(0,state.hintT-0.016);
@@ -4610,6 +4632,19 @@ const picker=document.getElementById('picker');
 const pickerGrid=document.getElementById('pickerGrid');
 const pickerSub=document.getElementById('pickerSub');
 let loadedNfts=[];
+function saveNickname(val){
+  const v=val.trim();
+  if(v) localStorage.setItem('ssow_nick',v);
+  else localStorage.removeItem('ssow_nick');
+  state.nickname=v;
+}
+function loadNickname(){
+  const v=localStorage.getItem('ssow_nick')||'';
+  state.nickname=v;
+  const el=document.getElementById('nicknameInput');
+  if(el && v) el.value=v;
+}
+
 function setW(msg,err){ wStatus.textContent=msg||''; wStatus.className='wallet-status'+(err?' err':''); }
 
 async function fetchAllNFTs(wallet){
@@ -4906,7 +4941,7 @@ try{ const q=new URLSearchParams(location.search);
 
 window.addEventListener('resize',resize);
 // boot
-loadBest();
+loadBest(); loadNickname();
 document.getElementById('bestStart').textContent=state.best;
 resize();
 requestAnimationFrame(loop);
