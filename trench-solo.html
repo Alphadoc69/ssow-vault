@@ -1993,13 +1993,14 @@ function updatePhio(dt){
 
   // ── STATE MACHINE ──
   if(b.stunT>0){ b.stunT-=dt; b.mode='stunned'; b.jawOpen=0; if(b.stunT<=0) b.mode='hunt'; }
-  else if(b.mode==='deathroll'){
+  else iif(b.mode==='deathroll'){
     b.rollT-=dt; b.rollAngle+=dt*(10+phase*3);
-    if(state.invuln<=0){
-      state.whale.col=clampi(state.whale.col+b.rollDir*Math.round(4*dt+0.5),0,CONFIG.COLS-1);
-      if(dist<1.2) phioHurtWhale(phase===3?14:phase===2?10:7,b);
+    // only pulls/hurts whale if they're close — swim away to dodge it
+    if(state.invuln<=0 && dist<1.5){
+      state.whale.col=clampi(state.whale.col+b.rollDir*Math.round(3*dt+0.5),0,CONFIG.COLS-1);
+      phioHurtWhale(phase===3?14:phase===2?10:7,b);
     }
-    if(b.rollT<=0){ b.mode='hunt'; b.stunT=0.3; b.vulnerable=2.0; }  // vulnerable window after roll
+    if(b.rollT<=0){ b.mode='hunt'; b.stunT=0.3; b.vulnerable=2.0; }
   } else if(b.mode==='surfacing'){
     b.y=Math.max(0,b.y-(3.0+phase*1.0)*dt); b.jawOpen=1;
     if(state.invuln<=0 && Math.abs(b.x-state.whale.col)<1.0 && Math.abs(b.y-state.whale.row)<0.9) phioHurtWhale(18,b);
