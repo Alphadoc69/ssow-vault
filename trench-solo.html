@@ -234,7 +234,7 @@
     <p class="sub">one whale · dodge the predators · go deeper</p>
   </header>
 
-  <div class="hud">
+  <div class="hud" id="hud" style="visibility:hidden">
     <div class="stat"><span class="label">Level</span><span class="val" id="hudLevel">1</span></div>
     <div class="o2wrap"><span class="label">Oxygen</span><div class="o2bar"><div class="o2fill" id="o2fill"></div><span class="o2pct" id="o2pct">100%</span></div></div>
     <div class="stat" style="text-align:right"><span class="label">Score</span><span class="val cyan" id="hudScore">0</span></div>
@@ -3385,6 +3385,7 @@ function startRun(){
   setupLevel(1); state.phase='play'; state.last=performance.now();
   document.getElementById('overlayStart').classList.add('hidden');
   document.getElementById('overlayOver').classList.add('hidden');
+  document.getElementById('hud').style.visibility='visible';
 }
 
 // ── update ──
