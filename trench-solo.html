@@ -1951,7 +1951,7 @@ function updatePhio(dt){
   if(phase!==b.lastPhase){
     b.lastPhase=phase;
     if(phase===2){ state.bossSharks=[]; state.jellies=[]; state.minis=[]; state.stingFlash=0.7; sfxBolt(); }
-    else if(phase===3){ state.jellies=[]; state.minis=[]; state.inkBalls=[]; state.inks=[]; state.stingFlash=1.0; sfxAlarm(); }
+    else if(phase===3){ state.jellies=[]; state.minis=[]; state.inkBalls=[]; state.inks=[]; if(b.moose) b.moose=[]; state.stingFlash=1.0; sfxAlarm(); }
   }
 
   // ── WHIRLPOOLS — tons of them, hurt only whale ──
@@ -2193,6 +2193,42 @@ function updatePhio(dt){
       }
     }
     for(let i=(state.inks||[]).length-1;i>=0;i--){ state.inks[i].t+=dt; if(state.inks[i].t>=state.inks[i].life) state.inks.splice(i,1); }
+    // MOOSE — charge down vertically from above, same mechanic as stampede
+    if(!b.mooseCd) b.mooseCd=0; b.mooseCd-=dt;
+    if(!b.moose) b.moose=[];
+    if(b.mooseCd<=0 && b.moose.length<4){
+      const col=1+Math.floor(Math.random()*(CONFIG.COLS-2));
+      const dir=Math.random()<0.5?1:-1;
+      b.moose.push({col, x:col, row:0, dropY:0, targetRow:2+Math.floor(Math.random()*(CONFIG.ROWS-4)), dropping:true, dir, speed:(2.8+Math.random()*1.2)*SPD, face:dir, hit:false, life:6.0});
+      b.mooseCd=1.8+Math.random()*1.2;
+    }
+    for(let i=(b.moose||[]).length-1;i>=0;i--){
+      const m=b.moose[i]; m.life-=dt;
+      if(m.life<=0){ b.moose.splice(i,1); continue; }
+      if(m.dropping){
+        m.dropY=Math.min(m.targetRow,(m.dropY||0)+3.5*dt);
+        m.row=Math.floor(m.dropY);
+        if(m.dropY>=m.targetRow){ m.dropping=false; m.row=m.targetRow; }
+      } else {
+        // patrol horizontally then chase in same row
+        if(m.row===state.whale.row){
+          const d=state.whale.col-m.x; m.face=Math.sign(d)||1;
+          m.x=Math.max(0,Math.min(CONFIG.COLS-1,m.x+Math.sign(d)*m.speed*dt));
+        } else {
+          m.x=((m.x+m.dir*m.speed*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
+        }
+      }
+      // hit whale
+      if(!m.dropping && state.invuln<=0 && m.row===state.whale.row){
+        let dd=Math.abs(m.x-state.whale.col); dd=Math.min(dd,CONFIG.COLS-dd);
+        if(dd<CONFIG.hitRadius){
+          state.o2-=16*state.tier.sweepMul; state.invuln=CONFIG.invuln;
+          state.stingFlash=0.6; sfxSwept();
+          const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
+          if(state.o2<=0){ state.o2=0; gameOver(); return; }
+        }
+      }
+    }
     // RAPID 2-col lightning — 0.35s warn
     if(!b.boltCd) b.boltCd=1.2;
     b.boltCd-=dt;
@@ -2339,6 +2375,18 @@ function drawPhio(b,w,h){
   if(state.minis) for(const mq of state.minis) drawMini(mq);
   if(state.inks) for(const ink of state.inks) drawInk(ink);
   if(state.inkBalls) for(const ib of state.inkBalls) drawInkBall(ib);
+  // phase 3 moose — drop vertically then patrol
+  if(b.moose) for(const m of b.moose){
+    if(m.dropping){
+      // animate falling nose-down
+      const mx2=m.col*CW+CW/2, my2=(m.dropY||0)*CH+CH/2;
+      ctx.save(); ctx.translate(mx2,my2); ctx.rotate(Math.PI*0.5);
+      drawEnemy('moose',m.col,rowY(Math.floor(m.dropY||0)),1,false);
+      ctx.restore();
+    } else {
+      drawEnemy('moose',m.x,rowY(m.row),m.face,false);
+    }
+  }
   // barnacles flying toward phio (or deflected back)
   if(b.barnacles) for(const bn of b.barnacles){
     const bx=bn.x*CW+CW/2, by2=bn.y*CH+CH/2, r=Math.max(6,CW*0.18);
@@ -4136,7 +4184,8 @@ function renderBoss(w,h){
     ] : b.type==='phio' ? [
       ['💧','KEEP THEM UNDERWATER','— their O2 drains just like yours'],
       ['💀','DODGE the DEATH ROLL','— they grab and spin you toward the edge'],
-      ['🌀','WHIRLPOOLS HURT BOTH','— drag phios deeper · costs you too'],
+      ['🌀','WHIRLPOOLS HURT YOU','— dodge them · barnacles hit after DEATH ROLL'],
+      ['🫎','PHASE 3: MOOSE CHARGE DOWN','— same as the stampede · dodge their column'],
     ] : [
       ['🌀','Lure it onto a WHIRLPOOL','— rips its health, but they hurt you too'],
       ['🐬','Let DOLPHINS ram it','— a strike briefly freezes it'],
