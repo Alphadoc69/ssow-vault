@@ -1926,7 +1926,7 @@ function setupPhio(L){
   state.minis=[]; state.inks=[]; state.inkBalls=[]; state.barnacles=[];
   state.whirls=[];
   const used=new Set();
-  for(let i=0;i<8;i++){
+  for(let i=0;i<12;i++){
     let row,col,tries=0;
     do{ row=3+Math.floor(Math.random()*(CONFIG.ROWS-4));
         col=1+Math.floor(Math.random()*(CONFIG.COLS-2)); tries++; }
@@ -2289,7 +2289,7 @@ function updatePhio(dt){
   // bubbles
   state.bubbleCd-=dt;
   const liveB=state.bubbles.filter(bub=>!bub.taken).length;
-  if(state.bubbleCd<=0&&liveB<8){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn*0.25; }
+  if(state.bubbleCd<=0&&liveB<12){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn*0.18; }
   for(let i=state.bubbles.length-1;i>=0;i--){ const bub=state.bubbles[i];
     if(!bub.taken&&bub.row===state.whale.row&&bub.col===state.whale.col){
       state.o2=Math.min(100,state.o2+CONFIG.bubbleO2); sfxBubble(); state.bubbles.splice(i,1); } }
@@ -4202,7 +4202,6 @@ function renderBoss(w,h){
       ['💧','KEEP THEM UNDERWATER','— their O2 drains just like yours'],
       ['💀','DODGE the DEATH ROLL','— they grab and spin you toward the edge'],
       ['🌀','WHIRLPOOLS HURT YOU','— dodge them · barnacles hit after DEATH ROLL'],
-      ['🫎','PHASE 3: MOOSE CHARGE DOWN','— same as the stampede · dodge their column'],
     ] : [
       ['🌀','Lure it onto a WHIRLPOOL','— rips its health, but they hurt you too'],
       ['🐬','Let DOLPHINS ram it','— a strike briefly freezes it'],
