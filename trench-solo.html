@@ -1552,7 +1552,7 @@ function setupStampede(L){
     type:'stampede', hp, maxHp:hp, num:4,
     // wolf position on row 0 (land)
     wolfCol:Math.floor(CONFIG.COLS/2), wolfFace:1,
-    wolfHowlCd:3.5,   // seconds between howls
+    wolfHowlCd:2.0,   // seconds between howls
     wolfHowling:0,     // howl animation timer
     wolfStun:0,        // stunned by barnacle hit
     // moose columns charging downward
@@ -1624,22 +1624,22 @@ function updateStampede(dt){
     b.wolfHowlCd-=dt;
     if(b.wolfHowlCd<=0){
       b.wolfHowling=1.2;   // howl animation
-      b.wolfHowlCd=3.0+(b.hp/b.maxHp)*2.5;
+      b.wolfHowlCd=1.8+(b.hp/b.maxHp)*1.5;
       // spawn a wave: 2-3 moose in random columns
-      const nMoose=2+(Math.random()<0.5?1:0)+(b.hp<b.maxHp*0.5?1:0);
+      const nMoose=3+(Math.random()<0.6?1:0)+(b.hp<b.maxHp*0.5?2:0)+(b.hp<b.maxHp*0.25?1:0);
       const usedCols=new Set(b.moose.map(m=>m.col));
       let spawned=0;
       for(let tries=0;tries<20&&spawned<nMoose;tries++){
         const col=1+Math.floor(Math.random()*(CONFIG.COLS-2));
         if(usedCols.has(col)) continue;
         usedCols.add(col);
-        b.moose.push({col, y:0.5, speed:(2.0+Math.random()*1.0)*SPD, hit:false});
+        b.moose.push({col, y:0.5, speed:(3.2+Math.random()*1.8)*SPD, hit:false});
         spawned++;
       }
       sfxBolt();
     }
     // wolf wanders left/right on row 0
-    b.wolfCol+=b.wolfFace*0.8*dt;
+    b.wolfCol+=b.wolfFace*(2.2+Math.random()*0.5)*dt;
     if(b.wolfCol<=1){ b.wolfCol=1; b.wolfFace=1; }
     if(b.wolfCol>=CONFIG.COLS-2){ b.wolfCol=CONFIG.COLS-2; b.wolfFace=-1; }
   }
@@ -1650,7 +1650,7 @@ function updateStampede(dt){
     m.y+=m.speed*dt;
     // hit whale if same col and same row
     if(!m.hit && Math.floor(m.y)===state.whale.row && Math.abs(m.col-state.whale.col)<0.9 && state.invuln<=0){
-      stampedeHurtWhale(20); m.hit=true;
+      stampedeHurtWhale(24); m.hit=true;
     }
     // despawn when they exit the bottom
     if(m.y>=CONFIG.ROWS){ b.moose.splice(i,1); }
@@ -2539,7 +2539,7 @@ function updateOrca(dt){
   // move cannonballs and resolve hits
   for(let i=state.cannons.length-1;i>=0;i--){ const c=state.cannons[i];
     c.x += c.dir*c.speed*dt;
-    if(boss && state.boss && !state.boss.armored){
+    if(boss && state.boss && !state.boss.armored && state.boss.type!=='stampede'){
       if(Math.abs(c.x-state.boss.x)<0.6 && Math.abs(c.row-state.boss.y)<1.0){
         state.boss.hp-=CONFIG.cannonBossDmg; state.boss.stun=Math.max(state.boss.stun,CONFIG.cannonBossStun);
         state.stingFlash=0.6; state.cannons.splice(i,1); continue;
@@ -3404,7 +3404,7 @@ function renderBoss(w,h){
   if(state.stingFlash>0){ ctx.fillStyle=`rgba(150,80,220,${(0.2*state.stingFlash).toFixed(3)})`; ctx.fillRect(0,0,w,h); }
   if(state.phase==='play' && b && !b.intro) drawLoadout(8);
   // boss HP bar
-  if(b && b.type!=='megalodon'){
+  if(b && b.type!=='megalodon' && b.type!=='stampede'){
     const bw=w*0.7, bx=(w-bw)/2, by=8, bh=Math.max(7,CH*0.12);
     ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(bx-2,by-2,bw+4,bh+4);
     ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.fillRect(bx,by,bw,bh);
@@ -3471,7 +3471,11 @@ function renderBoss(w,h){
       ctx.font=`700 ${Math.min(14,pw*0.036)}px 'DM Mono',monospace`; ctx.fillStyle='#efe6ff';
       ctx.fillText(ln[1], lx+pw*0.11, ly-4);
       ctx.font=`${Math.min(11,pw*0.028)}px 'DM Mono',monospace`; ctx.fillStyle='rgba(200,190,225,0.75)';
-      ctx.fillText(ln[2], lx+pw*0.11, ly+13);
+      // truncate desc to fit card width
+      let desc2=ln[2]; const maxW2=pw*0.75;
+      while(ctx.measureText(desc2).width>maxW2 && desc2.length>10) desc2=desc2.slice(0,-1);
+      if(desc2!==ln[2]) desc2=desc2.slice(0,-1)+'…';
+      ctx.fillText(desc2, lx+pw*0.11, ly+13);
       ly += ph*0.18;
     }
     ctx.textAlign='center'; ctx.fillStyle='rgba(255,255,255,0.9)';
