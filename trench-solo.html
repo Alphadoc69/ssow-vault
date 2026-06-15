@@ -2022,6 +2022,11 @@ function move(dr,dc){
   const nc=clampi(state.whale.col+dc,0,CONFIG.COLS-1);
   if(nr===state.whale.row && nc===state.whale.col) return;
   if(state.rocks && state.rocks.some(k=>k.row===nr && k.col===nc)){ return; }   // rock blocks the cell
+  // megalodon fight: hard wall — cols 1-5, rows 1-6 only (no side or bottom camping)
+  if(state.boss && state.boss.type==='megalodon'){
+    if(nc<=0||nc>=CONFIG.COLS-1) return;   // block cols 0 and 6
+    if(nr>=CONFIG.ROWS-1) return;           // block bottom row
+  }
   state.whale.row=nr; state.whale.col=nc; state.whale.hop=1;
   if(dc<0) state.whale.facing=-1; else if(dc>0) state.whale.facing=1;
   sfxMove();
