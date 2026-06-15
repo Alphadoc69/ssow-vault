@@ -551,17 +551,17 @@ const CONFIG = {
   turtleBarnacleDur: 0.3,// barnacle flight time (whale → turtle)
   turtleDolphinGap: 5.5,// seconds between dolphin allies in the turtle fight (rarer = harder)
   // ── Megalodon boss (level 60) ──
-  megHp: 320,           // health pool — slow but tanks hits
+  megHp: 480,           // health pool — slow but tanks hits
   megSpeed: 0.9,        // base patrol speed (slow — historically a sluggish swimmer)
   megChargeSpeed: 7.5,  // burst charge speed when it lunges
-  megChargeCd: 3.8,     // seconds between charges
+  megChargeCd: 2.8,     // seconds between charges
   megChargeWind: 0.7,   // telegraph time before charge
   megBiteO2: 22,        // oxygen lost from a direct bite
   megRamO2: 18,         // oxygen lost from a body ram
   megChestO2: 26,       // signature move: chest-cavity shatter (high damage)
   megChestWind: 1.0,    // telegraph time for chest attack
-  megTouchO2: 14,       // passive contact damage
-  megIceShardDmg: 28,   // damage an ice shard deals (weakness!)
+  megTouchO2: 18,       // passive contact damage
+  megIceShardDmg: 35,   // damage an ice shard deals (weakness!)
   megIceShardCd: 0.5,   // min seconds between ice shard throws
   megIceShardDur: 0.35, // flight time whale → meg
   megIceSelfStun: 2.2,  // seconds meg is stunned by an ice shard hit
@@ -907,7 +907,7 @@ function setupLevel(L){
 
 // ── MEGALODON BOSS (level 60) ──
 function setupMegalodon(L){
-  state.cfg={drain:CONFIG.bossDrain+0.4};   // faster drain — it's a race
+  state.cfg={drain:CONFIG.bossDrain+0.9};   // faster drain — it's a race
   state.lanes=[]; state.bubbles=[]; state.jellies=[]; state.rocks=[];
   state.habitat=HAB.megalodon; state.dark=false;
   state.whale={row:CONFIG.ROWS-2, col:Math.floor(CONFIG.COLS/2), facing:1, hop:0};
@@ -921,7 +921,7 @@ function setupMegalodon(L){
     mode:'patrol',   // patrol | chargeWind | charge | chestWind | chest | stunned
     chargeCd:CONFIG.megChargeCd*0.5,
     chargeDir:1, chargeTarget:0,
-    chestCd:6.0, chestWarned:false,
+    chestCd:4.0, chestWarned:false,
     jaw:0, jawDir:1,
     intro:true, introT:9,
   };
@@ -1115,168 +1115,217 @@ function updateMegalodon(dt){
 
 function drawMegalodon(b,w,h){
   const T=state.t||0;
+  // Megalodon fills most of the upper arena — it IS the threat
+  // Draw relative to canvas coords, not just b.x/b.y, so the jaw spans the full width
+  const sz=Math.min(w,h*0.5);   // jaw width relative to arena width
   const cx=b.x*CW+CW/2, cy=b.y*CH+CH/2;
-  const sz=Math.min(CW,CH)*2.6;   // massive — much larger than other bosses
   const stunned=b.stun>0;
   const charging=b.mode==='charge'||b.mode==='chargeWind';
   const chest=b.mode==='chestWind'||b.mode==='chest';
   const jaw=b.jaw||0;
+  const jawOpen=jaw * sz*0.38;   // max gape — nearly half the arena height
 
-  ctx.save(); ctx.translate(cx,cy);
+  ctx.save();
 
-  // ominous deep glow
-  const gcol=stunned?'rgba(120,200,240,0.5)':charging?'rgba(255,100,60,0.5)':chest?'rgba(255,60,60,0.7)':'rgba(40,80,120,0.35)';
-  const gl=ctx.createRadialGradient(0,0,2,0,0,sz*0.85);
+  // ── MASSIVE AMBIENT GLOW fills the top third ──
+  const gcol=stunned?'rgba(80,200,255,0.45)':charging?'rgba(255,80,30,0.55)':chest?'rgba(255,20,20,0.65)':'rgba(20,50,100,0.5)';
+  const gl=ctx.createRadialGradient(cx,cy,sz*0.1,cx,cy,sz*1.1);
   gl.addColorStop(0,gcol); gl.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(0,0,sz*0.85,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=gl; ctx.fillRect(0,0,w,h*0.55);
 
+  ctx.translate(cx,cy);
   if(b.face<0) ctx.scale(-1,1);
 
-  const bodyCol = stunned?'#7a8e9a':'#3a4e5a';
-  const bodyLight = stunned?'#9ab0ba':'#5a7080';
-  const belly = stunned?'#b0c4cc':'#d8e8ec';
-  const edge = stunned?'#4a5e6a':'#1a2a32';
+  // ── BODY — wide, massive, takes up top half ──
+  const bodyW=sz*0.72, bodyH=sz*0.19;
+  const bodyG=ctx.createLinearGradient(0,-bodyH,0,bodyH);
+  bodyG.addColorStop(0, stunned?'#8a9ea8':'#4a6070');
+  bodyG.addColorStop(0.5, stunned?'#6a8090':'#2a3e4e');
+  bodyG.addColorStop(1,'#0e1e28');
+  ctx.fillStyle=bodyG; ctx.strokeStyle=stunned?'#5a7080':'#0a1820';
+  ctx.lineWidth=Math.max(3,sz*0.018);
 
-  // shadow
-  ctx.fillStyle='rgba(0,0,0,0.25)';
-  ctx.beginPath(); ctx.ellipse(sz*0.04,sz*0.38,sz*0.58,sz*0.1,0,0,Math.PI*2); ctx.fill();
-
-  // tail — big crescent caudal fin
-  ctx.fillStyle=bodyCol; ctx.strokeStyle=edge; ctx.lineWidth=Math.max(2,sz*0.025);
+  // Body shape — huge torpedo, blunt nose
   ctx.beginPath();
-  ctx.moveTo(-sz*0.44,0);
-  ctx.lineTo(-sz*0.66,-sz*0.26); ctx.lineTo(-sz*0.56,-sz*0.06);
-  ctx.lineTo(-sz*0.44,0);
-  ctx.lineTo(-sz*0.56,sz*0.08); ctx.lineTo(-sz*0.66,sz*0.28);
+  ctx.moveTo(bodyW*0.55, 0);
+  ctx.quadraticCurveTo(bodyW*0.62,-bodyH*0.3, bodyW*0.48,-bodyH);
+  ctx.quadraticCurveTo(0,-bodyH*1.1,-bodyW*0.52,-bodyH*0.55);
+  ctx.quadraticCurveTo(-bodyW*0.66,0,-bodyW*0.52,bodyH*0.55);
+  ctx.quadraticCurveTo(0,bodyH*1.1,bodyW*0.48,bodyH);
+  ctx.quadraticCurveTo(bodyW*0.62,bodyH*0.3, bodyW*0.55,0);
   ctx.closePath(); ctx.fill(); ctx.stroke();
 
-  // body — massive elongated torpedo
-  const bg=ctx.createLinearGradient(0,-sz*0.22,0,sz*0.22);
-  bg.addColorStop(0,bodyLight); bg.addColorStop(0.45,bodyCol); bg.addColorStop(1,'#1a2a32');
-  ctx.fillStyle=bg; ctx.strokeStyle=edge; ctx.lineWidth=Math.max(2,sz*0.03);
+  // White belly
+  ctx.fillStyle=stunned?'#b0c8d4':'rgba(215,235,240,0.85)';
   ctx.beginPath();
-  ctx.moveTo(sz*0.55,0);
-  ctx.quadraticCurveTo(sz*0.1,-sz*0.22,-sz*0.44,-sz*0.09);
-  ctx.quadraticCurveTo(-sz*0.54,0,-sz*0.44,sz*0.1);
-  ctx.quadraticCurveTo(sz*0.1,sz*0.22,sz*0.55,0);
-  ctx.closePath(); ctx.fill(); ctx.stroke();
-
-  // belly patch — white underside (like a real shark)
-  ctx.fillStyle=belly; ctx.beginPath();
-  ctx.moveTo(sz*0.4,sz*0.05);
-  ctx.quadraticCurveTo(sz*0.0,sz*0.17,-sz*0.36,sz*0.06);
-  ctx.quadraticCurveTo(sz*0.0,sz*0.11,sz*0.4,sz*0.05);
+  ctx.moveTo(bodyW*0.4, bodyH*0.22);
+  ctx.quadraticCurveTo(0,bodyH*0.72,-bodyW*0.42,bodyH*0.28);
+  ctx.quadraticCurveTo(0,bodyH*0.52,bodyW*0.4,bodyH*0.22);
   ctx.fill();
 
-  // lateral line
-  ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=Math.max(1,sz*0.014);
-  ctx.beginPath(); ctx.moveTo(-sz*0.42,0); ctx.quadraticCurveTo(0,-sz*0.04,sz*0.42,sz*0.01); ctx.stroke();
+  // Lateral line
+  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=Math.max(1.5,sz*0.01);
+  ctx.beginPath(); ctx.moveTo(-bodyW*0.5,0); ctx.quadraticCurveTo(0,-bodyH*0.15,bodyW*0.44,bodyH*0.04); ctx.stroke();
 
-  // dorsal fin — huge iconic triangle
-  ctx.fillStyle=bodyCol; ctx.strokeStyle=edge; ctx.lineWidth=Math.max(2,sz*0.025);
+  // ── ICONIC DORSAL FIN — tall, dominant ──
+  const finCol=stunned?'#7a8e9a':'#3a4e5a';
+  ctx.fillStyle=finCol; ctx.strokeStyle=stunned?'#4a5e6a':'#0a1820'; ctx.lineWidth=Math.max(2,sz*0.016);
   ctx.beginPath();
-  ctx.moveTo(sz*0.06,-sz*0.22);
-  ctx.lineTo(-sz*0.12,-sz*0.52);
-  ctx.lineTo(-sz*0.22,-sz*0.22);
+  ctx.moveTo(bodyW*0.08,-bodyH);
+  ctx.lineTo(-bodyW*0.06,-bodyH*3.2);  // towering spike — the iconic silhouette
+  ctx.lineTo(-bodyW*0.28,-bodyH);
   ctx.closePath(); ctx.fill(); ctx.stroke();
 
-  // pectoral fin — large swept-back
+  // Second dorsal
   ctx.beginPath();
-  ctx.moveTo(sz*0.16,sz*0.1);
-  ctx.lineTo(-sz*0.04,sz*0.38);
-  ctx.lineTo(-sz*0.18,sz*0.16);
-  ctx.quadraticCurveTo(sz*0.0,sz*0.12,sz*0.16,sz*0.1);
+  ctx.moveTo(-bodyW*0.30,-bodyH);
+  ctx.lineTo(-bodyW*0.38,-bodyH*1.7);
+  ctx.lineTo(-bodyW*0.50,-bodyH);
   ctx.closePath(); ctx.fill(); ctx.stroke();
 
-  // second dorsal (smaller)
+  // Pectoral fin — huge swept wing
   ctx.beginPath();
-  ctx.moveTo(-sz*0.20,-sz*0.18); ctx.lineTo(-sz*0.30,-sz*0.34); ctx.lineTo(-sz*0.38,-sz*0.18);
+  ctx.moveTo(bodyW*0.22,bodyH*0.5);
+  ctx.lineTo(bodyW*0.10,bodyH*2.4);
+  ctx.lineTo(-bodyW*0.14,bodyH*0.9);
+  ctx.quadraticCurveTo(bodyW*0.04,bodyH*0.62,bodyW*0.22,bodyH*0.5);
   ctx.closePath(); ctx.fill(); ctx.stroke();
 
-  // gills — 5 slits
-  ctx.strokeStyle='rgba(20,30,38,0.7)'; ctx.lineWidth=Math.max(1,sz*0.018); ctx.lineCap='round';
+  // Caudal fin — big crescent tail
+  ctx.beginPath();
+  ctx.moveTo(-bodyW*0.52,-bodyH*0.12);
+  ctx.lineTo(-bodyW*0.80,-bodyH*1.0);
+  ctx.lineTo(-bodyW*0.66,-bodyH*0.08);
+  ctx.moveTo(-bodyW*0.52,bodyH*0.12);
+  ctx.lineTo(-bodyW*0.80,bodyH*0.9);
+  ctx.lineTo(-bodyW*0.66,bodyH*0.08);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // ── GILLS — 5 deep slits ──
+  ctx.strokeStyle='rgba(10,24,34,0.75)'; ctx.lineWidth=Math.max(2,sz*0.016); ctx.lineCap='round';
   for(let i=0;i<5;i++){
-    const gx=sz*0.28-i*sz*0.045, gy1=-sz*0.08, gy2=sz*0.06;
-    ctx.beginPath(); ctx.moveTo(gx,gy1); ctx.lineTo(gx-sz*0.01,gy2); ctx.stroke();
+    const gx=bodyW*0.30-i*sz*0.048;
+    ctx.beginPath(); ctx.moveTo(gx,-bodyH*0.55); ctx.lineTo(gx-sz*0.008,bodyH*0.45); ctx.stroke();
   }
 
-  // EYE — small, cold, black
-  ctx.fillStyle='#080e12';
-  ctx.beginPath(); ctx.ellipse(sz*0.28,-sz*0.05,sz*0.038,sz*0.032,0,0,Math.PI*2); ctx.fill();
-  if(!stunned){ ctx.fillStyle='rgba(200,220,230,0.5)'; ctx.beginPath(); ctx.arc(sz*0.275,-sz*0.058,sz*0.012,0,Math.PI*2); ctx.fill(); }
+  // ── EYE — tiny, cold, dead ──
+  ctx.fillStyle='#060c10';
+  ctx.beginPath(); ctx.ellipse(bodyW*0.30,-bodyH*0.18,sz*0.032,sz*0.026,0,0,Math.PI*2); ctx.fill();
+  if(!stunned){
+    ctx.fillStyle='rgba(180,210,220,0.4)';
+    ctx.beginPath(); ctx.arc(bodyW*0.294,-bodyH*0.195,sz*0.010,0,Math.PI*2); ctx.fill();
+  }
 
-  // ── JAW ── iconic megalodon gape, scales with jaw value
-  const jawOpen=jaw*sz*0.22;
-  // upper jaw
-  ctx.fillStyle=bodyCol; ctx.strokeStyle=edge; ctx.lineWidth=Math.max(2,sz*0.025);
+  // ── THE JAW — this is the whole point ──
+  // Upper jaw extends forward as a massive shelf
+  ctx.fillStyle=stunned?'#5a7080':'#2a3e4e';
+  ctx.strokeStyle=stunned?'#3a5060':'#080e14';
+  ctx.lineWidth=Math.max(3,sz*0.022);
+
+  // Upper jaw plate
   ctx.beginPath();
-  ctx.moveTo(sz*0.55,0);
-  ctx.quadraticCurveTo(sz*0.62,-jawOpen*0.4, sz*0.58,-jawOpen*0.5-sz*0.04);
-  ctx.lineTo(sz*0.38,-sz*0.04);
-  ctx.closePath(); ctx.fill(); ctx.stroke();
-  // lower jaw
-  ctx.beginPath();
-  ctx.moveTo(sz*0.55,0);
-  ctx.quadraticCurveTo(sz*0.62,jawOpen*0.4, sz*0.58,jawOpen*0.5+sz*0.04);
-  ctx.lineTo(sz*0.38,sz*0.04);
+  ctx.moveTo(bodyW*0.55, 0);
+  ctx.lineTo(bodyW*0.80, -jawOpen*0.15);
+  ctx.lineTo(bodyW*0.80, -jawOpen*0.5-sz*0.02);
+  ctx.lineTo(bodyW*0.46, -jawOpen*0.5-sz*0.02);
+  ctx.lineTo(bodyW*0.40, -sz*0.02);
   ctx.closePath(); ctx.fill(); ctx.stroke();
 
-  // TEETH — triangular, multiple rows, more visible when jaw open
-  if(jaw>0.05){
-    const toothCount=6, toothH=Math.max(sz*0.04, jawOpen*0.55);
-    ctx.fillStyle='#f0f4f6'; ctx.strokeStyle='#b0bcc4'; ctx.lineWidth=Math.max(1,sz*0.012);
-    // upper row
-    for(let i=0;i<toothCount;i++){
-      const tx=sz*0.56-i*sz*0.032, ty=-jawOpen*0.18;
-      ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(tx-sz*0.012,ty-toothH); ctx.lineTo(tx-sz*0.024,ty); ctx.closePath(); ctx.fill(); ctx.stroke();
-    }
-    // lower row
-    for(let i=0;i<toothCount;i++){
-      const tx=sz*0.56-i*sz*0.032, ty=jawOpen*0.18;
-      ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(tx-sz*0.012,ty+toothH); ctx.lineTo(tx-sz*0.024,ty); ctx.closePath(); ctx.fill(); ctx.stroke();
-    }
-    // inner darker row (double-rowed teeth)
-    ctx.fillStyle='#d8dfe2'; ctx.strokeStyle='#90a0a8';
-    for(let i=0;i<4;i++){
-      const tx=sz*0.50-i*sz*0.032, ty=-jawOpen*0.08, th=toothH*0.7;
-      ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(tx-sz*0.01,ty-th); ctx.lineTo(tx-sz*0.02,ty); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // Lower jaw plate — drops down dramatically
+  ctx.beginPath();
+  ctx.moveTo(bodyW*0.55, 0);
+  ctx.lineTo(bodyW*0.80, jawOpen*0.15);
+  ctx.lineTo(bodyW*0.80,  jawOpen*0.5+sz*0.02);
+  ctx.lineTo(bodyW*0.46,  jawOpen*0.5+sz*0.02);
+  ctx.lineTo(bodyW*0.40,  sz*0.02);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // ── TEETH — massive, triangular, multiple rows ──
+  const toothRows=[
+    {count:7, size:sz*0.09, upper:true,  xStart:bodyW*0.78, xStep:-sz*0.046, yBase:-jawOpen*0.22},
+    {count:7, size:sz*0.09, upper:false, xStart:bodyW*0.78, xStep:-sz*0.046, yBase: jawOpen*0.22},
+    {count:5, size:sz*0.065,upper:true,  xStart:bodyW*0.74, xStep:-sz*0.046, yBase:-jawOpen*0.14, inner:true},
+    {count:5, size:sz*0.065,upper:false, xStart:bodyW*0.74, xStep:-sz*0.046, yBase: jawOpen*0.14, inner:true},
+  ];
+  for(const row of toothRows){
+    ctx.fillStyle=row.inner?(stunned?'#bac8ce':'#d8e4e8'):(stunned?'#ccd8de':'#eef4f6');
+    ctx.strokeStyle=stunned?'#8a9ea8':'#9ab0b8';
+    ctx.lineWidth=Math.max(1,sz*0.008);
+    for(let i=0;i<row.count;i++){
+      const tx=row.xStart+i*row.xStep;
+      const ty=row.yBase;
+      const th=row.size*(jaw>0.1?jaw:0.1);   // teeth hide when jaw closed
+      ctx.beginPath();
+      ctx.moveTo(tx,ty);
+      ctx.lineTo(tx-sz*0.018, ty+(row.upper?-th:th));
+      ctx.lineTo(tx-sz*0.036, ty);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
     }
   }
 
-  // charging red tint
-  if(charging){ ctx.fillStyle='rgba(255,60,30,0.18)'; ctx.beginPath(); ctx.ellipse(0,0,sz*0.6,sz*0.24,0,0,Math.PI*2); ctx.fill(); }
-  if(chest){ ctx.fillStyle='rgba(255,20,20,0.28)'; ctx.beginPath(); ctx.ellipse(0,0,sz*0.7,sz*0.28,0,0,Math.PI*2); ctx.fill(); }
+  // Dark throat / gullet when jaw open
+  if(jaw>0.3){
+    const tg=ctx.createRadialGradient(bodyW*0.62,0,sz*0.01,bodyW*0.62,0,jawOpen*0.8);
+    tg.addColorStop(0,'rgba(2,4,8,0.95)'); tg.addColorStop(1,'rgba(2,4,8,0)');
+    ctx.fillStyle=tg;
+    ctx.beginPath();
+    ctx.ellipse(bodyW*0.62,0,sz*0.14,jawOpen*0.42,0,0,Math.PI*2);
+    ctx.fill();
+  }
 
-  // stun: ice crystals overlay
-  if(stunned){
-    ctx.strokeStyle='rgba(140,220,255,0.85)'; ctx.lineWidth=Math.max(2,sz*0.035);
+  // ── CHARGE / CHEST attack overlays ──
+  if(charging){
+    // speed lines
+    ctx.strokeStyle='rgba(255,100,40,0.4)'; ctx.lineWidth=Math.max(2,sz*0.014); ctx.lineCap='round';
     for(let i=0;i<6;i++){
-      const a=i*Math.PI/3, r=sz*(0.15+Math.random()*0.22);
-      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r); ctx.stroke();
-      // crystal branches
-      ctx.beginPath(); ctx.moveTo(Math.cos(a)*r*0.5,Math.sin(a)*r*0.5);
-      ctx.lineTo(Math.cos(a+0.5)*r*0.28,Math.sin(a+0.5)*r*0.28); ctx.stroke();
+      const y=(-bodyH*0.8)+i*bodyH*0.32;
+      ctx.beginPath(); ctx.moveTo(-bodyW*0.4,y); ctx.lineTo(-bodyW*0.8-i*sz*0.04,y); ctx.stroke();
     }
-    ctx.font=`${Math.floor(sz*0.3)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+  }
+  if(chest){
+    ctx.fillStyle=`rgba(255,20,20,${(0.15+0.15*Math.sin(T*12)).toFixed(3)})`;
+    ctx.beginPath(); ctx.ellipse(bodyW*0.62,0,sz*0.22,jawOpen*0.55+sz*0.04,0,0,Math.PI*2); ctx.fill();
+  }
+
+  // ── STUN: ice crystal overlay ──
+  if(stunned){
+    ctx.strokeStyle='rgba(140,230,255,0.9)'; ctx.lineWidth=Math.max(2,sz*0.022); ctx.lineCap='round';
+    for(let i=0;i<8;i++){
+      const a=i*Math.PI/4, r=sz*(0.12+0.14*(i%2));
+      const ox=(i%3-1)*bodyW*0.2, oy=(i%2-0.5)*bodyH*0.8;
+      ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ox+Math.cos(a)*r,oy+Math.sin(a)*r); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ox+Math.cos(a)*r*0.5,oy+Math.sin(a)*r*0.5);
+      ctx.lineTo(ox+Math.cos(a+0.5)*r*0.3,oy+Math.sin(a+0.5)*r*0.3); ctx.stroke();
+    }
+    // 🥶 emoji above
     if(b.face<0) ctx.scale(-1,1);
-    ctx.fillText('🥶',0,-sz*0.6);
+    ctx.font=`${Math.floor(sz*0.22)}px serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('🥶',0,-bodyH*3.6);
     if(b.face<0) ctx.scale(-1,1);
   }
 
-  // telegraph labels
+  // ── TELEGRAPH LABELS ──
   if(b.face<0) ctx.scale(-1,1);
   ctx.textAlign='center'; ctx.textBaseline='alphabetic';
   if(b.mode==='chargeWind'){
-    ctx.fillStyle='rgba(255,140,60,0.97)'; ctx.font=`700 ${Math.floor(sz*0.13)}px 'DM Mono',monospace`;
-    ctx.fillText('INCOMING!', 0, -sz*0.72);
+    const p=0.6+0.4*Math.sin(T*14);
+    ctx.globalAlpha=p;
+    ctx.fillStyle='rgba(255,140,60,0.97)'; ctx.font=`700 ${Math.floor(sz*0.11)}px 'DM Mono',monospace`;
+    ctx.fillText('⚡ INCOMING! ⚡', 0, -bodyH*3.8);
+    ctx.globalAlpha=1;
   }
   if(b.mode==='chestWind'){
-    ctx.fillStyle='rgba(255,40,40,0.97)'; ctx.font=`700 ${Math.floor(sz*0.13)}px 'DM Mono',monospace`;
-    ctx.fillText('CHEST BITE!', 0, -sz*0.72);
+    const p=0.5+0.5*Math.sin(T*18);
+    ctx.globalAlpha=p;
+    ctx.fillStyle='rgba(255,30,30,0.97)'; ctx.font=`700 ${Math.floor(sz*0.11)}px 'DM Mono',monospace`;
+    ctx.fillText('💀 CHEST BITE! 💀', 0, -bodyH*3.8);
+    ctx.globalAlpha=1;
   }
 
   ctx.restore();
 }
+
 
 // ── KRAKEN BOSS ──
 function spawnBossBubble(){
