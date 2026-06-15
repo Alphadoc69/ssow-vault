@@ -1616,6 +1616,7 @@ function updateStampede(dt){
   const b=state.boss;
   if(b.stun>0) b.stun=Math.max(0,b.stun-dt);
   if(b.wolfStun>0) b.wolfStun=Math.max(0,b.wolfStun-dt);
+  if((b.wolfHitCd||0)>0) b.wolfHitCd=Math.max(0,b.wolfHitCd-dt);
   if(b.wolfHowling>0) b.wolfHowling=Math.max(0,b.wolfHowling-dt);
   if(b.barnacleCd>0) b.barnacleCd=Math.max(0,b.barnacleCd-dt);
 
@@ -1641,7 +1642,7 @@ function updateStampede(dt){
     // wolf wanders left/right on row 0
     // wolf is lightning fast when idle, nearly stops while moose are stampeding
     const mooseActive=b.moose.length>0;
-    const wolfSpeed = mooseActive ? 0.25 : (5.0+Math.sin((state.t||0)*3)*1.5);
+    const wolfSpeed = mooseActive ? 0.18 : (7.5+Math.sin((state.t||0)*4)*2.5);
     b.wolfCol+=b.wolfFace*wolfSpeed*dt;
     if(b.wolfCol<=1){ b.wolfCol=1; b.wolfFace=1; }
     if(b.wolfCol>=CONFIG.COLS-2){ b.wolfCol=CONFIG.COLS-2; b.wolfFace=-1; }
@@ -1667,10 +1668,11 @@ function updateStampede(dt){
     bn.y=bn.y+(bn.ty-bn.y)*k - Math.sin(k*Math.PI)*1.5;
     if(k>=1){
       b.stampBarnacles.splice(i,1);
-      // hit wolf?
-      if(Math.abs(bn.tx-b.wolfCol)<1.2){
-        b.hp-=CONFIG.turtleBarnacleDmg*4;   // barnacles deal good damage to wolf
+      // hit wolf? only if not recently hit (anti-spam)
+      if(Math.abs(bn.tx-b.wolfCol)<1.2 && (b.wolfHitCd||0)<=0){
+        b.hp-=CONFIG.turtleBarnacleDmg*4;
         b.wolfStun=2.0; b.wolfHowling=0;
+        b.wolfHitCd=1.8;   // 1.8s invuln — can't spam hit
         state.stingFlash=1.0; sfxPing();
         if(b.hp<=0){ bossDefeated(); return; }
       }
@@ -2507,7 +2509,11 @@ function updateOrca(dt){
   state.orcaCd-=dt;
   if(state.orcaCd<=0 && state.cannons.length===0){
     let row=null, dir=Math.random()<0.5?1:-1;
-    if(boss && state.boss){ row=Math.round(state.boss.y); }
+    if(boss && state.boss && state.boss.type==='stampede'){
+      // in stampede: orca targets moose rows (2-6), not the wolf on row 0
+      const mooseRows=b.moose&&b.moose.length?b.moose.map(m=>Math.floor(m.y||1)):[2,3,4];
+      row=mooseRows[Math.floor(Math.random()*mooseRows.length)];
+    } else if(boss && state.boss){ row=Math.round(state.boss.y); }
     else { const act=state.lanes.filter(l=>l.active); if(act.length) row=act[Math.floor(Math.random()*act.length)].row; }
     if(row!==null){
       const startX = dir>0 ? -1.2 : CONFIG.COLS+0.2;
@@ -2523,7 +2529,16 @@ function updateOrca(dt){
   // move cannonballs and resolve hits
   for(let i=state.cannons.length-1;i>=0;i--){ const c=state.cannons[i];
     c.x += c.dir*c.speed*dt;
-    if(boss && state.boss && !state.boss.armored && state.boss.type!=='stampede'){
+    if(boss && state.boss && state.boss.type==='stampede'){
+      // orca cannonballs knock out moose
+      const b2=state.boss;
+      if(b2.moose) for(let mi=b2.moose.length-1;mi>=0;mi--){
+        const m=b2.moose[mi];
+        if(Math.abs(c.x-m.col)<0.7 && Math.abs(c.row-(m.y||0))<1.2){
+          b2.moose.splice(mi,1); state.stingFlash=0.3; sfxGem(false); break;
+        }
+      }
+    } else if(boss && state.boss && !state.boss.armored){
       if(Math.abs(c.x-state.boss.x)<0.6 && Math.abs(c.row-state.boss.y)<1.0){
         state.boss.hp-=CONFIG.cannonBossDmg; state.boss.stun=Math.max(state.boss.stun,CONFIG.cannonBossStun);
         state.stingFlash=0.6; state.cannons.splice(i,1); continue;
@@ -3440,7 +3455,7 @@ function renderBoss(w,h){
       ['⚠️','DODGE the SNAP','— jaws closing = get to the middle rows fast'],
       ['🦈','AVOID the SPAWNED SHARKS','— spit from the throat, they chase you'],
     ] : b.type==='stampede' ? [
-      ['🪨','THROW BARNACLES at the WOLF','— tap / space; it howls to send moose charging down'],
+      ['🪨','THROW BARNACLES at WOLF','— wait for howl · wolf slows · then throw'],
       ['🫎','DODGE the MOOSE','— they charge through your column from above'],
       ['🐬','DOLPHINS stun the wolf','— watch for them to streak through'],
     ] : [
