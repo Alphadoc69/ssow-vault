@@ -866,12 +866,17 @@ function setupMegalodon(L){
   state.bossSharks=[];
   state.whirls=[]; state.minis=[]; state.inks=[]; state.inkBalls=[];
   state.barnacles=[];
-  // sea urchins on row 1 + ice blocks on bottom row — force whale to the middle
+  // sea urchins on row 1 + ice blocks on bottom row + side columns — force whale to the middle
   state.megUrchin=[];
   // row 1: sea urchins (purple spiky)
   for(const col of [0,2,4,6]) state.megUrchin.push({row:1,col,type:'urchin',stingCd:0});
-  // bottom row: ice blocks (cold hazard — you get frozen/damaged)
-  for(const col of [0,1,2,3,4,5,6]) state.megUrchin.push({row:CONFIG.ROWS-1,col,type:'ice',stingCd:0});
+  // bottom row: ice blocks
+  for(let col=0;col<CONFIG.COLS;col++) state.megUrchin.push({row:CONFIG.ROWS-1,col,type:'ice',stingCd:0});
+  // side columns (col 0 and col 6): ice blocks on every row — no hugging the walls
+  for(let row=1;row<CONFIG.ROWS-1;row++){
+    state.megUrchin.push({row,col:0,type:'ice',stingCd:0});
+    state.megUrchin.push({row,col:CONFIG.COLS-1,type:'ice',stingCd:0});
+  }
   // bubbles spread across the safe zone (rows 4-7)
   const used=new Set();
   for(let i=0;i<8;i++){
