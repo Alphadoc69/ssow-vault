@@ -214,6 +214,27 @@
     canvas{max-width:100%;}
     .hud{max-width:100%;}
   }
+
+  /* MID-DIVE UPGRADE OVERLAY */
+  #overlayUpgrade{justify-content:center;}
+  .upgrade-cards{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin:1rem 0; max-width:420px;}
+  .upg-card{
+    position:relative; cursor:pointer; width:110px; padding:14px 10px 12px;
+    border-radius:12px; text-align:center; border:2px solid rgba(91,200,232,0.25);
+    background:rgba(5,20,34,0.92); transition:transform 0.12s, border-color 0.15s, box-shadow 0.15s;
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+  }
+  .upg-card:active{transform:scale(0.94);}
+  .upg-card:hover{border-color:var(--cyan); box-shadow:0 0 18px rgba(91,200,232,0.3);}
+  .upg-card.locked{opacity:0.55; cursor:default; border-color:rgba(255,170,50,0.3);}
+  .upg-card.locked:hover{border-color:rgba(255,170,50,0.5); box-shadow:0 0 12px rgba(255,170,50,0.2);}
+  .upg-card .upg-icon{font-size:2.2rem; line-height:1; filter:drop-shadow(0 0 8px rgba(91,200,232,0.5));}
+  .upg-card.locked .upg-icon{filter:drop-shadow(0 0 6px rgba(255,170,50,0.4));}
+  .upg-card .upg-name{font-family:var(--font-display); font-size:0.9rem; letter-spacing:0.06em; color:#fff; line-height:1.1;}
+  .upg-card .upg-desc{font-size:0.48rem; letter-spacing:0.06em; color:var(--dim); line-height:1.4;}
+  .upg-card .upg-lock{position:absolute; top:6px; right:8px; font-size:0.6rem; color:rgba(255,170,50,0.8);}
+  .upg-card .upg-whale{position:absolute; top:5px; left:7px; font-size:0.55rem; color:rgba(255,210,90,0.9); letter-spacing:0.04em;}
+
 </style>
 </head>
 <body>
@@ -283,6 +304,14 @@
       <p class="small" id="rewardSub">Loot spills from the wreck…</p>
       <div class="reward-items" id="rewardItems"></div>
       <button class="btn" id="rewardBtn">Collect &amp; Dive On ▼</button>
+    </div>
+
+
+    <div class="overlay hidden" id="overlayUpgrade">
+      <h2 class="cyan" style="font-size:1.6rem;margin-bottom:0.2rem">DEPTH UPGRADE</h2>
+      <p class="small" id="upgradeSubtitle">Choose one perk for the dive ahead</p>
+      <div class="upgrade-cards" id="upgradeCards"></div>
+      <p class="small" style="margin-top:0.3rem;opacity:0.6">🐚 Wealthy Whale perks unlock with your NFT</p>
     </div>
 
     <div class="overlay hidden" id="overlayWin">
@@ -452,7 +481,8 @@ const CONFIG = {
   swipeRepeat: 130,   // min ms between hops when drag-steering (stops the whale zooming)
   bubbleO2: 20,       // oxygen restored per air bubble
   bubblesBase: 4,     // air bubbles per level
-  invuln: 0.5,        // seconds of safety after a squid hit (no chain hits)
+  invuln: 0.9,        // seconds of safety after a squid hit (no chain hits)
+  invulnMoveCd: 0.28,  // min seconds between moves while invulnerable (anti-speedrun)
   pingInterval: 2.6,  // seconds between sonar pings on dark levels
   pingSpeed: 7,       // sonar ring expansion (cells/sec)
   stunTime: 1.7,      // seconds a squid is stunned by sonar
@@ -530,6 +560,21 @@ const CONFIG = {
     bubbles: {name:'🫧 Bubble Bloom', desc:'more air bubbles, each worth more', cost:8},
     revive:  {name:'❤️ Revive',       desc:'resurface once instead of dying', cost:15},
   },
+  // ── Mid-dive upgrade cards (every 5 levels) ──
+  midDiveUpgradeEvery: 5,  // show upgrade screen every N levels
+  MID_UPGRADES: [
+    {id:'o2boost',    name:'O2 Cache',      icon:'🫧', desc:'+15 max oxygen per stack',        wealthy:false, maxStack:3},
+    {id:'speedfins',  name:'Speed Fins',    icon:'🏄', desc:'Move costs 15% less O2 per stack',  wealthy:false, maxStack:3},
+    {id:'thickskin',  name:'Thick Hide',    icon:'🛡', desc:'Sweeps hurt 10% less per stack',    wealthy:false, maxStack:3},
+    {id:'currentread',name:'Current Read',  icon:'🌊', desc:'Predators 8% slower per stack',     wealthy:false, maxStack:3},
+    {id:'sonarboost', name:'Sonar Boost',   icon:'📡', desc:'Sonar stuns 25% longer per stack',  wealthy:false, maxStack:3},
+    {id:'pearlaura',  name:'Pearl Aura',    icon:'🐚', desc:'Pearls worth 2× this run',         wealthy:true},
+    {id:'deepluck',   name:'Deep Luck',     icon:'👑', desc:'Next chest rolls rarity twice, keep best', wealthy:true},
+    {id:'dolphinpact', name:'Dolphin Pact', icon:'🐬', desc:'Dolphins appear 50% more often',      wealthy:true},
+    {id:'whirldodge',  name:'Whirl Dodge',  icon:'🌀', desc:'Whirlpools can\'t catch you',         wealthy:true},
+    {id:'inkresist',   name:'Ink Resist',   icon:'🦑', desc:'Kraken ink balls do 0 damage',        wealthy:true},
+    {id:'pearlpull',   name:'Pearl Pull',   icon:'🧲', desc:'Pearls auto-collect within 1 cell',   wealthy:true},
+  ],
   bossBubbleMax: 5,   // max air bubbles present at once in a boss fight
   bossBubbleSpawn: 2.2,// seconds between new air bubbles popping up
   bossTouchO2: 16,    // oxygen lost if the Kraken catches you
@@ -553,12 +598,16 @@ const state = {
   lanes: [], chest: {row:0,col:0}, whale: {row:0,col:3,facing:1,hop:0},
   gems: [], cfg: null, last: 0, clearAnim: 0, clearGem: null,
   skinImg: null, skinId: null, bubbles: [], lightningImmune: false, extraBubble: false, shrug: 0,
+  midUpgrades: {},      // active mid-dive upgrades this run
+  midUpgradeO2Max: 100, // base max o2, raised by o2boost
+  pendingUpgrade: false,// upgrade screen is waiting to show
   invuln: 0, t: 0, habitat: null, habName: '', bannerT: 0,
   dark: false, ping: null, pingCd: 0, reveal: 0,
   dolphin: null, dolphinCd: 0,
   mode: 'dive', boss: null, whirls: [], rocks: [], jellies: [], stingFlash: 0, bossSharks: [],
   chestOpened: false, portal: null, hintT: 0, lootReveal: 0, hoardPhase: false,
   hasOrca: false, orca: null, orcaCd: 0, cannons: [], orcaImg: null, orcaImgs: [], orcaCount: 1, minis: [], miniCd: 0,
+  invulnMoveLast: 0,
   hasWealthy: false, wealthyCount: 0, xpMult: 1, pearls: 0, runPearls: 0,
   pearlsList: [], upg: {}, revived: false, wallet: '', barnacles: [], barnacleCd: 0,
 };
@@ -1169,7 +1218,7 @@ function updateBoss(dt){
   }
   // whirlpools catch YOU too — stay out of them
   if(state.whirlSelfCd>0) state.whirlSelfCd-=dt;
-  if(state.whirlSelfCd<=0){
+  if(state.whirlSelfCd<=0 && !state.midUpgrades.whirldodge){
     for(const wpl of state.whirls){
       if(wpl.age>0.3 && wpl.row===state.whale.row && wpl.col===state.whale.col){
         state.o2-=CONFIG.whirlSelfO2*state.tier.sweepMul; state.whirlSelfCd=1.0; state.stingFlash=0.7; sfxSwept();
@@ -1184,7 +1233,7 @@ function updateBoss(dt){
   // dolphin allies strike the Kraken — and freeze it
   if(!state.dolphin){ state.dolphinCd-=dt;
     if(state.dolphinCd<=0){ const row=Math.round(b.y); const dir=Math.random()<0.5?1:-1;
-      state.dolphin={row, x:(dir>0?-1.5:CONFIG.COLS+1.5), dir, hit:false}; state.dolphinCd=2.6; sfxDolphin(); }
+      state.dolphin={row, x:(dir>0?-1.5:CONFIG.COLS+1.5), dir, hit:false}; state.dolphinCd=2.6*(state.midUpgrades.dolphinpact?0.5:1); sfxDolphin(); }
   } else {
     state.dolphin.x+=state.dolphin.dir*CONFIG.dolphinSpeed*dt;
     if(!state.dolphin.hit && Math.abs(state.dolphin.x-b.x)<0.6 && Math.abs(state.dolphin.row-b.y)<0.9){
@@ -1252,7 +1301,7 @@ function updateBoss(dt){
     const off = bl.x<-1.2||bl.x>CONFIG.COLS+1.2||bl.y<-1.2||bl.y>CONFIG.ROWS+1.2;
     if(hit || bl.t>2.4 || off){
       state.inks.push({x:bl.x, y:bl.y, r:0.85, t:0, life:1.2});   // small local splat
-      if(hit && state.invuln<=0){
+      if(hit && state.invuln<=0 && !state.midUpgrades.inkresist){
         state.o2-=CONFIG.bossInkO2*state.tier.sweepMul; state.invuln=CONFIG.invuln; state.stingFlash=0.5;
         const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
         if(state.o2<=0){ state.o2=0; gameOver(); }
@@ -1326,23 +1375,30 @@ function move(dr,dc){
   const nc=clampi(state.whale.col+dc,0,CONFIG.COLS-1);
   if(nr===state.whale.row && nc===state.whale.col) return;
   if(state.rocks && state.rocks.some(k=>k.row===nr && k.col===nc)){ return; }   // rock blocks the cell
+  // anti-speedrun: throttle moves while invulnerable so players can't dash through lanes
+  if(state.invuln>0){
+    const now=performance.now();
+    if(now - (state.invulnMoveLast||0) < CONFIG.invulnMoveCd*1000) return;
+    state.invulnMoveLast=now;
+  }
   state.whale.row=nr; state.whale.col=nc; state.whale.hop=1;
   if(dc<0) state.whale.facing=-1; else if(dc>0) state.whale.facing=1;
   sfxMove();
   // every move costs a breath (dive mode)
   if(state.mode!=='boss'){
-    state.o2 -= CONFIG.moveO2;
+    const moveCost = CONFIG.moveO2 * (1 - 0.15*(state.midUpgrades.speedfins||0));
+    state.o2 -= moveCost;
     if(state.o2<=0){ state.o2=0; gameOver(); return; }
   }
   // grab an air bubble?
   for(const b of state.bubbles){
     if(!b.taken && b.row===nr && b.col===nc){
-      b.taken=true; b.pop=1; state.o2=Math.min(100, state.o2+CONFIG.bubbleO2*(state.upg.bubbles?1.5:1)); sfxBubble();
+      b.taken=true; b.pop=1; const bO2=CONFIG.bubbleO2*(state.upg.bubbles?1.5:1); state.o2=Math.min(state.midUpgradeO2Max, state.o2+bO2); sfxBubble();
     }
   }
   // grab a pearl?
   if(state.pearlsList) for(const p of state.pearlsList){
-    if(!p.taken && p.row===nr && p.col===nc){ p.taken=true; state.runPearls+=Math.max(1,Math.round(p.val*pearlMult())); sfxGem(false); }
+    if(!p.taken && p.row===nr && p.col===nc){ p.taken=true; const pval=Math.max(1,Math.round(p.val*pearlMult()*(state.midUpgrades.pearlaura?2:1))); state.runPearls+=pval; sfxGem(false); }
   }
   if(state.mode!=='boss'){
     if(!state.chestOpened && nr===state.chest.row && nc===state.chest.col){ openTreasure(); }
@@ -1383,7 +1439,8 @@ function sweep(){
     v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),200);
     return;
   }
-  state.o2 -= CONFIG.sweepPenalty*state.tier.sweepMul; sfxSwept();
+  const skinMul = 1 - 0.10*(state.midUpgrades.thickskin||0);
+  state.o2 -= CONFIG.sweepPenalty*state.tier.sweepMul*skinMul; sfxSwept();
   v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
   state.whale.row=Math.max(0, state.whale.row-CONFIG.knockbackRows);   // knocked back toward the surface
   state.invuln=CONFIG.invuln;
@@ -1393,9 +1450,14 @@ function levelComplete(){
   state.phase='clear'; state.clearAnim=0; state.clearGem=null; sfxBubble();
   setTimeout(()=>{
     state.o2=Math.min(100, state.o2+CONFIG.levelRefill);
-    if(state.level>=CONFIG.maxLevel){ win(); return; }   // bottom of the Trench — you win
+    if(state.level>=CONFIG.maxLevel){ win(); return; }
     state.level++; if(state.level>state.best){ state.best=state.level; saveBest(); }
-    setupLevel(state.level); state.phase='play'; state.last=performance.now();
+    // every 5 levels (but not on boss levels) show a mid-dive upgrade card
+    if(state.level%CONFIG.midDiveUpgradeEvery===0 && state.level%CONFIG.bossEvery!==0){
+      showMidUpgradeScreen();
+    } else {
+      setupLevel(state.level); state.phase='play'; state.last=performance.now();
+    }
   }, 650);
 }
 function win(){
@@ -1434,10 +1496,86 @@ function startRun(){
   state.level=1; state.score=0; state.o2=100; state.gems=[];
   state.invuln=0; state.habName='';
   state.runPearls=0; state.revived=false; state.hoardPhase=false; state.lootReveal=0;
+  state.midUpgrades={}; state.midUpgradeO2Max=100; state.pendingUpgrade=false;
   if(state.best<1) state.best=1;
   setupLevel(1); state.phase='play'; state.last=performance.now();
   document.getElementById('overlayStart').classList.add('hidden');
   document.getElementById('overlayOver').classList.add('hidden');
+}
+
+
+// ── MID-DIVE UPGRADE SCREEN ──
+const MID_UPG_POOL = CONFIG.MID_UPGRADES;
+function showMidUpgradeScreen(){
+  state.phase='clear';   // pause game loop
+  // Pick 1 random free upgrade. Wealthy Whale holders get the enhanced version.
+  const free = MID_UPG_POOL.filter(u=>!u.wealthy && (state.midUpgrades[u.id]||0)<(u.maxStack||1));
+  if(!free.length){ launchNextLevel(); return; }
+  const pick = free[Math.floor(Math.random()*free.length)];
+  // Find the wealthy upgrade that pairs with this free one (same index offset)
+  const paid = MID_UPG_POOL.filter(u=>u.wealthy && !state.midUpgrades[u.id]);
+  const wealthyPick = paid.length ? paid[Math.floor(Math.random()*paid.length)] : null;
+  // Show: 1 card. Wealthy holders see the boosted version, others see the base version.
+  const u = (state.hasWealthy && wealthyPick) ? wealthyPick : pick;
+
+  const sub=document.getElementById('upgradeSubtitle');
+  sub.textContent=`Level ${state.level} · Depth perk unlocked`;
+  const grid=document.getElementById('upgradeCards');
+  grid.innerHTML='';
+  const card=document.createElement('div');
+  card.className='upg-card';
+  card.style.width='160px'; card.style.padding='20px 16px';
+  const stack = state.midUpgrades[u.id]||0;
+  const maxStack = u.maxStack||1;
+  const isWealthy = !!u.wealthy;
+  // stars: filled ★ for current stack, empty ☆ for remaining
+  const stars = !isWealthy && maxStack>1
+    ? '<div style="font-size:0.8rem;letter-spacing:2px;margin:2px 0;color:#ffd24a">'
+      + '★'.repeat(stack) + '<span style="opacity:0.3">' + '★'.repeat(maxStack-stack) + '</span></div>'
+    : '';
+  // scale the desc text to show actual current effect
+  let descText = u.desc;
+  if(!isWealthy && stack>0){
+    const nextStack = stack+1;
+    if(u.id==='o2boost')    descText=`+${15*nextStack} max oxygen (×${nextStack})`;
+    if(u.id==='speedfins')  descText=`Move costs ${Math.round((1-0.15*nextStack)*100)}% O2 (×${nextStack})`;
+    if(u.id==='thickskin')  descText=`Sweeps hurt ${Math.round((1-0.10*nextStack)*100)}% (×${nextStack})`;
+    if(u.id==='currentread')descText=`Predators ${Math.round((1-0.08*nextStack)*100)}% speed (×${nextStack})`;
+    if(u.id==='sonarboost') descText=`Sonar stuns ${Math.round((1+0.25*nextStack)*100)}% longer (×${nextStack})`;
+  }
+  card.innerHTML=
+    (state.hasWealthy && wealthyPick?'<span class="upg-whale">🐚 HOLDER BOOST</span>':'')+
+    `<div class="upg-icon" style="font-size:3rem">${u.icon}</div>`+
+    stars+
+    `<div class="upg-name" style="font-size:1.1rem">${u.name}</div>`+
+    `<div class="upg-desc" style="font-size:0.55rem;margin-top:4px">${descText}</div>`;
+  card.addEventListener('click',()=>{ applyMidUpgrade(u); });
+  grid.appendChild(card);
+  // Also show what non-holders are missing, greyed out beside it
+  if(state.hasWealthy && wealthyPick){
+    const baseCard=document.createElement('div');
+    baseCard.className='upg-card locked';
+    baseCard.style.width='100px'; baseCard.style.opacity='0.4';
+    baseCard.innerHTML=
+      `<div class="upg-icon" style="font-size:2rem">${pick.icon}</div>`+
+      `<div class="upg-name" style="font-size:0.8rem">${pick.name}</div>`+
+      `<div class="upg-desc">base version</div>`;
+    grid.insertBefore(baseCard, card);
+  }
+  document.getElementById('overlayUpgrade').classList.remove('hidden');
+  sfxLevel();
+}
+function applyMidUpgrade(u){
+  document.getElementById('overlayUpgrade').classList.add('hidden');
+  const prev = state.midUpgrades[u.id]||0;
+  state.midUpgrades[u.id] = prev + 1;
+  // instant effects (scale with stack)
+  if(u.id==='o2boost'){ state.midUpgradeO2Max=Math.min(145, state.midUpgradeO2Max+15); state.o2=Math.min(state.midUpgradeO2Max, state.o2+15); }
+  launchNextLevel();
+}
+function launchNextLevel(){
+  document.getElementById('overlayUpgrade').classList.add('hidden');
+  setupLevel(state.level); state.phase='play'; state.last=performance.now();
 }
 
 // ── update ──
@@ -1489,6 +1627,7 @@ function update(dt){
   if(state.bannerT>0) state.bannerT=Math.max(0,state.bannerT-dt);
   if(state.reveal>0) state.reveal=Math.max(0,state.reveal-dt*1.4);
   state.o2 -= state.cfg.drain*state.tier.drain*(state.upg.slow?0.75:1)*dt;
+  if(state.o2>state.midUpgradeO2Max) state.o2=state.midUpgradeO2Max;
   updateOrca(dt);
   // move predators (frozen ones hold still)
   for(const lane of state.lanes){ if(!lane.active) continue;
@@ -1503,7 +1642,8 @@ function update(dt){
         b.x=Math.max(0,Math.min(CONFIG.COLS-1, b.x + dir*lane.speed*CONFIG.chaseMult*dt));
       } else {
         b.face=lane.dir;
-        b.x=((b.x+lane.dir*lane.speed*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
+        const lspd = lane.speed * (1 - 0.08*(state.midUpgrades.currentread||0));
+      b.x=((b.x+lane.dir*lspd*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
       }
     }
   }
@@ -1530,7 +1670,8 @@ function update(dt){
         for(const b of lane.blocks){
           let dx=Math.abs(b.x-wx); dx=Math.min(dx,CONFIG.COLS-dx);
           const dist=Math.hypot(dx,dyr);
-          if(!b.pinged && dist<=state.ping.r){ b.stun=CONFIG.stunTime*((ENEMY[lane.enemy]||ENEMY.squid).stun); b.pinged=true; }
+          const stunMul = 1 + 0.25*(state.midUpgrades.sonarboost||0);
+          if(!b.pinged && dist<=state.ping.r){ b.stun=CONFIG.stunTime*stunMul*((ENEMY[lane.enemy]||ENEMY.squid).stun); b.pinged=true; }
         }
       }
       if(state.ping.r > CONFIG.COLS+CONFIG.ROWS){
@@ -1551,7 +1692,7 @@ function update(dt){
         for(const b of lane.blocks) b.stun=Math.max(b.stun, CONFIG.dolphinStun*((ENEMY[lane.enemy]||ENEMY.squid).stun));
         sfxDolphin();
       }
-      state.dolphinCd=CONFIG.dolphinInterval;
+      state.dolphinCd=CONFIG.dolphinInterval*(state.midUpgrades.dolphinpact?0.5:1);
     }
   } else {
     state.dolphin.x += state.dolphin.dir*CONFIG.dolphinSpeed*dt;
@@ -1565,6 +1706,14 @@ function update(dt){
     if(j.row===state.whale.row && j.cool<=0){
       let dx=Math.abs(j.x-state.whale.col); dx=Math.min(dx,CONFIG.COLS-dx);
       if(dx<0.55){ state.o2=Math.max(0,state.o2-CONFIG.jellyStingO2); j.cool=1.0; state.stingFlash=1; sfxSting(); }
+    }
+  }
+  // Pearl Pull: auto-collect pearls within 1 cell
+  if(state.midUpgrades.pearlpull && state.pearlsList){
+    for(const p of state.pearlsList){
+      if(!p.taken && Math.abs(p.row-state.whale.row)<=1 && Math.abs(p.col-state.whale.col)<=1){
+        p.taken=true; const pval=Math.max(1,Math.round(p.val*pearlMult()*(state.midUpgrades.pearlaura?2:1))); state.runPearls+=pval; sfxGem(false);
+      }
     }
   }
   const lane=state.lanes.find(l=>l.row===state.whale.row);
@@ -2567,11 +2716,15 @@ window.addEventListener('orientationchange',()=>setTimeout(resize,200));
 
 // ── input ──
 const DIRS={up:[-1,0],down:[1,0],left:[0,-1],right:[0,1]};
+// Mobile: prevent duplicate moves from synthetic mouse events after touch
+let lastPadMove=0;
+const PAD_DEBOUNCE = IS_MOBILE ? 80 : 0;  // 80ms debounce on mobile only
+function tryMove(dr,dc){ const now=performance.now(); if(now-lastPadMove<PAD_DEBOUNCE) return; lastPadMove=now; move(dr,dc); }
 window.addEventListener('keydown',e=>{
   const k=e.key.toLowerCase(); let d=null;
   if(k==='arrowup'||k==='w')d='up'; else if(k==='arrowdown'||k==='s')d='down';
   else if(k==='arrowleft'||k==='a')d='left'; else if(k==='arrowright'||k==='d')d='right';
-  if(d){ e.preventDefault(); move(...DIRS[d]); }
+  if(d){ e.preventDefault(); tryMove(...DIRS[d]); }
   if(k===' ' && state.phase==='play'){ e.preventDefault(); throwBarnacle(); }
   if((k===' '||k==='enter') && (state.phase==='idle'||state.phase==='over')) startRun();
 });
@@ -2593,7 +2746,7 @@ cv.addEventListener('touchend',e=>{ if(!tMoved) throwBarnacle(); },{passive:true
 cv.addEventListener('mousedown',e=>{ if(state.phase==='play') throwBarnacle(); });
 // pad with hold-repeat
 let holdTimer=null;
-function startHold(dir){ move(...DIRS[dir]); clearInterval(holdTimer); holdTimer=setInterval(()=>move(...DIRS[dir]),CONFIG.holdRepeat); }
+function startHold(dir){ tryMove(...DIRS[dir]); clearInterval(holdTimer); holdTimer=setInterval(()=>tryMove(...DIRS[dir]),CONFIG.holdRepeat); }
 function stopHold(){ clearInterval(holdTimer); holdTimer=null; }
 document.querySelectorAll('.pad button[data-dir]').forEach(b=>{
   const dir=b.dataset.dir;
