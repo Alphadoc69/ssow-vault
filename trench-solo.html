@@ -1993,7 +1993,7 @@ function updatePhio(dt){
 
   // ── STATE MACHINE ──
   if(b.stunT>0){ b.stunT-=dt; b.mode='stunned'; b.jawOpen=0; if(b.stunT<=0) b.mode='hunt'; }
-  else iif(b.mode==='deathroll'){
+  else if(b.mode==='deathroll'){
     b.rollT-=dt; b.rollAngle+=dt*(10+phase*3);
     // only pulls/hurts whale if they're close — swim away to dodge it
     if(state.invuln<=0 && dist<1.5){
