@@ -1530,6 +1530,374 @@ function drawMegalodon(b,w,h){
   ctx.restore();
 }
 
+
+// ════════════════════════════════════════════════════════════
+// WOLF STAMPEDE BOSS (level 80)
+// Wolf stands on row 0 (land/surface), howls to send moose charging DOWN.
+// Whale dodges moose columns, throws barnacles UP at the wolf.
+// ════════════════════════════════════════════════════════════
+const HAB_STAMPEDE = {
+  name:'THE STAMPEDE', sub:'throw barnacles at the wolf · dodge the moose',
+  top:[30,55,25], bot:[10,25,8], seabed:[60,45,20], decor:'kelp'
+};
+
+function setupStampede(L){
+  state.cfg={drain:CONFIG.bossDrain+0.5};
+  state.lanes=[]; state.bubbles=[]; state.jellies=[]; state.rocks=[];
+  state.habitat=HAB_STAMPEDE; state.dark=false;
+  state.whale={row:CONFIG.ROWS-2, col:Math.floor(CONFIG.COLS/2), facing:1, hop:0};
+  state.shieldReady=state.tier.shield||!!state.upg.shield;
+  const hp=380;
+  state.boss={
+    type:'stampede', hp, maxHp:hp, num:4,
+    // wolf position on row 0 (land)
+    wolfCol:Math.floor(CONFIG.COLS/2), wolfFace:1,
+    wolfHowlCd:3.5,   // seconds between howls
+    wolfHowling:0,     // howl animation timer
+    wolfStun:0,        // stunned by barnacle hit
+    // moose columns charging downward
+    moose:[],
+    mooseSpawnCd:0,
+    // barnacles the whale throws upward
+    stampBarnacles:[], barnacleCd:0,
+    stun:0, hitCd:0,
+    intro:true, introT:9,
+    x:CONFIG.COLS/2, y:0,   // dummy position for hoard
+  };
+  state.iceShards=[]; state.iceShardCd=0;
+  state.bossSharks=[]; state.whirls=[]; state.minis=[];
+  state.inks=[]; state.inkBalls=[]; state.barnacles=[]; state.megUrchin=[];
+  // bubbles spread across rows 2-6
+  const used=new Set();
+  for(let i=0;i<6;i++){
+    let row,col,tries=0;
+    do{ row=2+Math.floor(Math.random()*(CONFIG.ROWS-4));
+        col=1+Math.floor(Math.random()*(CONFIG.COLS-2)); tries++; }
+    while(used.has(row+'-'+col)&&tries<20);
+    used.add(row+'-'+col);
+    state.bubbles.push({row,col,taken:false,pop:0});
+  }
+  state.bubbleCd=CONFIG.bossBubbleSpawn*0.5;
+  state.dolphin=null; state.dolphinCd=5.0;
+  state.orca=null; state.cannons=[]; state.orcaCd=CONFIG.orcaIntervalBoss*0.6;
+  state.ping=null; state.reveal=0; state.stingFlash=0;
+  state.habName='THE STAMPEDE'; state.bannerT=0;
+  sfxAlarm(); startBossMusic();
+}
+
+function throwStampedeBarnacle(){
+  const b=state.boss;
+  if(!b||b.type!=='stampede') return;
+  if((b.barnacleCd||0)>0) return;
+  b.barnacleCd=CONFIG.turtleBarnacleCd;
+  b.stampBarnacles.push({
+    x:state.whale.col, y:state.whale.row,
+    tx:b.wolfCol, ty:0,   // flies up to wolf on row 0
+    t:0, dur:0.35
+  });
+  state.whale.hop=1; sfxThrow();
+}
+
+function stampedeHurtWhale(o2){
+  if(state.invuln>0) return;
+  const b=state.boss;
+  if(state.shieldReady){ state.shieldReady=false; sfxShield(); state.invuln=CONFIG.invuln;
+    const v=document.getElementById('vignette'); v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),200); return; }
+  state.o2-=o2*state.tier.sweepMul; sfxSwept();
+  const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),180);
+  // knock whale sideways (moose hit from above)
+  const dc=state.whale.col<CONFIG.COLS/2?-1:1;
+  state.whale.col=clampi(state.whale.col+dc*2,1,CONFIG.COLS-2);
+  state.invuln=CONFIG.invuln; state.stingFlash=0.7;
+  if(state.o2<=0){ state.o2=0; gameOver(); }
+}
+
+function updateStampede(dt){
+  const b=state.boss;
+  if(b.stun>0) b.stun=Math.max(0,b.stun-dt);
+  if(b.wolfStun>0) b.wolfStun=Math.max(0,b.wolfStun-dt);
+  if(b.wolfHowling>0) b.wolfHowling=Math.max(0,b.wolfHowling-dt);
+  if(b.barnacleCd>0) b.barnacleCd=Math.max(0,b.barnacleCd-dt);
+
+  // ── WOLF HOWL — triggers moose waves ──
+  if(b.wolfStun<=0){
+    b.wolfHowlCd-=dt;
+    if(b.wolfHowlCd<=0){
+      b.wolfHowling=1.2;   // howl animation
+      b.wolfHowlCd=3.0+(b.hp/b.maxHp)*2.5;
+      // spawn a wave: 2-3 moose in random columns
+      const nMoose=2+(Math.random()<0.5?1:0)+(b.hp<b.maxHp*0.5?1:0);
+      const usedCols=new Set(b.moose.map(m=>m.col));
+      let spawned=0;
+      for(let tries=0;tries<20&&spawned<nMoose;tries++){
+        const col=1+Math.floor(Math.random()*(CONFIG.COLS-2));
+        if(usedCols.has(col)) continue;
+        usedCols.add(col);
+        b.moose.push({col, y:0.5, speed:(2.0+Math.random()*1.0)*SPD, hit:false});
+        spawned++;
+      }
+      sfxBolt();
+    }
+    // wolf wanders left/right on row 0
+    b.wolfCol+=b.wolfFace*0.8*dt;
+    if(b.wolfCol<=1){ b.wolfCol=1; b.wolfFace=1; }
+    if(b.wolfCol>=CONFIG.COLS-2){ b.wolfCol=CONFIG.COLS-2; b.wolfFace=-1; }
+  }
+
+  // ── MOOSE CHARGE DOWNWARD ──
+  for(let i=b.moose.length-1;i>=0;i--){
+    const m=b.moose[i];
+    m.y+=m.speed*dt;
+    // hit whale if same col and same row
+    if(!m.hit && Math.floor(m.y)===state.whale.row && Math.abs(m.col-state.whale.col)<0.9 && state.invuln<=0){
+      stampedeHurtWhale(20); m.hit=true;
+    }
+    // despawn when they exit the bottom
+    if(m.y>=CONFIG.ROWS){ b.moose.splice(i,1); }
+  }
+
+  // ── BARNACLES FLY UP TO WOLF ──
+  for(let i=b.stampBarnacles.length-1;i>=0;i--){
+    const bn=b.stampBarnacles[i]; bn.t+=dt;
+    const k=Math.min(1,bn.t/bn.dur);
+    bn.x=bn.x+(bn.tx-bn.x)*k;
+    bn.y=bn.y+(bn.ty-bn.y)*k - Math.sin(k*Math.PI)*1.5;
+    if(k>=1){
+      b.stampBarnacles.splice(i,1);
+      // hit wolf?
+      if(Math.abs(bn.tx-b.wolfCol)<1.2){
+        b.hp-=CONFIG.turtleBarnacleDmg*4;   // barnacles deal good damage to wolf
+        b.wolfStun=2.0; b.wolfHowling=0;
+        state.stingFlash=1.0; sfxPing();
+        if(b.hp<=0){ bossDefeated(); return; }
+      }
+    }
+  }
+
+  // ── DOLPHIN — streaks through and stuns wolf ──
+  if(!state.dolphin){ state.dolphinCd-=dt;
+    if(state.dolphinCd<=0){
+      const dir=Math.random()<0.5?1:-1;
+      state.dolphin={row:1,x:(dir>0?-1.5:CONFIG.COLS+1.5),dir,hit:false};
+      state.dolphinCd=5.0*(state.midUpgrades&&state.midUpgrades.dolphinpact?0.5:1); sfxDolphin();
+    }
+  } else {
+    state.dolphin.x+=state.dolphin.dir*CONFIG.dolphinSpeed*dt;
+    if(!state.dolphin.hit && b.wolfStun<=0 &&
+       Math.abs(state.dolphin.x-b.wolfCol)<0.8){
+      b.hp-=CONFIG.bossDolphinDmg; b.wolfStun=1.2;
+      state.dolphin.hit=true; state.stingFlash=0.5; sfxGem(false);
+    }
+    if(state.dolphin.x<-2.5||state.dolphin.x>CONFIG.COLS+2.5) state.dolphin=null;
+  }
+
+  updateOrca(dt);
+
+  // bubbles
+  state.bubbleCd-=dt;
+  const liveB=state.bubbles.filter(bub=>!bub.taken).length;
+  if(state.bubbleCd<=0&&liveB<6){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn*0.4; }
+  for(let i=state.bubbles.length-1;i>=0;i--){ const bub=state.bubbles[i];
+    if(!bub.taken&&bub.row===state.whale.row&&bub.col===state.whale.col){
+      state.o2=Math.min(100,state.o2+CONFIG.bubbleO2); sfxBubble(); state.bubbles.splice(i,1); } }
+
+  if(b.hp<=0){ bossDefeated(); return; }
+  if(state.o2<=0){ state.o2=0; gameOver(); }
+  if(state.whale.hop>0) state.whale.hop=Math.max(0,state.whale.hop-dt*7);
+}
+
+function drawStampede(b,w,h){
+  const T=state.t||0;
+
+  // ── BACKGROUND: shallow water + land strip at top ──
+  // Row 0 = land (warm sandy/earthy), rows 1+ = underwater (murky green)
+  const landH=CH*0.85;
+  // land strip
+  const landG=ctx.createLinearGradient(0,0,0,landH);
+  landG.addColorStop(0,'#6b4c28'); landG.addColorStop(1,'#8a6234');
+  ctx.fillStyle=landG; ctx.fillRect(0,0,w,landH);
+  // land texture — grass tufts
+  ctx.fillStyle='rgba(40,80,20,0.5)';
+  for(let i=0;i<10;i++){
+    const gx=i*w*0.1+Math.sin(i*2.1)*12;
+    ctx.beginPath(); ctx.ellipse(gx,landH*0.7,8,5,0,0,Math.PI*2); ctx.fill();
+  }
+  // waterline
+  const wlG=ctx.createLinearGradient(0,landH,0,landH+CH*0.4);
+  wlG.addColorStop(0,'rgba(80,160,200,0.9)'); wlG.addColorStop(1,'rgba(30,80,120,0)');
+  ctx.fillStyle=wlG; ctx.fillRect(0,landH,w,CH*0.4);
+  // ripple on waterline
+  ctx.strokeStyle='rgba(180,240,255,0.5)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(0,landH+Math.sin(T*2)*3);
+  for(let x=0;x<w;x+=20){ ctx.lineTo(x,landH+Math.sin(T*2+x*0.05)*3); }
+  ctx.stroke();
+  // underwater rows
+  for(let r=1;r<CONFIG.ROWS;r++){
+    const t=(r-1)/(CONFIG.ROWS-2);
+    const cr=Math.round(30+t*(-20)), cg=Math.round(55+t*(-30)), cb=Math.round(25+t*(-10));
+    ctx.fillStyle=`rgb(${Math.max(0,cr)},${Math.max(0,cg)},${Math.max(0,cb)})`;
+    ctx.fillRect(0,rowY(r),w,CH+1);
+  }
+  // kelp on sides
+  ctx.strokeStyle='rgba(40,100,30,0.5)'; ctx.lineWidth=Math.max(3,CW*0.08); ctx.lineCap='round';
+  for(let k=0;k<4;k++){
+    const kx=(k<2?k*CW*0.7:(CONFIG.COLS-1-k%2)*CW)+CW*0.5;
+    ctx.beginPath(); ctx.moveTo(kx,h);
+    for(let s=1;s<=5;s++){
+      const ky=h-s*CH*0.7;
+      ctx.lineTo(kx+Math.sin(T*1.5+k+s)*CW*0.3,ky);
+    }
+    ctx.stroke();
+  }
+
+  // ── AIR BUBBLES ──
+  for(const bub of state.bubbles){ if(!bub.taken) drawBubble(bub); }
+
+  // ── MOOSE charging downward ──
+  for(const m of b.moose){
+    const mx=m.col*CW+CW/2, my=m.y*CH;
+    ctx.save(); ctx.translate(mx,my);
+    // motion blur trail
+    ctx.strokeStyle='rgba(80,50,20,0.3)'; ctx.lineWidth=CW*0.3; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(0,-CH*0.3); ctx.lineTo(0,-CH*0.8); ctx.stroke();
+    // moose body (charging down = rotated 90°)
+    const sz=Math.min(CW,CH)*0.85;
+    // body
+    ctx.fillStyle='#5e4226'; ctx.strokeStyle='#3a2715'; ctx.lineWidth=Math.max(2,sz*0.04);
+    ctx.beginPath(); ctx.ellipse(0,0,sz*0.28,sz*0.45,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    // head at bottom (charging down)
+    ctx.beginPath(); ctx.ellipse(0,sz*0.38,sz*0.18,sz*0.14,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    // snout
+    ctx.beginPath(); ctx.ellipse(0,sz*0.52,sz*0.08,sz*0.12,0,0,Math.PI*2); ctx.fill();
+    // antlers spread left/right at top
+    ctx.strokeStyle='#d9c39a'; ctx.lineWidth=Math.max(2,sz*0.04); ctx.lineCap='round';
+    for(const side of [-1,1]){
+      ctx.beginPath(); ctx.moveTo(side*sz*0.1,-sz*0.38); ctx.lineTo(side*sz*0.32,-sz*0.28); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(side*sz*0.32,-sz*0.28); ctx.lineTo(side*sz*0.40,-sz*0.14); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(side*sz*0.32,-sz*0.28); ctx.lineTo(side*sz*0.44,-sz*0.32); ctx.stroke();
+    }
+    // eyes
+    ctx.fillStyle='#1a0a00'; ctx.beginPath(); ctx.arc(-sz*0.07,sz*0.32,sz*0.03,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(sz*0.07,sz*0.32,sz*0.03,0,Math.PI*2); ctx.fill();
+    // speed lines
+    ctx.strokeStyle='rgba(200,160,80,0.35)'; ctx.lineWidth=1; ctx.lineCap='butt';
+    for(let i=-2;i<=2;i++){
+      ctx.beginPath(); ctx.moveTo(i*sz*0.12,-sz*0.5); ctx.lineTo(i*sz*0.12,-sz*0.9); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ── DOLPHIN ──
+  if(state.dolphin) drawDolphin(state.dolphin);
+  if(state.orca) drawOrca(state.orca);
+  if(state.cannons) for(const c of state.cannons) drawCannon(c);
+
+  // ── WHALE ──
+  drawWhale();
+
+  // ── BARNACLES flying upward ──
+  for(const bn of b.stampBarnacles){
+    const bx=bn.x*CW+CW/2, by2=bn.y*CH+CH/2, r=Math.max(6,CW*0.18);
+    const k=Math.min(1,bn.t/bn.dur);
+    ctx.save(); ctx.translate(bx,by2); ctx.rotate(k*Math.PI*3);
+    ctx.fillStyle='#9aa7ad'; ctx.strokeStyle='#5f6b70'; ctx.lineWidth=Math.max(1,r*0.16);
+    ctx.beginPath(); ctx.moveTo(0,-r); ctx.lineTo(r*0.7,r*0.7); ctx.lineTo(-r*0.7,r*0.7); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#d7dee1'; ctx.beginPath(); ctx.arc(0,r*0.1,r*0.28,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // ── WOLF on row 0 (land) ──
+  const wx=b.wolfCol*CW+CW/2, wy=landH*0.48;
+  const wolfSz=Math.min(CW,CH)*1.1;
+  const wolfStunned=b.wolfStun>0;
+  const howling=b.wolfHowling>0;
+  ctx.save(); ctx.translate(wx,wy);
+  if(b.wolfFace<0) ctx.scale(-1,1);
+  // wolf glow when howling
+  if(howling){
+    const hgl=ctx.createRadialGradient(0,0,wolfSz*0.1,0,0,wolfSz*1.4);
+    hgl.addColorStop(0,'rgba(220,180,80,0.5)'); hgl.addColorStop(1,'rgba(220,180,80,0)');
+    ctx.fillStyle=hgl; ctx.beginPath(); ctx.arc(0,0,wolfSz*1.4,0,Math.PI*2); ctx.fill();
+  }
+  // wolf body
+  const wbCol=wolfStunned?'#7a7a7a':'#3a3030';
+  const wbLight=wolfStunned?'#9a9a9a':'#5a4a40';
+  ctx.fillStyle=wbCol; ctx.strokeStyle='#1a1010'; ctx.lineWidth=Math.max(2,wolfSz*0.04);
+  // haunches
+  ctx.beginPath(); ctx.ellipse(-wolfSz*0.18,wolfSz*0.08,wolfSz*0.32,wolfSz*0.22,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  // chest
+  ctx.fillStyle=wbLight;
+  ctx.beginPath(); ctx.ellipse(wolfSz*0.04,-wolfSz*0.04,wolfSz*0.22,wolfSz*0.18,0,0,Math.PI*2); ctx.fill();
+  // head
+  ctx.fillStyle=wbCol;
+  ctx.beginPath(); ctx.ellipse(wolfSz*0.28,-wolfSz*0.18,wolfSz*0.22,wolfSz*0.18,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  // snout
+  ctx.fillStyle=wbLight;
+  ctx.beginPath(); ctx.ellipse(wolfSz*0.48,-wolfSz*0.12,wolfSz*0.14,wolfSz*0.09,-0.2,0,Math.PI*2); ctx.fill();
+  // nose
+  ctx.fillStyle='#1a0808';
+  ctx.beginPath(); ctx.ellipse(wolfSz*0.60,-wolfSz*0.14,wolfSz*0.045,wolfSz*0.03,0,0,Math.PI*2); ctx.fill();
+  // ears
+  ctx.fillStyle=wbCol; ctx.strokeStyle='#1a1010'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(wolfSz*0.16,-wolfSz*0.30); ctx.lineTo(wolfSz*0.08,-wolfSz*0.52); ctx.lineTo(wolfSz*0.28,-wolfSz*0.36); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(wolfSz*0.34,-wolfSz*0.28); ctx.lineTo(wolfSz*0.30,-wolfSz*0.50); ctx.lineTo(wolfSz*0.46,-wolfSz*0.32); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // eye
+  ctx.fillStyle=wolfStunned?'#555':'#d4900a';
+  ctx.beginPath(); ctx.arc(wolfSz*0.34,-wolfSz*0.20,wolfSz*0.05,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#080404'; ctx.beginPath(); ctx.arc(wolfSz*0.35,-wolfSz*0.20,wolfSz*0.025,0,Math.PI*2); ctx.fill();
+  // legs
+  ctx.strokeStyle=wbCol; ctx.lineWidth=Math.max(3,wolfSz*0.1); ctx.lineCap='round';
+  for(const lx of [-0.28,-0.08,0.06,0.22]){
+    ctx.beginPath(); ctx.moveTo(lx*wolfSz,wolfSz*0.18); ctx.lineTo((lx+0.02)*wolfSz,wolfSz*0.40); ctx.stroke();
+  }
+  // tail
+  ctx.strokeStyle=wbCol; ctx.lineWidth=Math.max(3,wolfSz*0.09); ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-wolfSz*0.42,0); ctx.quadraticCurveTo(-wolfSz*0.65,-wolfSz*0.18,-wolfSz*0.55,-wolfSz*0.38); ctx.stroke();
+  // howl mouth + sound waves
+  if(howling){
+    ctx.fillStyle='#0a0404';
+    ctx.beginPath(); ctx.arc(wolfSz*0.52,-wolfSz*0.20,wolfSz*0.08,0,Math.PI*2); ctx.fill();
+    if(b.wolfFace<0) ctx.scale(-1,1);
+    // howl arcs
+    ctx.strokeStyle='rgba(220,180,80,0.7)'; ctx.lineWidth=2;
+    for(let arc=1;arc<=3;arc++){
+      const r=wolfSz*(0.3+arc*0.22); const fade=1-arc*0.28;
+      ctx.globalAlpha=fade*(0.5+0.5*Math.sin(T*8+arc));
+      ctx.beginPath(); ctx.arc(wx*0+0,-wolfSz*0.1,r,-Math.PI*0.7,-Math.PI*0.1); ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+    if(b.wolfFace<0) ctx.scale(-1,1);
+  }
+  if(wolfStunned){
+    if(b.wolfFace<0) ctx.scale(-1,1);
+    ctx.font=`${Math.floor(wolfSz*0.5)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('💫',0,-wolfSz*0.7);
+    if(b.wolfFace<0) ctx.scale(-1,1);
+  }
+  ctx.restore();
+
+  // ── HUD: HP BAR ──
+  const bw=w*0.7, bx=(w-bw)/2, by=8, bh=Math.max(7,CH*0.12);
+  ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(bx-2,by-2,bw+4,bh+4);
+  ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.fillRect(bx,by,bw,bh);
+  const frac=Math.max(0,b.hp/b.maxHp);
+  const grd=ctx.createLinearGradient(bx,0,bx+bw,0); grd.addColorStop(0,'#ff5a7a'); grd.addColorStop(1,'#b06bff');
+  ctx.fillStyle=grd; ctx.fillRect(bx,by,bw*frac,bh);
+  ctx.font=`600 ${Math.max(9,Math.floor(bh*0.75))}px 'DM Mono',monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle='#fff'; ctx.fillText(`🐺 WOLF · ${Math.round(frac*100)}%`, w/2, by+bh/2);
+
+  // ── PROMPTS ──
+  ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
+  const ptxt=howling?'🎯 THROW BARNACLES AT THE WOLF NOW!':'↑ DODGE MOOSE · THROW BARNACLES AT WOLF';
+  const pcol=howling?'#ffd060':'rgba(200,235,180,0.75)';
+  const fs=Math.min(13,w*0.034); ctx.font=`${fs}px 'Bebas Neue',sans-serif`;
+  const tw=ctx.measureText(ptxt).width;
+  ctx.fillStyle='rgba(4,14,8,0.78)'; roundRect(w/2-tw/2-10,h*0.91-fs,tw+20,fs*2,5); ctx.fill();
+  const pp=howling?0.9+0.1*Math.sin(T*8):0.5+0.35*Math.sin(T*2);
+  ctx.globalAlpha=pp; ctx.fillStyle=pcol; ctx.fillText(ptxt,w*0.5,h*0.91); ctx.globalAlpha=1;
+  ctx.restore();
+}
+
 // ── KRAKEN BOSS ──
 function spawnBossBubble(){
   const occupied=new Set([...state.rocks.map(k=>k.row+'-'+k.col), ...state.bubbles.filter(b=>!b.taken).map(b=>b.row+'-'+b.col)]);
@@ -1558,6 +1926,7 @@ function setupBoss(L){
   const num = L/CONFIG.bossEvery;                  // boss 1..5
   if(L===20){ setupTurtle(L); return; }            // level 20 → Giant Sea Turtle
   if(L===60){ setupMegalodon(L); return; }          // level 60 → Megalodon
+  if(L===80){ setupStampede(L); return; }           // level 80 → Wolf Stampede
   state.cfg = {drain:CONFIG.bossDrain};
   state.lanes=[]; state.bubbles=[]; state.jellies=[]; state.rocks=[];
   state.habitat=HAB.kraken; state.dark=false;
@@ -1663,6 +2032,7 @@ function turtleHurtWhale(o2){
 function throwBarnacle(){
   const b=state.boss;
   if(b && b.type==='megalodon'){ throwIceShard(); return; }
+  if(b && b.type==='stampede'){ throwStampedeBarnacle(); return; }
   if(!b || b.type!=='turtle' || b.mode!=='recharge') return;   // only when it's grounded & helpless
   if((state.barnacleCd||0)>0) return;
   state.barnacleCd=CONFIG.turtleBarnacleCd;
@@ -1787,7 +2157,7 @@ function bossDefeated(){
   state._hoardNum = num;
   state.boss=null;                              // the boss is slain
   // clear the arena so the victory lap to the chest is safe
-  state.minis=[]; state.inks=[]; state.inkBalls=[]; state.bossSharks=[]; state.barnacles=[]; state.iceShards=[]; state.megUrchin=[];
+  state.minis=[]; state.inks=[]; state.inkBalls=[]; state.bossSharks=[]; state.barnacles=[]; state.iceShards=[]; state.megUrchin=[]; if(state.boss&&state.boss.type==='stampede'){ state.boss.moose=[]; state.boss.stampBarnacles=[]; }
   state.whirls=[]; state.dolphin=null; state.orca=null; state.cannons=[]; state.rocks=[];
   // drop a treasure chest where the boss was — walk up and crack it
   state.chest={row:1, col:Math.floor(CONFIG.COLS/2)}; state.chestOpened=false; state.portal=null;
@@ -1836,6 +2206,7 @@ function updateBoss(dt){
   state.o2 -= drain*state.tier.drain*(state.upg.slow?0.75:1)*dt;
   if(b.type==='turtle'){ updateTurtle(dt); return; }
   if(b.type==='megalodon'){ updateMegalodon(dt); return; }
+  if(b.type==='stampede'){ updateStampede(dt); return; }
   // Kraken chases the whale (holds still while stunned)
   if(b.stun>0){ b.stun=Math.max(0,b.stun-dt); }
   else {
@@ -2978,7 +3349,7 @@ function renderBoss(w,h){
     const r0=Math.max(0,b.sweepRow-1), r1=Math.min(CONFIG.ROWS-1,b.sweepRow+1);
     ctx.fillStyle=`rgba(255,180,80,${a.toFixed(3)})`; ctx.fillRect(0,rowY(r0),w,(r1-r0+1)*CH);
   }
-  if(b){ if(b.type==='turtle') drawTurtle(b,w,h); else if(b.type==='megalodon') drawMegalodon(b,w,h); else drawKraken(b,w,h); }
+  if(b){ if(b.type==='turtle') drawTurtle(b,w,h); else if(b.type==='megalodon') drawMegalodon(b,w,h); else if(b.type==='stampede') drawStampede(b,w,h); else drawKraken(b,w,h); }
   // flying barnacles
   if(state.barnacles) for(const bn of state.barnacles){
     const x=bn.x*CW+CW/2, y=bn.y*CH+CH/2, r=Math.max(5,CW*0.16);
@@ -3066,16 +3437,16 @@ function renderBoss(w,h){
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillStyle=`rgba(255,225,225,${(0.7+0.3*dp).toFixed(3)})`;
     ctx.font=`${Math.min(24,w*0.062)}px 'Bebas Neue',sans-serif`;
-    ctx.fillText(b.type==='turtle' ? '⚠   DANGER · SEA TURTLE AHEAD   ⚠' : b.type==='megalodon' ? '⚠   DANGER · MEGALODON AHEAD   ⚠' : '⚠   DANGER · KRAKEN AHEAD   ⚠', w/2, by+bh/2);
+    ctx.fillText(b.type==='turtle' ? '⚠   DANGER · SEA TURTLE AHEAD   ⚠' : b.type==='megalodon' ? '⚠   DANGER · MEGALODON AHEAD   ⚠' : b.type==='stampede' ? '⚠   DANGER · WOLF STAMPEDE AHEAD   ⚠' : '⚠   DANGER · KRAKEN AHEAD   ⚠', w/2, by+bh/2);
     ctx.textBaseline='alphabetic';
     const pw=Math.min(w*0.86, 460), ph=Math.min(h*0.7, 300), px=(w-pw)/2, py=(h-ph)/2;
     ctx.fillStyle='rgba(20,10,40,0.96)'; ctx.strokeStyle='rgba(176,107,255,0.7)'; ctx.lineWidth=2;
     roundRect(px,py,pw,ph,16); ctx.fill(); ctx.stroke();
     ctx.textAlign='center';
     ctx.fillStyle='#fff'; ctx.font=`${Math.min(38,pw*0.10)}px 'Bebas Neue',sans-serif`; ctx.textBaseline='alphabetic';
-    ctx.fillText(b.type==='turtle' ? '🐢 GIANT SEA TURTLE' : b.type==='megalodon' ? '🦷 MEGALODON' : '🦑 THE KRAKEN', w/2, py+pw*0.115);
+    ctx.fillText(b.type==='turtle' ? '🐢 GIANT SEA TURTLE' : b.type==='megalodon' ? '🦷 MEGALODON' : b.type==='stampede' ? '🐺 WOLF STAMPEDE' : '🦑 THE KRAKEN', w/2, py+pw*0.115);
     ctx.fillStyle='rgba(220,200,255,0.8)'; ctx.font=`600 ${Math.min(13,pw*0.034)}px 'DM Mono',monospace`;
-    ctx.fillText(b.type==='turtle' ? 'THE GUARDIAN OF THE DEEP' : b.type==='megalodon' ? 'THE APEX PREDATOR · WEAKNESS: ICE' : `BOSS ${b.num} / 5`, w/2, py+pw*0.115+20);
+    ctx.fillText(b.type==='turtle' ? 'THE GUARDIAN OF THE DEEP' : b.type==='megalodon' ? 'THE APEX PREDATOR · WEAKNESS: ICE' : b.type==='stampede' ? 'THE WOLF · STAMPEDE BOSS' : `BOSS ${b.num} / 5`, w/2, py+pw*0.115+20);
     const lines = b.type==='turtle' ? [
       ['🛡','DODGE the spinning SHELL','— armored & fast; survive it (~10s)'],
       ['🪨','Then THROW BARNACLES','— it lands helpless: tap / space to pelt it'],
@@ -3084,6 +3455,10 @@ function renderBoss(w,h){
       ['❄️','THROW ICE SHARDS','— tap / space; cold water is its only weakness'],
       ['⚠️','DODGE the SNAP','— jaws closing = get to the middle rows fast'],
       ['🦈','AVOID the SPAWNED SHARKS','— spit from the throat, they chase you'],
+    ] : b.type==='stampede' ? [
+      ['🪨','THROW BARNACLES at the WOLF','— tap / space; it howls to send moose charging down'],
+      ['🫎','DODGE the MOOSE','— they charge through your column from above'],
+      ['🐬','DOLPHINS stun the wolf','— watch for them to streak through'],
     ] : [
       ['🌀','Lure it onto a WHIRLPOOL','— rips its health, but they hurt you too'],
       ['🐬','Let DOLPHINS ram it','— a strike briefly freezes it'],
