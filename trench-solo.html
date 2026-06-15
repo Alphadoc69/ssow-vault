@@ -856,7 +856,7 @@ function setupMegalodon(L){
     type:'megalodon', hp, maxHp:hp, num:3,
     headY:0, jawOpen:0,
     mode:'idle', idleCd:2.5, lungeT:0,
-    lungeDepth:3.5,
+    lungeDepth:2.5,
     sharkSpawnCd:2.5,
     stun:0, stunT:0,
     face:1, x:CONFIG.COLS/2, y:1,
@@ -866,10 +866,12 @@ function setupMegalodon(L){
   state.bossSharks=[];
   state.whirls=[]; state.minis=[]; state.inks=[]; state.inkBalls=[];
   state.barnacles=[];
-  // sea urchins — static spiky hazards on row 1, discourage camping
-  state.megUrchin=[]; 
-  const urchinCols=[0,2,4,6];   // 4 urchins spread across row 1
-  for(const col of urchinCols) state.megUrchin.push({row:1,col,stingCd:0});
+  // sea urchins on row 1 + ice blocks on bottom row — force whale to the middle
+  state.megUrchin=[];
+  // row 1: sea urchins (purple spiky)
+  for(const col of [0,2,4,6]) state.megUrchin.push({row:1,col,type:'urchin',stingCd:0});
+  // bottom row: ice blocks (cold hazard — you get frozen/damaged)
+  for(const col of [0,1,2,3,4,5,6]) state.megUrchin.push({row:CONFIG.ROWS-1,col,type:'ice',stingCd:0});
   // bubbles spread across the safe zone (rows 4-7)
   const used=new Set();
   for(let i=0;i<8;i++){
@@ -1008,11 +1010,14 @@ function updateMegalodon(dt){
     }
   }
 
-  // ── SEA URCHINS — sting whale if they stay in row 1 ──
+  // ── SEA URCHINS + ICE BLOCKS — hazards that force whale to middle rows ──
   if(state.megUrchin) for(const u of state.megUrchin){
     if(u.stingCd>0){ u.stingCd=Math.max(0,u.stingCd-dt); continue; }
     if(state.whale.row===u.row && state.whale.col===u.col && state.invuln<=0){
-      state.o2=Math.max(0,state.o2-10); u.stingCd=1.2; state.stingFlash=0.6; sfxSting();
+      const dmg=u.type==='ice'?14:10;
+      state.o2=Math.max(0,state.o2-dmg); u.stingCd=u.type==='ice'?0.8:1.2;
+      state.stingFlash=0.7; sfxSting();
+      if(u.type==='ice') state.whale.row=clampi(state.whale.row-1,0,CONFIG.ROWS-1); // ice knocks up
       const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),120);
       if(state.o2<=0){ state.o2=0; gameOver(); }
     }
@@ -1096,32 +1101,49 @@ function drawMegalodon(b,w,h){
   for(const bub of state.bubbles){ if(!bub.taken) drawBubble(bub); }
   // draw sea urchins on row 1
   if(state.megUrchin) for(const u of state.megUrchin){
-    const ux=u.col*CW+CW/2, uy=rowY(u.row)+CH/2, ur=Math.max(6,Math.min(CW,CH)*0.30);
-    const T2=state.t||0;
-    // glow
-    const ugl=ctx.createRadialGradient(ux,uy,1,ux,uy,ur*1.8);
-    ugl.addColorStop(0,'rgba(180,60,200,0.35)'); ugl.addColorStop(1,'rgba(180,60,200,0)');
-    ctx.fillStyle=ugl; ctx.beginPath(); ctx.arc(ux,uy,ur*1.8,0,Math.PI*2); ctx.fill();
-    // spines — 12 sharp spikes
-    ctx.strokeStyle='#7a3a8a'; ctx.lineWidth=Math.max(1.5,ur*0.12); ctx.lineCap='round';
-    for(let i=0;i<12;i++){
-      const a=i*Math.PI/6+(Math.sin(T2*1.5)*0.04);
-      const inner=ur*0.38, outer=ur*1.08;
-      ctx.beginPath(); ctx.moveTo(ux+Math.cos(a)*inner,uy+Math.sin(a)*inner);
-      ctx.lineTo(ux+Math.cos(a)*outer,uy+Math.sin(a)*outer); ctx.stroke();
-    }
-    // body
-    const ubg=ctx.createRadialGradient(ux-ur*0.25,uy-ur*0.25,1,ux,uy,ur);
-    ubg.addColorStop(0,'#c060d8'); ubg.addColorStop(0.6,'#7a2090'); ubg.addColorStop(1,'#3a0848');
-    ctx.fillStyle=ubg; ctx.strokeStyle='#4a1060'; ctx.lineWidth=Math.max(1,ur*0.08);
-    ctx.beginPath(); ctx.arc(ux,uy,ur*0.62,0,Math.PI*2); ctx.fill(); ctx.stroke();
-    // highlight
-    ctx.fillStyle='rgba(255,200,255,0.45)';
-    ctx.beginPath(); ctx.arc(ux-ur*0.22,uy-ur*0.22,ur*0.18,0,Math.PI*2); ctx.fill();
-    // warning pip if whale is nearby
-    if(Math.abs(state.whale.col-u.col)<=1 && state.whale.row<=2){
-      ctx.fillStyle=`rgba(255,80,80,${(0.6+0.4*Math.sin(T2*12)).toFixed(3)})`;
-      ctx.beginPath(); ctx.arc(ux,uy-ur*1.2,ur*0.22,0,Math.PI*2); ctx.fill();
+    const ux=u.col*CW+CW/2, uy=rowY(u.row)+CH/2, T2=state.t||0;
+    if(u.type==='ice'){
+      // ── ICE BLOCK — fills bottom row ──
+      const bw=CW*0.88, bh=CH*0.82;
+      // block body
+      const ibg=ctx.createLinearGradient(ux-bw/2,uy-bh/2,ux+bw/2,uy+bh/2);
+      ibg.addColorStop(0,'rgba(160,230,255,0.85)');
+      ibg.addColorStop(0.5,'rgba(80,170,220,0.75)');
+      ibg.addColorStop(1,'rgba(30,90,160,0.80)');
+      ctx.fillStyle=ibg; ctx.strokeStyle='rgba(200,245,255,0.7)';
+      ctx.lineWidth=Math.max(1,CW*0.05);
+      ctx.beginPath(); ctx.roundRect(ux-bw/2,uy-bh/2,bw,bh,4); ctx.fill(); ctx.stroke();
+      // ice crystal pattern inside
+      ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=Math.max(1,CW*0.03); ctx.lineCap='round';
+      for(let i=0;i<4;i++){
+        const a=i*Math.PI/2+Math.PI/4;
+        ctx.beginPath(); ctx.moveTo(ux,uy); ctx.lineTo(ux+Math.cos(a)*bw*0.32,uy+Math.sin(a)*bh*0.32); ctx.stroke();
+      }
+      // glint
+      ctx.fillStyle='rgba(255,255,255,0.55)';
+      ctx.beginPath(); ctx.ellipse(ux-bw*0.22,uy-bh*0.22,bw*0.10,bh*0.07,-0.5,0,Math.PI*2); ctx.fill();
+      // cold glow
+      const igl=ctx.createRadialGradient(ux,uy,1,ux,uy,CW*0.7);
+      igl.addColorStop(0,'rgba(100,200,255,0.18)'); igl.addColorStop(1,'rgba(100,200,255,0)');
+      ctx.fillStyle=igl; ctx.beginPath(); ctx.arc(ux,uy,CW*0.7,0,Math.PI*2); ctx.fill();
+    } else {
+      // ── SEA URCHIN ──
+      const ur=Math.max(6,Math.min(CW,CH)*0.30);
+      const ugl=ctx.createRadialGradient(ux,uy,1,ux,uy,ur*1.8);
+      ugl.addColorStop(0,'rgba(180,60,200,0.35)'); ugl.addColorStop(1,'rgba(180,60,200,0)');
+      ctx.fillStyle=ugl; ctx.beginPath(); ctx.arc(ux,uy,ur*1.8,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#7a3a8a'; ctx.lineWidth=Math.max(1.5,ur*0.12); ctx.lineCap='round';
+      for(let i=0;i<12;i++){
+        const a=i*Math.PI/6; const inner=ur*0.38, outer=ur*1.08;
+        ctx.beginPath(); ctx.moveTo(ux+Math.cos(a)*inner,uy+Math.sin(a)*inner);
+        ctx.lineTo(ux+Math.cos(a)*outer,uy+Math.sin(a)*outer); ctx.stroke();
+      }
+      const ubg=ctx.createRadialGradient(ux-ur*0.25,uy-ur*0.25,1,ux,uy,ur);
+      ubg.addColorStop(0,'#c060d8'); ubg.addColorStop(0.6,'#7a2090'); ubg.addColorStop(1,'#3a0848');
+      ctx.fillStyle=ubg; ctx.strokeStyle='#4a1060'; ctx.lineWidth=Math.max(1,ur*0.08);
+      ctx.beginPath(); ctx.arc(ux,uy,ur*0.62,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='rgba(255,200,255,0.45)';
+      ctx.beginPath(); ctx.arc(ux-ur*0.22,uy-ur*0.22,ur*0.18,0,Math.PI*2); ctx.fill();
     }
   }
   // draw dolphins + orca in the safe zone
