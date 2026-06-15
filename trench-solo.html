@@ -1506,62 +1506,62 @@ function startRun(){
 
 // ── MID-DIVE UPGRADE SCREEN ──
 const MID_UPG_POOL = CONFIG.MID_UPGRADES;
-function showMidUpgradeScreen(){
-  state.phase='clear';   // pause game loop
-  // Pick 1 random free upgrade. Wealthy Whale holders get the enhanced version.
-  const free = MID_UPG_POOL.filter(u=>!u.wealthy && (state.midUpgrades[u.id]||0)<(u.maxStack||1));
-  if(!free.length){ launchNextLevel(); return; }
-  const pick = free[Math.floor(Math.random()*free.length)];
-  // Find the wealthy upgrade that pairs with this free one (same index offset)
-  const paid = MID_UPG_POOL.filter(u=>u.wealthy && !state.midUpgrades[u.id]);
-  const wealthyPick = paid.length ? paid[Math.floor(Math.random()*paid.length)] : null;
-  // Show: 1 card. Wealthy holders see the boosted version, others see the base version.
-  const u = (state.hasWealthy && wealthyPick) ? wealthyPick : pick;
-
-  const sub=document.getElementById('upgradeSubtitle');
-  sub.textContent=`Level ${state.level} · Depth perk unlocked`;
-  const grid=document.getElementById('upgradeCards');
-  grid.innerHTML='';
-  const card=document.createElement('div');
-  card.className='upg-card';
-  card.style.width='160px'; card.style.padding='20px 16px';
+function makeUpgCard(u, clickable){
+  const card = document.createElement('div');
+  const isLocked = u.wealthy && !state.hasWealthy;
+  card.className = 'upg-card' + (isLocked ? ' locked' : '');
   const stack = state.midUpgrades[u.id]||0;
   const maxStack = u.maxStack||1;
-  const isWealthy = !!u.wealthy;
-  // stars: filled ★ for current stack, empty ☆ for remaining
-  const stars = !isWealthy && maxStack>1
-    ? '<div style="font-size:0.8rem;letter-spacing:2px;margin:2px 0;color:#ffd24a">'
-      + '★'.repeat(stack) + '<span style="opacity:0.3">' + '★'.repeat(maxStack-stack) + '</span></div>'
+  // star rating for stackable free perks
+  const stars = (!u.wealthy && maxStack>1)
+    ? '<div style="font-size:0.75rem;letter-spacing:3px;margin:3px 0;color:#ffd24a">'
+      + '★'.repeat(stack)
+      + '<span style="opacity:0.25">' + '★'.repeat(maxStack-stack) + '</span></div>'
     : '';
-  // scale the desc text to show actual current effect
+  // scale desc to show real next-stack value
   let descText = u.desc;
-  if(!isWealthy && stack>0){
-    const nextStack = stack+1;
-    if(u.id==='o2boost')    descText=`+${15*nextStack} max oxygen (×${nextStack})`;
-    if(u.id==='speedfins')  descText=`Move costs ${Math.round((1-0.15*nextStack)*100)}% O2 (×${nextStack})`;
-    if(u.id==='thickskin')  descText=`Sweeps hurt ${Math.round((1-0.10*nextStack)*100)}% (×${nextStack})`;
-    if(u.id==='currentread')descText=`Predators ${Math.round((1-0.08*nextStack)*100)}% speed (×${nextStack})`;
-    if(u.id==='sonarboost') descText=`Sonar stuns ${Math.round((1+0.25*nextStack)*100)}% longer (×${nextStack})`;
+  if(!u.wealthy && stack>0){
+    const n = stack+1;
+    if(u.id==='o2boost')    descText=`+${15*n} max oxygen (×${n})`;
+    if(u.id==='speedfins')  descText=`Move costs ${Math.round((1-0.15*n)*100)}% O2 (×${n})`;
+    if(u.id==='thickskin')  descText=`Sweeps hurt ${Math.round((1-0.10*n)*100)}% (×${n})`;
+    if(u.id==='currentread')descText=`Predators ${Math.round((1-0.08*n)*100)}% speed (×${n})`;
+    if(u.id==='sonarboost') descText=`Sonar stuns ${Math.round((1+0.25*n)*100)}% longer (×${n})`;
   }
   card.innerHTML=
-    (state.hasWealthy && wealthyPick?'<span class="upg-whale">🐚 HOLDER BOOST</span>':'')+
-    `<div class="upg-icon" style="font-size:3rem">${u.icon}</div>`+
+    (u.wealthy ? '<span class="upg-whale">🐚 HOLDER</span>' : '')+
+    (isLocked  ? '<span class="upg-lock">🔒</span>' : '')+
+    `<div class="upg-icon">${u.icon}</div>`+
     stars+
-    `<div class="upg-name" style="font-size:1.1rem">${u.name}</div>`+
-    `<div class="upg-desc" style="font-size:0.55rem;margin-top:4px">${descText}</div>`;
-  card.addEventListener('click',()=>{ applyMidUpgrade(u); });
-  grid.appendChild(card);
-  // Also show what non-holders are missing, greyed out beside it
-  if(state.hasWealthy && wealthyPick){
-    const baseCard=document.createElement('div');
-    baseCard.className='upg-card locked';
-    baseCard.style.width='100px'; baseCard.style.opacity='0.4';
-    baseCard.innerHTML=
-      `<div class="upg-icon" style="font-size:2rem">${pick.icon}</div>`+
-      `<div class="upg-name" style="font-size:0.8rem">${pick.name}</div>`+
-      `<div class="upg-desc">base version</div>`;
-    grid.insertBefore(baseCard, card);
+    `<div class="upg-name">${u.name}</div>`+
+    `<div class="upg-desc">${descText}</div>`;
+  if(clickable && !isLocked){
+    card.addEventListener('click', ()=>applyMidUpgrade(u));
+  } else if(isLocked){
+    card.title = 'Load a Wealthy Whale wallet to unlock';
   }
+  return card;
+}
+function showMidUpgradeScreen(){
+  state.phase='clear';
+  // 3 random free options (not yet maxed), + 1 random wealthy card
+  const freePool = MID_UPG_POOL.filter(u=>!u.wealthy && (state.midUpgrades[u.id]||0)<(u.maxStack||1));
+  const paidPool = MID_UPG_POOL.filter(u=> u.wealthy && !state.midUpgrades[u.id]);
+  // shuffle both pools
+  for(let i=freePool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [freePool[i],freePool[j]]=[freePool[j],freePool[i]]; }
+  for(let i=paidPool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [paidPool[i],paidPool[j]]=[paidPool[j],paidPool[i]]; }
+  const freeChoices = freePool.slice(0,3);
+  const wealthyChoice = paidPool[0]||null;
+  // if nothing left to offer, just continue
+  if(!freeChoices.length && !wealthyChoice){ launchNextLevel(); return; }
+  const sub=document.getElementById('upgradeSubtitle');
+  sub.textContent=`Level ${state.level} · Pick one perk — the rest are lost`;
+  const grid=document.getElementById('upgradeCards');
+  grid.innerHTML='';
+  // 3 free cards — all clickable for everyone
+  freeChoices.forEach(u=> grid.appendChild(makeUpgCard(u, true)));
+  // 1 wealthy card — clickable only for holders, locked otherwise
+  if(wealthyChoice) grid.appendChild(makeUpgCard(wealthyChoice, true));
   document.getElementById('overlayUpgrade').classList.remove('hidden');
   sfxLevel();
 }
