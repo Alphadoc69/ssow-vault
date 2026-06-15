@@ -956,7 +956,7 @@ function updateMegalodon(dt){
   // ── SPAWN SHARKS — always fill the emptiest row, no safe zones ──
   b.sharkSpawnCd-=dt;
   // max sharks scales with missing HP — gets relentless
-  const maxSharks=6+(b.hp<b.maxHp*0.5?3:0);
+  const maxSharks=4+(b.hp<b.maxHp*0.5?2:0);
   if(b.sharkSpawnCd<=0 && state.bossSharks.length<maxSharks && !b.stun){
     // count active (non-dropping) sharks per row
     const rowCount={};
@@ -974,14 +974,20 @@ function updateMegalodon(dt){
     state.bossSharks.push({
       col, x:col, row:1, targetRow,
       dropping:true, dropY:1,
-      dir, speed:(1.5+Math.random()*0.8)*SPD, face:dir, stun:0
+      dir, speed:(1.5+Math.random()*0.8)*SPD, face:dir, stun:0,
+      life:5.5+Math.random()*2.0   // despawn after ~5-7s so rows clear out
     });
-    b.sharkSpawnCd=Math.max(0.8,2.2-(1-b.hp/b.maxHp)*1.5); sfxSwept();
+    b.sharkSpawnCd=Math.max(1.4,3.2-(1-b.hp/b.maxHp)*1.5); sfxSwept();
   }
 
   // ── SHARK MOVEMENT ──
   if(state.bossSharks) for(let i=state.bossSharks.length-1;i>=0;i--){
     const sh=state.bossSharks[i];
+    // life timer — sharks leave the arena after a while so rows rotate
+    if(!sh.dropping && sh.life!==undefined){
+      sh.life-=dt;
+      if(sh.life<=0){ state.bossSharks.splice(i,1); continue; }
+    }
     if(sh.stun>0){ sh.stun=Math.max(0,sh.stun-dt); continue; }
     if(sh.dropping){
       // animate dropping from top to targetRow
@@ -1013,13 +1019,16 @@ function updateMegalodon(dt){
   // ── SEA URCHINS + ICE BLOCKS — hazards that force whale to middle rows ──
   if(state.megUrchin) for(const u of state.megUrchin){
     if(u.stingCd>0){ u.stingCd=Math.max(0,u.stingCd-dt); continue; }
-    if(state.whale.row===u.row && state.whale.col===u.col && state.invuln<=0){
-      const dmg=u.type==='ice'?14:10;
-      state.o2=Math.max(0,state.o2-dmg); u.stingCd=u.type==='ice'?0.8:1.2;
-      state.stingFlash=0.7; sfxSting();
-      if(u.type==='ice') state.whale.row=clampi(state.whale.row-1,0,CONFIG.ROWS-1); // ice knocks up
-      const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),120);
-      if(state.o2<=0){ state.o2=0; gameOver(); }
+    if(state.whale.row===u.row && state.whale.col===u.col){
+      if(u.type==='ice'){
+        // ice just blocks — push whale up, no damage
+        if(u.stingCd<=0){ state.whale.row=clampi(state.whale.row-1,0,CONFIG.ROWS-1); u.stingCd=0.4; sfxMove(); }
+      } else if(state.invuln<=0){
+        // urchin — deals damage
+        state.o2=Math.max(0,state.o2-10); u.stingCd=1.2; state.stingFlash=0.7; sfxSting();
+        const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),120);
+        if(state.o2<=0){ state.o2=0; gameOver(); }
+      }
     }
   }
 
