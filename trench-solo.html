@@ -869,7 +869,7 @@ function setupMegalodon(L){
   const used=new Set();
   for(let i=0;i<5;i++){
     let row,col,tries=0;
-    do{ row=4+Math.floor(Math.random()*(CONFIG.ROWS-5));
+    do{ row=2+Math.floor(Math.random()*(CONFIG.ROWS-3));  // bubbles anywhere row 2-7
         col=1+Math.floor(Math.random()*(CONFIG.COLS-2)); tries++; }
     while(used.has(row+'-'+col)&&tries<20);
     used.add(row+'-'+col);
@@ -946,19 +946,30 @@ function updateMegalodon(dt){
     if(b.lungeT<=0){ b.mode='idle'; b.idleCd=1.8+(b.hp/b.maxHp)*2.5; }
   }
 
-  // ── SPAWN SHARKS — drop VERTICALLY from top, swim across a row ──
+  // ── SPAWN SHARKS — rotating rows so every row cycles as danger/safe ──
   b.sharkSpawnCd-=dt;
   const maxSharks=4+(b.hp<b.maxHp*0.5?2:0);
   if(b.sharkSpawnCd<=0 && state.bossSharks.length<maxSharks && !b.stun){
+    // count sharks per row (rows 1-7 all valid)
+    const rowCount={};
+    for(let r=1;r<CONFIG.ROWS;r++) rowCount[r]=0;
+    for(const sh of state.bossSharks){ if(!sh.dropping && sh.row>=1) rowCount[sh.row]=(rowCount[sh.row]||0)+1; }
+    // pick the row with FEWEST sharks (forces spread, creates rotating safe spots)
+    // rows 1 and 2 are also valid — nowhere is permanently safe
+    const validRows=[];
+    for(let r=1;r<CONFIG.ROWS-1;r++) validRows.push(r);
+    validRows.sort((a,b2)=>(rowCount[a]||0)-(rowCount[b2]||0));
+    // pick from the least-populated rows, with some randomness
+    const pickFrom=validRows.slice(0,Math.min(3,validRows.length));
+    const targetRow=pickFrom[Math.floor(Math.random()*pickFrom.length)];
     const col=Math.floor(Math.random()*CONFIG.COLS);
     const dir=Math.random()<0.5?1:-1;
-    const targetRow=3+Math.floor(Math.random()*4);  // drops to rows 3-6
     state.bossSharks.push({
-      col, x:col, row:0, targetRow,
-      dropping:true, dropY:0,   // animate dropping down
+      col, x:col, row:1, targetRow,
+      dropping:true, dropY:1,
       dir, speed:(1.4+Math.random()*0.8)*SPD, face:dir, stun:0
     });
-    b.sharkSpawnCd=Math.max(1.2,3.0-(1-b.hp/b.maxHp)*1.8); sfxSwept();
+    b.sharkSpawnCd=Math.max(1.0,2.8-(1-b.hp/b.maxHp)*1.8); sfxSwept();
   }
 
   // ── SHARK MOVEMENT ──
@@ -2935,7 +2946,7 @@ function renderBoss(w,h){
   if(state.stingFlash>0){ ctx.fillStyle=`rgba(150,80,220,${(0.2*state.stingFlash).toFixed(3)})`; ctx.fillRect(0,0,w,h); }
   if(state.phase==='play' && b && !b.intro) drawLoadout(8);
   // boss HP bar
-  if(b){
+  if(b && b.type!=='megalodon'){
     const bw=w*0.7, bx=(w-bw)/2, by=8, bh=Math.max(7,CH*0.12);
     ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(bx-2,by-2,bw+4,bh+4);
     ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.fillRect(bx,by,bw,bh);
@@ -2943,7 +2954,7 @@ function renderBoss(w,h){
     const grd=ctx.createLinearGradient(bx,0,bx+bw,0); grd.addColorStop(0,'#ff5a7a'); grd.addColorStop(1,'#b06bff');
     ctx.fillStyle=grd; ctx.fillRect(bx,by,bw*frac,bh);
     ctx.font=`600 ${Math.max(9,Math.floor(CW*0.18))}px 'DM Mono',monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillStyle='#fff'; ctx.fillText(b.type==='turtle' ? 'GIANT SEA TURTLE' : b.type==='megalodon' ? 'MEGALODON  ·  APEX PREDATOR' : `THE KRAKEN  ·  BOSS ${b.num}/5`, w/2, by+bh/2);
+    ctx.fillStyle='#fff'; ctx.fillText(b.type==='turtle' ? 'GIANT SEA TURTLE' : `THE KRAKEN  ·  BOSS ${b.num}/5`, w/2, by+bh/2);
   }
   // clearing celebration (gem rise)
   if(state.phase==='clear' && state.clearGem){
