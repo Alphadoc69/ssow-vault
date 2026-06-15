@@ -4573,6 +4573,8 @@ window.addEventListener('orientationchange',()=>setTimeout(resize,200));
 // ── input ──
 const DIRS={up:[-1,0],down:[1,0],left:[0,-1],right:[0,1]};
 window.addEventListener('keydown',e=>{
+  // don't intercept keys when user is typing in an input
+  if(document.activeElement && document.activeElement.tagName==='INPUT') return;
   const k=e.key.toLowerCase(); let d=null;
   if(k==='arrowup'||k==='w')d='up'; else if(k==='arrowdown'||k==='s')d='down';
   else if(k==='arrowleft'||k==='a')d='left'; else if(k==='arrowright'||k==='d')d='right';
