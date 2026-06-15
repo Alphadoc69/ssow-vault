@@ -1,5 +1,4 @@
-
-  drawNickname();<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -3724,12 +3723,13 @@ function drawPearl(p){
 }
 function drawNickname(){
   if(!state.nickname) return;
+  const h=cv.clientHeight;
   const sz=Math.max(10,Math.floor(CW*0.22));
   ctx.save();
   ctx.font=`600 ${sz}px 'DM Mono',monospace`;
-  ctx.textAlign='left'; ctx.textBaseline='top';
-  ctx.fillStyle='rgba(255,255,255,0.55)';
-  ctx.fillText(state.nickname, 8, 8);
+  ctx.textAlign='left'; ctx.textBaseline='bottom';
+  ctx.fillStyle='rgba(255,255,255,0.4)';
+  ctx.fillText(state.nickname, 8, h-6);
   ctx.restore();
 }
 
