@@ -1884,6 +1884,461 @@ function drawStampede(b,w,h){
   ctx.restore();
 }
 
+
+// ════════════════════════════════════════════════════════════
+// PHIOMICETUS ANUBIS — FINAL BOSS (level 100)
+// Three ancient semi-aquatic whales. They need air like you do.
+// Keep them underwater — their O2 bar drains. Yours does too.
+// Whirlpools hurt both sides. Death Roll is their signature move.
+// ════════════════════════════════════════════════════════════
+const HAB_PHIO = {
+  name:'PHIOMICETUS ANUBIS', sub:'keep them underwater · drain their air · survive the death roll',
+  top:[20,80,100], bot:[5,40,60], seabed:[80,60,30], decor:'coral'
+};
+
+function setupPhio(L){
+  state.cfg={drain:CONFIG.bossDrain+0.6};
+  state.lanes=[]; state.bubbles=[]; state.jellies=[]; state.rocks=[];
+  state.habitat=HAB_PHIO; state.dark=false;
+  state.whale={row:CONFIG.ROWS-2, col:Math.floor(CONFIG.COLS/2), facing:1, hop:0};
+  state.shieldReady=state.tier.shield||!!state.upg.shield;
+
+  // Three Phiomicetus — each has its own O2 bar and position
+  // They all share one collective HP pool but each needs to drown
+  const makePhio=(col,name)=>({
+    col, x:col, y:2.0+Math.random(),
+    o2:100, maxO2:100,           // THEIR oxygen — drains underwater
+    surfaceCd:0,                  // cooldown before they try to surface
+    surfacing:false,              // currently trying to surface (dangerous)
+    surfaceY:0,                   // animation: 0=deep, 1=at surface
+    deathRollCd:4.0+Math.random()*3,
+    deathRolling:false, rollT:0, rollAngle:0,
+    rollTargetCol:col,
+    stunT:0,
+    face:Math.random()<0.5?1:-1,
+    speed:(0.6+Math.random()*0.4)*SPD,
+    name,
+  });
+
+  state.boss={
+    type:'phio',
+    // each phio has its own HP (kill all three to win)
+    phios:[makePhio(1,'ANUBIS I'), makePhio(3,'ANUBIS II'), makePhio(5,'ANUBIS III')],
+    // shared whirlpools (hurt both sides)
+    phioWhirls:[],
+    whirlCd:2.0,
+    whirlSelfCd:0,
+    // overall HP = sum of phio o2 bars (shown as one bar)
+    get hp(){ return this.phios.reduce((s,p)=>s+(p.o2>0?1:0),0)*100; },
+    get maxHp(){ return 300; },
+    num:5,
+    intro:true, introT:9,
+    x:3, y:2,   // dummy
+    stun:0,
+  };
+
+  state.iceShards=[]; state.iceShardCd=0;
+  state.bossSharks=[]; state.whirls=[];
+  state.minis=[]; state.inks=[]; state.inkBalls=[];
+  state.barnacles=[]; state.megUrchin=[];
+  const used=new Set();
+  for(let i=0;i<5;i++){
+    let row,col,tries=0;
+    do{ row=3+Math.floor(Math.random()*(CONFIG.ROWS-4));
+        col=1+Math.floor(Math.random()*(CONFIG.COLS-2)); tries++; }
+    while(used.has(row+'-'+col)&&tries<20);
+    used.add(row+'-'+col);
+    state.bubbles.push({row,col,taken:false,pop:0});
+  }
+  state.bubbleCd=CONFIG.bossBubbleSpawn*0.4;
+  state.dolphin=null; state.dolphinCd=5.0;
+  state.orca=null; state.cannons=[]; state.orcaCd=CONFIG.orcaIntervalBoss*0.6;
+  state.ping=null; state.reveal=0; state.stingFlash=0;
+  state.habName='PHIOMICETUS'; state.bannerT=0;
+  sfxAlarm(); startBossMusic();
+}
+
+function updatePhio(dt){
+  const b=state.boss;
+  if(!b||!b.phios) return;
+
+  // ── WHIRLPOOLS — hurt both sides ──
+  b.whirlCd-=dt;
+  if(b.whirlCd<=0 && b.phioWhirls.length<4){
+    const row=2+Math.floor(Math.random()*(CONFIG.ROWS-4));
+    const col=1+Math.floor(Math.random()*(CONFIG.COLS-2));
+    b.phioWhirls.push({row,col,t:0,age:0,life:4.0+Math.random()*2});
+    b.whirlCd=1.8+Math.random()*1.5;
+  }
+  for(let i=b.phioWhirls.length-1;i>=0;i--){
+    const w=b.phioWhirls[i]; w.t+=dt; w.age+=dt;
+    if(w.age>=w.life){ b.phioWhirls.splice(i,1); continue; }
+    // hurt whale
+    if((b.whirlSelfCd||0)<=0 && w.row===state.whale.row && w.col===state.whale.col && w.age>0.3){
+      state.o2-=CONFIG.whirlSelfO2*state.tier.sweepMul;
+      b.whirlSelfCd=1.0; state.stingFlash=0.6; sfxSwept();
+      const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
+      state.whale.row=clampi(state.whale.row+(state.whale.row>3?-1:1),0,CONFIG.ROWS-1);
+      if(state.o2<=0){ state.o2=0; gameOver(); return; }
+    }
+    // hurt phios in whirlpool
+    for(const p of b.phios){
+      if(p.o2<=0) continue;
+      if(w.age>0.3 && Math.abs(p.x-w.col)<0.6 && Math.abs(p.y-w.row)<0.7){
+        p.o2=Math.max(0, p.o2-8);   // whirlpool drags them deeper, costs their air too
+        p.y=Math.min(CONFIG.ROWS-2, p.y+0.5);
+        p.surfaceCd=Math.max(p.surfaceCd,1.5);
+      }
+    }
+  }
+  if((b.whirlSelfCd||0)>0) b.whirlSelfCd-=dt;
+
+  // ── UPDATE EACH PHIOMICETUS ──
+  let allDead=true;
+  for(const p of b.phios){
+    if(p.o2<=0) continue;   // already drowned
+    allDead=false;
+    if(p.stunT>0){ p.stunT=Math.max(0,p.stunT-dt); continue; }
+
+    // O2 drain — underwater they lose air. At surface row they GAIN air.
+    if(p.y<=0.6){
+      p.o2=Math.min(100,p.o2+30*dt);   // breathing at surface
+      p.surfacing=false;
+    } else {
+      const depthMul=0.8+p.y*0.15;     // deeper = faster drain
+      p.o2=Math.max(0,p.o2-8*depthMul*dt);
+    }
+
+    // Try to surface when low on O2
+    if(p.o2<35 && !p.surfacing && p.surfaceCd<=0){
+      p.surfacing=true;
+    }
+    if(p.surfaceCd>0) p.surfaceCd-=dt;
+
+    if(p.surfacing){
+      // charge upward fast
+      p.y=Math.max(0,p.y-2.5*dt);
+      if(p.y<=0.6) p.surfacing=false;
+      // if whale is in their path while surfacing — damage
+      if(state.invuln<=0 && Math.abs(p.x-state.whale.col)<0.8 && Math.abs(p.y-state.whale.row)<0.8){
+        phioHurtWhale(20,p);
+      }
+    } else if(!p.deathRolling){
+      // Normal patrol — chase whale horizontally
+      const dx=state.whale.col-p.x;
+      const dy=state.whale.row-p.y;
+      p.face=dx>0?1:-1;
+      p.x=Math.max(0.4,Math.min(CONFIG.COLS-1.4, p.x+Math.sign(dx)*p.speed*dt));
+      // slowly drift toward whale's depth
+      p.y=Math.max(0.8,Math.min(CONFIG.ROWS-1.6, p.y+Math.sign(dy)*p.speed*0.5*dt));
+
+      // Contact damage
+      if(state.invuln<=0 && Math.hypot(p.x-state.whale.col,p.y-state.whale.row)<0.9){
+        phioHurtWhale(16,p);
+      }
+
+      // Death Roll — grab and spin
+      p.deathRollCd-=dt;
+      if(p.deathRollCd<=0 && Math.hypot(p.x-state.whale.col,p.y-state.whale.row)<1.5){
+        p.deathRolling=true; p.rollT=2.2; p.rollAngle=0;
+        p.rollTargetCol=Math.random()<0.5?0:CONFIG.COLS-1; // drags toward edge
+        p.deathRollCd=5.0+Math.random()*3;
+        sfxSwept(); state.stingFlash=0.8;
+      }
+    } else {
+      // ── DEATH ROLL ──
+      p.rollT-=dt; p.rollAngle+=dt*12;
+      // drag whale toward edge
+      if(state.invuln<=0){
+        const pullX=Math.sign(p.rollTargetCol-state.whale.col);
+        state.whale.col=clampi(state.whale.col+pullX*Math.ceil(3*dt),0,CONFIG.COLS-1);
+        if(Math.hypot(p.x-state.whale.col,p.y-state.whale.row)<1.1){
+          phioHurtWhale(12,p);
+        }
+      }
+      if(p.rollT<=0){ p.deathRolling=false; p.stunT=0.8; }
+    }
+
+    // Dolphin hits phio
+    if(state.dolphin&&!state.dolphin.hit&&Math.abs(state.dolphin.x-p.x)<0.7&&Math.abs(state.dolphin.row-p.y)<0.8){
+      p.stunT=1.5; p.surfacing=false; p.o2=Math.max(0,p.o2-15);
+      state.dolphin.hit=true; state.stingFlash=0.4; sfxGem(false);
+    }
+    // Orca cannonball hits phio
+    if(state.cannons) for(let ci=state.cannons.length-1;ci>=0;ci--){
+      const c=state.cannons[ci];
+      if(Math.abs(c.x-p.x)<0.6&&Math.abs(c.row-p.y)<0.8){
+        p.stunT=2.0; p.o2=Math.max(0,p.o2-20);
+        state.cannons.splice(ci,1); state.stingFlash=0.5; sfxGem(true);
+      }
+    }
+  }
+
+  if(allDead){ bossDefeated(); return; }
+
+  // ── DOLPHIN ──
+  if(!state.dolphin){ state.dolphinCd-=dt;
+    if(state.dolphinCd<=0){
+      const dir=Math.random()<0.5?1:-1;
+      const row=1+Math.floor(Math.random()*(CONFIG.ROWS-3));
+      state.dolphin={row,x:(dir>0?-1.5:CONFIG.COLS+1.5),dir,hit:false};
+      state.dolphinCd=4.5; sfxDolphin();
+    }
+  } else {
+    state.dolphin.x+=state.dolphin.dir*CONFIG.dolphinSpeed*dt;
+    if(state.dolphin.x<-2.5||state.dolphin.x>CONFIG.COLS+2.5) state.dolphin=null;
+  }
+  updateOrca(dt);
+
+  state.bubbleCd-=dt;
+  const liveB=state.bubbles.filter(bub=>!bub.taken).length;
+  if(state.bubbleCd<=0&&liveB<7){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn*0.4; }
+  for(let i=state.bubbles.length-1;i>=0;i--){ const bub=state.bubbles[i];
+    if(!bub.taken&&bub.row===state.whale.row&&bub.col===state.whale.col){
+      state.o2=Math.min(100,state.o2+CONFIG.bubbleO2); sfxBubble(); state.bubbles.splice(i,1); } }
+
+  if(state.o2<=0){ state.o2=0; gameOver(); }
+  if(state.whale.hop>0) state.whale.hop=Math.max(0,state.whale.hop-dt*7);
+}
+
+function phioHurtWhale(o2,p){
+  if(state.invuln>0) return;
+  if(state.shieldReady){ state.shieldReady=false; sfxShield(); state.invuln=CONFIG.invuln;
+    const v=document.getElementById('vignette'); v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),200); return; }
+  state.o2-=o2*state.tier.sweepMul; sfxSwept();
+  const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),180);
+  // knock whale away from the phio
+  const dc=Math.sign(state.whale.col-p.x)||1;
+  state.whale.col=clampi(state.whale.col+dc*2,0,CONFIG.COLS-1);
+  state.whale.row=clampi(state.whale.row+1,0,CONFIG.ROWS-1);
+  state.invuln=CONFIG.invuln; state.stingFlash=0.7;
+  if(state.o2<=0){ state.o2=0; gameOver(); }
+}
+
+function drawPhio(b,w,h){
+  const T=state.t||0;
+
+  // ── BACKGROUND — warm shallow ancient sea ──
+  const H=HAB_PHIO;
+  for(let r=0;r<CONFIG.ROWS;r++){
+    const t=r/(CONFIG.ROWS-1);
+    const cr=Math.round(H.top[0]+(H.bot[0]-H.top[0])*t);
+    const cg=Math.round(H.top[1]+(H.bot[1]-H.top[1])*t);
+    const cb=Math.round(H.top[2]+(H.bot[2]-H.top[2])*t);
+    ctx.fillStyle=`rgb(${cr},${cg},${cb})`; ctx.fillRect(0,rowY(r),w,CH+1);
+  }
+  // sunrays from surface
+  ctx.save(); ctx.globalAlpha=0.08;
+  for(let i=0;i<6;i++){
+    const rx=w*(0.1+i*0.16), angle=Math.sin(T*0.5+i)*0.08;
+    ctx.fillStyle='rgba(255,255,200,1)';
+    ctx.beginPath(); ctx.moveTo(rx,0); ctx.lineTo(rx+w*0.08+Math.sin(T+i)*20,h); ctx.lineTo(rx-w*0.06,h); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+  // coral decor
+  drawDecor(H,w,h);
+
+  // ── SURFACE LINE ──
+  ctx.strokeStyle='rgba(120,220,255,0.4)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(0,CH*0.7); ctx.lineTo(w,CH*0.7); ctx.stroke();
+  ctx.fillStyle='rgba(180,240,255,0.12)'; ctx.fillRect(0,0,w,CH*0.7);
+
+  // ── WHIRLPOOLS ──
+  for(const wpl of b.phioWhirls) drawWhirl(wpl);
+
+  // ── BUBBLES ──
+  for(const bub of state.bubbles){ if(!bub.taken) drawBubble(bub); }
+
+  // ── DOLPHIN / ORCA ──
+  if(state.dolphin) drawDolphin(state.dolphin);
+  if(state.orca) drawOrca(state.orca);
+  if(state.cannons) for(const c of state.cannons) drawCannon(c);
+
+  // ── DRAW EACH PHIOMICETUS ──
+  for(const p of b.phios){
+    if(p.o2<=0){
+      // dead — floating limply at surface
+      const px=p.x*CW+CW/2, py=CH*0.5;
+      ctx.save(); ctx.translate(px,py); ctx.rotate(Math.PI*0.5);
+      ctx.globalAlpha=0.4;
+      drawPhioBody(p,0,true);
+      ctx.globalAlpha=1; ctx.restore();
+      continue;
+    }
+    const px=p.x*CW+CW/2, py=p.y*CH+CH/2;
+    ctx.save(); ctx.translate(px,py);
+    if(p.face<0) ctx.scale(-1,1);
+    if(p.deathRolling) ctx.rotate(p.rollAngle);
+    drawPhioBody(p,T,false);
+    // O2 mini-bar above each phio
+    ctx.restore();
+    const barW=CW*1.6, barH=6, barX=px-barW/2, barY=py-p.y*0+rowY(Math.floor(p.y))-10;
+    ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(barX,barY,barW,barH);
+    const o2frac=p.o2/100;
+    const o2col=o2frac>0.5?'#40e8a0':o2frac>0.25?'#e8c040':'#e84040';
+    ctx.fillStyle=o2col; ctx.fillRect(barX,barY,barW*o2frac,barH);
+    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1; ctx.strokeRect(barX,barY,barW,barH);
+    // name + O2%
+    ctx.font=`${Math.max(8,Math.floor(CW*0.18))}px 'DM Mono',monospace`;
+    ctx.textAlign='center'; ctx.fillStyle='rgba(255,255,255,0.75)';
+    ctx.fillText(`${p.name} · ${Math.round(p.o2)}%`, px, barY-2);
+    // death roll warning
+    if(p.deathRolling){
+      const pulse=0.7+0.3*Math.sin(T*14);
+      ctx.globalAlpha=pulse; ctx.fillStyle='#ff4020';
+      ctx.font=`700 ${Math.min(16,w*0.042)}px 'Bebas Neue',sans-serif`;
+      ctx.fillText('💀 DEATH ROLL!', px, py-CW*0.9);
+      ctx.globalAlpha=1;
+    }
+    if(p.surfacing){
+      ctx.fillStyle='rgba(255,200,60,0.85)';
+      ctx.font=`700 ${Math.min(13,w*0.034)}px 'Bebas Neue',sans-serif`;
+      ctx.fillText('⬆ SURFACING!', px, py-CW*0.6);
+    }
+  }
+
+  // ── WHALE ──
+  drawWhale();
+
+  // ── HUD: three mini HP bars ──
+  const bw=w*0.7, bx=(w-bw)/2, by=8, bh=Math.max(7,CH*0.12);
+  ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(bx-2,by-2,bw+4,bh+4);
+  ctx.fillStyle='rgba(255,255,255,0.1)'; ctx.fillRect(bx,by,bw,bh);
+  // three segments
+  const alive=b.phios.filter(p=>p.o2>0);
+  const segW=bw/3;
+  for(let i=0;i<3;i++){
+    const p=b.phios[i];
+    const frac=Math.max(0,p.o2/100);
+    const col=frac>0.5?'#40e8a0':frac>0.25?'#e8c040':'#e84040';
+    ctx.fillStyle=p.o2<=0?'rgba(60,60,60,0.4)':col;
+    ctx.fillRect(bx+i*segW+2,by+2,(segW-4)*frac,bh-4);
+    ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=1;
+    ctx.strokeRect(bx+i*segW,by,segW,bh);
+  }
+  ctx.font=`600 ${Math.max(8,Math.floor(bh*0.75))}px 'DM Mono',monospace`;
+  ctx.textAlign='center'; ctx.fillStyle='#fff';
+  ctx.fillText(`PHIOMICETUS ANUBIS  ·  ${alive.length}/3 ALIVE`, w/2, by+bh/2);
+
+  // ── PROMPT ──
+  ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
+  const deathRollActive=b.phios.some(p=>p.deathRolling);
+  const ptxt=deathRollActive?'💀 DODGE THE DEATH ROLL — SWIM AWAY!':'KEEP THEM UNDERWATER · THEIR AIR RUNS OUT';
+  const pcol=deathRollActive?'#ff6040':'rgba(180,240,200,0.75)';
+  const fs=Math.min(13,w*0.034); ctx.font=`${fs}px 'Bebas Neue',sans-serif`;
+  const tw=ctx.measureText(ptxt).width;
+  ctx.fillStyle='rgba(4,14,8,0.78)'; roundRect(w/2-tw/2-10,h*0.91-fs,tw+20,fs*2,5); ctx.fill();
+  ctx.fillStyle=pcol; ctx.fillText(ptxt,w*0.5,h*0.91);
+  ctx.restore();
+}
+
+function drawPhioBody(p,T,dead){
+  const sz=Math.min(CW,CH)*1.1;
+  const stunned=p.stunT>0||dead;
+  const rolling=p.deathRolling;
+
+  // body glow
+  const gcol=dead?'rgba(100,80,60,0.2)':rolling?'rgba(255,80,20,0.35)':p.surfacing?'rgba(255,200,60,0.3)':'rgba(60,160,180,0.25)';
+  const gl=ctx.createRadialGradient(0,0,sz*0.1,0,0,sz*1.0);
+  gl.addColorStop(0,gcol); gl.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(0,0,sz*1.0,0,Math.PI*2); ctx.fill();
+
+  // main body — quadrupedal, like image: large torso
+  const skinCol=dead?'#8a8070':stunned?'#9aaa9a':'#d4c8a8';
+  const skinDark=dead?'#6a6050':stunned?'#7a8a7a':'#a89870';
+  const skinEdge=dead?'#3a3028':'#2a3020';
+
+  // torso
+  const bg=ctx.createRadialGradient(-sz*0.1,-sz*0.1,sz*0.05,0,0,sz*0.55);
+  bg.addColorStop(0,skinCol); bg.addColorStop(1,skinDark);
+  ctx.fillStyle=bg; ctx.strokeStyle=skinEdge; ctx.lineWidth=Math.max(2,sz*0.04);
+  ctx.beginPath();
+  ctx.moveTo(sz*0.5,0);
+  ctx.bezierCurveTo(sz*0.3,-sz*0.32, -sz*0.2,-sz*0.38, -sz*0.52,-sz*0.18);
+  ctx.bezierCurveTo(-sz*0.65,0, -sz*0.52,sz*0.22, -sz*0.20,sz*0.34);
+  ctx.bezierCurveTo(sz*0.2,sz*0.38, sz*0.42,sz*0.24, sz*0.5,0);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // neck
+  ctx.fillStyle=skinDark;
+  ctx.beginPath();
+  ctx.moveTo(sz*0.38,-sz*0.18);
+  ctx.quadraticCurveTo(sz*0.52,-sz*0.28, sz*0.55,-sz*0.36);
+  ctx.lineTo(sz*0.68,-sz*0.32);
+  ctx.quadraticCurveTo(sz*0.60,-sz*0.20, sz*0.50,-sz*0.08);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // head — elongated snout like the image
+  const hg=ctx.createRadialGradient(sz*0.65,-sz*0.35,sz*0.02,sz*0.65,-sz*0.35,sz*0.26);
+  hg.addColorStop(0,skinCol); hg.addColorStop(1,skinDark);
+  ctx.fillStyle=hg;
+  ctx.beginPath();
+  ctx.ellipse(sz*0.65,-sz*0.38,sz*0.25,sz*0.18,0.2,0,Math.PI*2);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // long narrow snout (key feature of phiomicetus)
+  ctx.fillStyle=skinDark; ctx.strokeStyle=skinEdge;
+  ctx.beginPath();
+  ctx.moveTo(sz*0.55,-sz*0.30);
+  ctx.bezierCurveTo(sz*0.75,-sz*0.28, sz*0.95,-sz*0.32, sz*1.05,-sz*0.34);
+  ctx.lineTo(sz*1.05,-sz*0.40);
+  ctx.bezierCurveTo(sz*0.90,-sz*0.44, sz*0.72,-sz*0.42, sz*0.55,-sz*0.46);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // TEETH — serrated, visible in open jaw
+  if(!dead){
+    ctx.fillStyle='#f0ece0'; ctx.strokeStyle='#8a7860'; ctx.lineWidth=Math.max(1,sz*0.02);
+    for(let t=0;t<6;t++){
+      const tx=sz*0.60+t*sz*0.074, ty=-sz*0.38;
+      const th=sz*(0.06+0.02*Math.sin(t*1.8));
+      ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(tx+sz*0.025,ty-th); ctx.lineTo(tx+sz*0.05,ty); ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+  }
+
+  // eye
+  ctx.fillStyle='#100808';
+  ctx.beginPath(); ctx.ellipse(sz*0.52,-sz*0.42,sz*0.04,sz*0.035,0,0,Math.PI*2); ctx.fill();
+  if(!stunned){ ctx.fillStyle='rgba(220,180,60,0.8)'; ctx.beginPath(); ctx.arc(sz*0.52,-sz*0.42,sz*0.018,0,Math.PI*2); ctx.fill(); }
+  ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.arc(sz*0.508,-sz*0.432,sz*0.009,0,Math.PI*2); ctx.fill();
+
+  // four legs (semi-aquatic — visible limbs)
+  ctx.strokeStyle=skinDark; ctx.lineWidth=Math.max(3,sz*0.10); ctx.lineCap='round';
+  // front legs
+  ctx.beginPath(); ctx.moveTo(sz*0.18,sz*0.18); ctx.lineTo(sz*0.22,sz*0.46); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sz*0.28,sz*0.22); ctx.lineTo(sz*0.36,sz*0.48); ctx.stroke();
+  // hind legs
+  ctx.beginPath(); ctx.moveTo(-sz*0.18,sz*0.24); ctx.lineTo(-sz*0.14,sz*0.50); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-sz*0.30,sz*0.18); ctx.lineTo(-sz*0.28,sz*0.46); ctx.stroke();
+  // feet / flippers
+  ctx.strokeStyle=skinEdge; ctx.lineWidth=Math.max(2,sz*0.06);
+  for(const [fx,fy] of [[sz*0.22,sz*0.46],[sz*0.36,sz*0.48],[-sz*0.14,sz*0.50],[-sz*0.28,sz*0.46]]){
+    for(let f=-1;f<=1;f++){
+      ctx.beginPath(); ctx.moveTo(fx,fy); ctx.lineTo(fx+f*sz*0.06,fy+sz*0.08); ctx.stroke();
+    }
+  }
+
+  // tail
+  ctx.strokeStyle=skinDark; ctx.lineWidth=Math.max(3,sz*0.09); ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-sz*0.52,-sz*0.06);
+  ctx.bezierCurveTo(-sz*0.72,-sz*0.04,-sz*0.85,-sz*0.10,-sz*0.88,-sz*0.22); ctx.stroke();
+  // tail fluke
+  ctx.beginPath(); ctx.moveTo(-sz*0.88,-sz*0.22);
+  ctx.lineTo(-sz*1.0,-sz*0.10); ctx.moveTo(-sz*0.88,-sz*0.22); ctx.lineTo(-sz*1.0,-sz*0.36); ctx.stroke();
+
+  // giraffe-like pattern on skin
+  ctx.fillStyle='rgba(0,0,0,0.12)';
+  for(let i=0;i<6;i++){
+    const px=-sz*0.3+i*sz*0.18, py=-sz*0.1+Math.sin(i*2.1)*sz*0.12;
+    ctx.beginPath(); ctx.ellipse(px,py,sz*0.06,sz*0.05,i*0.5,0,Math.PI*2); ctx.fill();
+  }
+
+  // stun stars
+  if(stunned&&!dead){
+    ctx.font=`${Math.floor(sz*0.28)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('💫',0,-sz*0.7);
+  }
+}
+
 // ── KRAKEN BOSS ──
 function spawnBossBubble(){
   const occupied=new Set([...state.rocks.map(k=>k.row+'-'+k.col), ...state.bubbles.filter(b=>!b.taken).map(b=>b.row+'-'+b.col)]);
@@ -1913,6 +2368,7 @@ function setupBoss(L){
   if(L===20){ setupTurtle(L); return; }            // level 20 → Giant Sea Turtle
   if(L===60){ setupMegalodon(L); return; }          // level 60 → Megalodon
   if(L===80){ setupStampede(L); return; }           // level 80 → Wolf Stampede
+  if(L===100){ setupPhio(L); return; }              // level 100 → Phiomicetus Anubis (final boss)
   state.cfg = {drain:CONFIG.bossDrain};
   state.lanes=[]; state.bubbles=[]; state.jellies=[]; state.rocks=[];
   state.habitat=HAB.kraken; state.dark=false;
@@ -2143,7 +2599,7 @@ function bossDefeated(){
   state._hoardNum = num;
   state.boss=null;                              // the boss is slain
   // clear the arena so the victory lap to the chest is safe
-  state.minis=[]; state.inks=[]; state.inkBalls=[]; state.bossSharks=[]; state.barnacles=[]; state.iceShards=[]; state.megUrchin=[]; if(state.boss&&state.boss.type==='stampede'){ state.boss.moose=[]; state.boss.stampBarnacles=[]; }
+  state.minis=[]; state.inks=[]; state.inkBalls=[]; state.bossSharks=[]; state.barnacles=[]; state.iceShards=[]; state.megUrchin=[];
   state.whirls=[]; state.dolphin=null; state.orca=null; state.cannons=[]; state.rocks=[];
   // drop a treasure chest where the boss was — walk up and crack it
   state.chest={row:1, col:Math.floor(CONFIG.COLS/2)}; state.chestOpened=false; state.portal=null;
@@ -2193,6 +2649,7 @@ function updateBoss(dt){
   if(b.type==='turtle'){ updateTurtle(dt); return; }
   if(b.type==='megalodon'){ updateMegalodon(dt); return; }
   if(b.type==='stampede'){ updateStampede(dt); return; }
+  if(b.type==='phio'){ updatePhio(dt); return; }
   // Kraken chases the whale (holds still while stunned)
   if(b.stun>0){ b.stun=Math.max(0,b.stun-dt); }
   else {
@@ -3347,7 +3804,7 @@ function renderBoss(w,h){
     const r0=Math.max(0,b.sweepRow-1), r1=Math.min(CONFIG.ROWS-1,b.sweepRow+1);
     ctx.fillStyle=`rgba(255,180,80,${a.toFixed(3)})`; ctx.fillRect(0,rowY(r0),w,(r1-r0+1)*CH);
   }
-  if(b){ if(b.type==='turtle') drawTurtle(b,w,h); else if(b.type==='megalodon') drawMegalodon(b,w,h); else if(b.type==='stampede') drawStampede(b,w,h); else drawKraken(b,w,h); }
+  if(b){ if(b.type==='turtle') drawTurtle(b,w,h); else if(b.type==='megalodon') drawMegalodon(b,w,h); else if(b.type==='stampede') drawStampede(b,w,h); else if(b.type==='phio') drawPhio(b,w,h); else drawKraken(b,w,h); }
   // flying barnacles
   if(state.barnacles) for(const bn of state.barnacles){
     const x=bn.x*CW+CW/2, y=bn.y*CH+CH/2, r=Math.max(5,CW*0.16);
@@ -3402,7 +3859,7 @@ function renderBoss(w,h){
   if(state.stingFlash>0){ ctx.fillStyle=`rgba(150,80,220,${(0.2*state.stingFlash).toFixed(3)})`; ctx.fillRect(0,0,w,h); }
   if(state.phase==='play' && b && !b.intro) drawLoadout(8);
   // boss HP bar
-  if(b && b.type!=='megalodon' && b.type!=='stampede'){
+  if(b && b.type!=='megalodon' && b.type!=='stampede' && b.type!=='phio'){
     const bw=w*0.7, bx=(w-bw)/2, by=8, bh=Math.max(7,CH*0.12);
     ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(bx-2,by-2,bw+4,bh+4);
     ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.fillRect(bx,by,bw,bh);
@@ -3435,16 +3892,16 @@ function renderBoss(w,h){
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillStyle=`rgba(255,225,225,${(0.7+0.3*dp).toFixed(3)})`;
     ctx.font=`${Math.min(24,w*0.062)}px 'Bebas Neue',sans-serif`;
-    ctx.fillText(b.type==='turtle' ? '⚠   DANGER · SEA TURTLE AHEAD   ⚠' : b.type==='megalodon' ? '⚠   DANGER · MEGALODON AHEAD   ⚠' : b.type==='stampede' ? '⚠   DANGER · WOLF STAMPEDE AHEAD   ⚠' : '⚠   DANGER · KRAKEN AHEAD   ⚠', w/2, by+bh/2);
+    ctx.fillText(b.type==='turtle' ? '⚠   DANGER · SEA TURTLE AHEAD   ⚠' : b.type==='megalodon' ? '⚠   DANGER · MEGALODON AHEAD   ⚠' : b.type==='stampede' ? '⚠   DANGER · WOLF STAMPEDE AHEAD   ⚠' : b.type==='phio' ? '⚠   DANGER · PHIOMICETUS ANUBIS   ⚠' : '⚠   DANGER · KRAKEN AHEAD   ⚠', w/2, by+bh/2);
     ctx.textBaseline='alphabetic';
     const pw=Math.min(w*0.86, 460), ph=Math.min(h*0.7, 300), px=(w-pw)/2, py=(h-ph)/2;
     ctx.fillStyle='rgba(20,10,40,0.96)'; ctx.strokeStyle='rgba(176,107,255,0.7)'; ctx.lineWidth=2;
     roundRect(px,py,pw,ph,16); ctx.fill(); ctx.stroke();
     ctx.textAlign='center';
     ctx.fillStyle='#fff'; ctx.font=`${Math.min(38,pw*0.10)}px 'Bebas Neue',sans-serif`; ctx.textBaseline='alphabetic';
-    ctx.fillText(b.type==='turtle' ? '🐢 GIANT SEA TURTLE' : b.type==='megalodon' ? '🦷 MEGALODON' : b.type==='stampede' ? '🐺 WOLF STAMPEDE' : '🦑 THE KRAKEN', w/2, py+pw*0.115);
+    ctx.fillText(b.type==='turtle' ? '🐢 GIANT SEA TURTLE' : b.type==='megalodon' ? '🦷 MEGALODON' : b.type==='stampede' ? '🐺 WOLF STAMPEDE' : b.type==='phio' ? '🦴 PHIOMICETUS ANUBIS' : '🦑 THE KRAKEN', w/2, py+pw*0.115);
     ctx.fillStyle='rgba(220,200,255,0.8)'; ctx.font=`600 ${Math.min(13,pw*0.034)}px 'DM Mono',monospace`;
-    ctx.fillText(b.type==='turtle' ? 'THE GUARDIAN OF THE DEEP' : b.type==='megalodon' ? 'THE APEX PREDATOR · WEAKNESS: ICE' : b.type==='stampede' ? 'THE WOLF · STAMPEDE BOSS' : `BOSS ${b.num} / 5`, w/2, py+pw*0.115+20);
+    ctx.fillText(b.type==='turtle' ? 'THE GUARDIAN OF THE DEEP' : b.type==='megalodon' ? 'THE APEX PREDATOR · WEAKNESS: ICE' : b.type==='stampede' ? 'THE WOLF · STAMPEDE BOSS' : b.type==='phio' ? 'GOD OF DEATH · FINAL BOSS' : `BOSS ${b.num} / 5`, w/2, py+pw*0.115+20);
     const lines = b.type==='turtle' ? [
       ['🛡','DODGE the spinning SHELL','— armored & fast; survive it (~10s)'],
       ['🪨','Then THROW BARNACLES','— it lands helpless: tap / space to pelt it'],
@@ -3457,6 +3914,10 @@ function renderBoss(w,h){
       ['🪨','THROW BARNACLES at WOLF','— wait for howl · wolf slows · then throw'],
       ['🫎','DODGE the MOOSE','— they charge through your column from above'],
       ['🐬','DOLPHINS stun the wolf','— watch for them to streak through'],
+    ] : b.type==='phio' ? [
+      ['💧','KEEP THEM UNDERWATER','— their O2 drains just like yours'],
+      ['💀','DODGE the DEATH ROLL','— they grab and spin you toward the edge'],
+      ['🌀','WHIRLPOOLS HURT BOTH','— drag phios deeper · costs you too'],
     ] : [
       ['🌀','Lure it onto a WHIRLPOOL','— rips its health, but they hurt you too'],
       ['🐬','Let DOLPHINS ram it','— a strike briefly freezes it'],
