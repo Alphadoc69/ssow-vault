@@ -1926,7 +1926,7 @@ function setupPhio(L){
   state.minis=[]; state.inks=[]; state.inkBalls=[]; state.barnacles=[];
   state.whirls=[];
   const used=new Set();
-  for(let i=0;i<5;i++){
+  for(let i=0;i<8;i++){
     let row,col,tries=0;
     do{ row=3+Math.floor(Math.random()*(CONFIG.ROWS-4));
         col=1+Math.floor(Math.random()*(CONFIG.COLS-2)); tries++; }
@@ -1956,12 +1956,12 @@ function updatePhio(dt){
 
   // ── WHIRLPOOLS — tons of them, hurt only whale ──
   b.whirlCd-=dt;
-  const maxWhirls=4+phase*2;   // 6 / 8 / 10
+  const maxWhirls=5+phase*3;   // 8 / 11 / 14
   if(b.whirlCd<=0 && b.phioWhirls.length<maxWhirls){
     const row=1+Math.floor(Math.random()*(CONFIG.ROWS-3));
     const col=Math.floor(Math.random()*CONFIG.COLS);
     b.phioWhirls.push({row,col,t:0,age:0,life:3.0+Math.random()*2});
-    b.whirlCd=(phase===3?0.4:phase===2?0.7:1.1)+Math.random()*0.4;
+    b.whirlCd=(phase===3?0.25:phase===2?0.45:0.8)+Math.random()*0.3;
   }
   if((b.whirlSelfCd||0)>0) b.whirlSelfCd-=dt;
   for(let i=b.phioWhirls.length-1;i>=0;i--){
@@ -1999,7 +1999,7 @@ function updatePhio(dt){
       state.whale.col=clampi(state.whale.col+b.rollDir*Math.round(4*dt+0.5),0,CONFIG.COLS-1);
       if(dist<1.2) phioHurtWhale(phase===3?14:phase===2?10:7,b);
     }
-    if(b.rollT<=0){ b.mode='hunt'; b.stunT=0.3; }
+    if(b.rollT<=0){ b.mode='hunt'; b.stunT=0.3; b.vulnerable=2.0; }  // vulnerable window after roll
   } else if(b.mode==='surfacing'){
     b.y=Math.max(0,b.y-(3.0+phase*1.0)*dt); b.jawOpen=1;
     if(state.invuln<=0 && Math.abs(b.x-state.whale.col)<1.0 && Math.abs(b.y-state.whale.row)<0.9) phioHurtWhale(18,b);
@@ -2032,7 +2032,9 @@ function updatePhio(dt){
     const bn=b.barnacles[i]; bn.t+=dt;
     const k=Math.min(1,bn.t/bn.dur);
     bn.x=bn.x0+(bn.tx-bn.x0)*k; bn.y=bn.y0+(bn.ty-bn.y0)*k - Math.sin(k*Math.PI)*1.2;
-    if(!bn.deflected && k>=0.8 && Math.hypot(bn.x-b.x,bn.y-b.y)<1.5){
+    // tick vulnerable window
+    if((b.vulnerable||0)>0) b.vulnerable-=dt;
+    if(!bn.deflected && k>=0.8 && Math.hypot(bn.x-b.x,bn.y-b.y)<1.5 && (b.vulnerable||0)<=0){
       // DEFLECT — barnacle bounces back toward whale
       bn.deflected=true; bn.t=0; bn.dur=0.25;
       bn.x0=bn.x; bn.y0=bn.y;
@@ -2146,13 +2148,13 @@ function updatePhio(dt){
     }
     if(b.bolt){
       b.bolt.t+=dt;
-      if(b.bolt.phase==='warn'&&b.bolt.t>0.5){ b.bolt.phase='strike'; b.bolt.t=0; sfxBolt();
+      if(b.bolt.phase==='warn'&&b.bolt.t>0.30){ b.bolt.phase='strike'; b.bolt.t=0; sfxBolt();
         if(b.bolt.cols.includes(state.whale.col)&&state.invuln<=0){
           state.o2-=CONFIG.boltO2*0.75; state.invuln=CONFIG.invuln; state.stingFlash=1.0;
           if(state.o2<=0){ state.o2=0; gameOver(); }
         }
       }
-      if(b.bolt.phase==='strike'&&b.bolt.t>0.28){ b.bolt=null; b.boltCd=1.5+Math.random()*1.5; }
+      if(b.bolt.phase==='strike'&&b.bolt.t>0.22){ b.bolt=null; b.boltCd=1.0+Math.random()*1.2; }
     }
   }
 
@@ -2195,7 +2197,7 @@ function updatePhio(dt){
     }
     if(b.bolt){
       b.bolt.t+=dt;
-      if(b.bolt.phase==='warn'&&b.bolt.t>0.35){ b.bolt.phase='strike'; b.bolt.t=0; sfxBolt();
+      if(b.bolt.phase==='warn'&&b.bolt.t>0.20){ b.bolt.phase='strike'; b.bolt.t=0; sfxBolt();
         for(const col of b.bolt.cols){
           if(col===state.whale.col&&state.invuln<=0){
             state.o2-=CONFIG.boltO2*0.9; state.invuln=CONFIG.invuln; state.stingFlash=1.2;
@@ -2203,7 +2205,7 @@ function updatePhio(dt){
           }
         }
       }
-      if(b.bolt.phase==='strike'&&b.bolt.t>0.22){ b.bolt=null; b.boltCd=0.8+Math.random()*1.0; }
+      if(b.bolt.phase==='strike'&&b.bolt.t>0.18){ b.bolt=null; b.boltCd=0.5+Math.random()*0.8; }
     }
   }
 
@@ -2235,7 +2237,7 @@ function updatePhio(dt){
   // bubbles
   state.bubbleCd-=dt;
   const liveB=state.bubbles.filter(bub=>!bub.taken).length;
-  if(state.bubbleCd<=0&&liveB<5){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn*0.5; }
+  if(state.bubbleCd<=0&&liveB<8){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn*0.25; }
   for(let i=state.bubbles.length-1;i>=0;i--){ const bub=state.bubbles[i];
     if(!bub.taken&&bub.row===state.whale.row&&bub.col===state.whale.col){
       state.o2=Math.min(100,state.o2+CONFIG.bubbleO2); sfxBubble(); state.bubbles.splice(i,1); } }
