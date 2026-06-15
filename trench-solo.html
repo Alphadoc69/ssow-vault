@@ -73,7 +73,7 @@
     overflow-y:auto; scrollbar-width:none;}
   .overlay::-webkit-scrollbar{ width:0; height:0; }
   .overlay.hidden{display:none;}
-  #overlayStart{justify-content:flex-start; padding-top:14px;}
+  #overlayStart{justify-content:flex-start; padding-top:14px; overflow-y:auto;}
   .quit-btn{position:absolute; top:10px; right:10px; z-index:6; font-family:'DM Mono',monospace;
     font-size:0.72rem; font-weight:600; letter-spacing:0.08em; color:#eaf6ff; cursor:pointer;
     background:rgba(8,20,34,0.82); border:1.5px solid rgba(120,200,240,0.55); border-radius:20px; padding:9px 15px;
@@ -305,7 +305,7 @@
       <button class="btn" id="rewardBtn">Collect &amp; Dive On ▼</button>
     </div>
 
-    <div class="overlay hidden" id="overlayMidUpgrade" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(8,14,28,0.96);align-items:center;justify-content:center;flex-direction:column;">
+    <div class="overlay hidden" id="overlayMidUpgrade">
   <div style="max-width:380px;width:90%;padding:24px;text-align:center;">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:0.08em;color:#5bc8e8;margin-bottom:4px;">⚡ DEPTH REWARD</div>
     <div style="font-size:0.72rem;color:rgba(160,210,230,0.65);margin-bottom:18px;letter-spacing:0.1em;">CHOOSE AN UPGRADE</div>
@@ -3332,7 +3332,7 @@ function showMidUpgradeScreen(){
     btn.onclick=()=>{
       if(p.wealthy && !state.hasWealthy) return;
       applyMidUpgrade(p.id);
-      overlay.style.display='none';
+      overlay.classList.add('hidden');
       setupLevel(state.level); state.phase='play'; state.last=performance.now();
     };
     if(p.wealthy && !state.hasWealthy) btn.classList.add('locked');
@@ -3341,7 +3341,7 @@ function showMidUpgradeScreen(){
   // skip button
   const skip=document.getElementById('midUpgSkip');
   if(skip) skip.onclick=()=>{
-    overlay.style.display='none';
+    overlay.classList.add('hidden');
     setupLevel(state.level); state.phase='play'; state.last=performance.now();
   };
   // set level badge
@@ -3349,7 +3349,7 @@ function showMidUpgradeScreen(){
   // animate bg lines
   const bgLines=document.getElementById('midBgLines');
   if(bgLines&&!bgLines.childElementCount){ for(let i=0;i<12;i++){ const l=document.createElement('div'); l.className='mid-bg-line'; l.style.cssText=`left:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${2+Math.random()*3}s;opacity:${0.03+Math.random()*0.06}`; bgLines.appendChild(l); } }
-  overlay.style.display='flex';
+  overlay.classList.remove('hidden');
 }
 
 function applyMidUpgrade(id){
