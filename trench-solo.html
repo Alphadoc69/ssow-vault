@@ -951,36 +951,30 @@ function updateMegalodon(dt){
     if(b.lungeT<=0){ b.mode='idle'; b.idleCd=1.8+(b.hp/b.maxHp)*2.5; }
   }
 
-  // ── SPAWN SHARKS — rotating rows so every row cycles as danger/safe ──
+  // ── SPAWN SHARKS — always fill the emptiest row, no safe zones ──
   b.sharkSpawnCd-=dt;
-  const maxSharks=4+(b.hp<b.maxHp*0.5?2:0);
+  // max sharks scales with missing HP — gets relentless
+  const maxSharks=6+(b.hp<b.maxHp*0.5?3:0);
   if(b.sharkSpawnCd<=0 && state.bossSharks.length<maxSharks && !b.stun){
-    // count sharks per row (rows 1-7 all valid)
+    // count active (non-dropping) sharks per row
     const rowCount={};
     for(let r=1;r<CONFIG.ROWS;r++) rowCount[r]=0;
-    for(const sh of state.bossSharks){ if(!sh.dropping && sh.row>=1) rowCount[sh.row]=(rowCount[sh.row]||0)+1; }
-    // pick the row with FEWEST sharks (forces spread, creates rotating safe spots)
-    // rows 1 and 2 are also valid — nowhere is permanently safe
-    const validRows=[];
-    for(let r=1;r<CONFIG.ROWS-1;r++) validRows.push(r);
-    validRows.sort((a,b2)=>(rowCount[a]||0)-(rowCount[b2]||0));
-    // bias toward filling rows 1-2 so they are never permanently safe
-    const topRowsEmpty=(rowCount[1]||0)===0||(rowCount[2]||0)===0;
-    let targetRow;
-    if(topRowsEmpty && Math.random()<0.6){
-      targetRow=(rowCount[1]||0)<=(rowCount[2]||0)?1:2;
-    } else {
-      const pickFrom=validRows.slice(0,Math.min(3,validRows.length));
-      targetRow=pickFrom[Math.floor(Math.random()*pickFrom.length)];
-    }
+    for(const sh of state.bossSharks){ if(!sh.dropping) rowCount[sh.row]=(rowCount[sh.row]||0)+1; }
+    // always target the emptiest row — guarantees full coverage
+    const allRows=[];
+    for(let r=1;r<CONFIG.ROWS-1;r++) allRows.push(r);
+    allRows.sort((a,b2)=>(rowCount[a]||0)-(rowCount[b2]||0));
+    // pick from bottom third of rows by count (emptiest rows)
+    const pickFrom=allRows.slice(0,Math.max(2,Math.ceil(allRows.length*0.4)));
+    const targetRow=pickFrom[Math.floor(Math.random()*pickFrom.length)];
     const col=Math.floor(Math.random()*CONFIG.COLS);
     const dir=Math.random()<0.5?1:-1;
     state.bossSharks.push({
       col, x:col, row:1, targetRow,
       dropping:true, dropY:1,
-      dir, speed:(1.4+Math.random()*0.8)*SPD, face:dir, stun:0
+      dir, speed:(1.5+Math.random()*0.8)*SPD, face:dir, stun:0
     });
-    b.sharkSpawnCd=Math.max(1.0,2.8-(1-b.hp/b.maxHp)*1.8); sfxSwept();
+    b.sharkSpawnCd=Math.max(0.8,2.2-(1-b.hp/b.maxHp)*1.5); sfxSwept();
   }
 
   // ── SHARK MOVEMENT ──
