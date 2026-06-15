@@ -3217,7 +3217,7 @@ function sweep(){
 
 // ── MID-DIVE UPGRADES (every 5 levels, skip boss levels) ──
 const MID_PERKS = [
-  {id:'o2cache',    name:'O2 Cache',      icon:'🫧', desc:'+20 max oxygen this run',         wealthy:false},
+  {id:'o2cache',    name:'O2 Cache',      icon:'🫧', desc:'+10 max oxygen this run (×3 max)', wealthy:false, maxStack:3},
   {id:'speedfins',  name:'Speed Fins',    icon:'🏄', desc:'Move costs 30% less O2',           wealthy:false},
   {id:'thickskin',  name:'Thick Hide',    icon:'🛡', desc:'Sweeps hurt 20% less this run',    wealthy:false},
   {id:'currentread',name:'Current Read',  icon:'🌊', desc:'Predators 15% slower this run',    wealthy:false},
@@ -3235,7 +3235,7 @@ function showMidUpgradeScreen(){
   const overlay=document.getElementById('overlayMidUpgrade');
   if(!overlay) return;
   // pick 2 free + 1 wealthy locked
-  const free=MID_PERKS.filter(p=>!p.wealthy&&!state.midUpgrades[p.id]);
+  const free=MID_PERKS.filter(p=>!p.wealthy&&(!(state.midUpgrades[p.id])||(p.maxStack&&(state.midUpgrades[p.id]||0)<p.maxStack)));
   const wealthy=MID_PERKS.filter(p=>p.wealthy&&!state.midUpgrades[p.id]);
   // shuffle
   for(let i=free.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [free[i],free[j]]=[free[j],free[i]]; }
@@ -3270,9 +3270,12 @@ function applyMidUpgrade(id){
   state.midUpgrades[id]=(state.midUpgrades[id]||0)+1;  // stackable — count applications
   // immediate effects
   if(id==='o2cache'){
-    // +20 max O2 — store as bonus max, applied to drain cap
-    state.midUpgrades.o2bonus=(state.midUpgrades.o2bonus||0)+20;
-    state.o2=Math.min(state.o2+20, 100+state.midUpgrades.o2bonus);
+    // +10 max O2, stackable up to 3× (max +30)
+    const stacks=state.midUpgrades.o2cache||0;
+    if(stacks<3){
+      state.midUpgrades.o2bonus=(state.midUpgrades.o2bonus||0)+10;
+      state.o2=Math.min(state.o2+10, 100+state.midUpgrades.o2bonus);
+    }
   }
   // all other perks are flag-based and checked in the game loop:
   // speedfins: move O2 cost -30% (checked in drain)
@@ -3290,7 +3293,8 @@ function applyMidUpgrade(id){
 function levelComplete(){
   state.phase='clear'; state.clearAnim=0; state.clearGem=null; sfxBubble();
   setTimeout(()=>{
-    state.o2=Math.min(100, state.o2+CONFIG.levelRefill);
+    const o2cap=100+(state.midUpgrades&&state.midUpgrades.o2bonus||0);
+    state.o2=Math.min(o2cap, state.o2+CONFIG.levelRefill);
     if(state.level>=CONFIG.maxLevel){ win(); return; }   // bottom of the Trench — you win
     state.level++; if(state.level>state.best){ state.best=state.level; saveBest(); }
     // every 5 levels except level 100 (final boss) — offer a mid-dive upgrade
