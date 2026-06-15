@@ -2021,6 +2021,9 @@ function updatePhio(dt){
     const dx=state.whale.col-b.x, dy=state.whale.row-b.y;
     const dv=Math.sqrt(dx*dx+dy*dy)||0.01;
     b.face=dx>0?1:-1;
+    // gradually restore speed after dolphin/orca slowdown
+    const baseSpeed=0.7*SPD;
+    if(b.speed<baseSpeed) b.speed=Math.min(baseSpeed, b.speed+0.4*SPD*dt);
     const spd=b.speed*(phase===1?1.0:phase===2?1.45:2.1)*(dist<1.5?1.6:1.0);
     b.x=Math.max(0.3,Math.min(CONFIG.COLS-1.3,b.x+dx/dv*spd*dt));
     b.y=Math.max(0.3,Math.min(CONFIG.ROWS-1.5,b.y+dy/dv*spd*0.65*dt));
@@ -2180,6 +2183,24 @@ function updatePhio(dt){
     }
   }
 
+  // ── BARNACLES thrown by whale ──
+  if(!b.barnacles) b.barnacles=[];
+  if((b.barnacleCd||0)>0) b.barnacleCd=Math.max(0,b.barnacleCd-dt);
+  for(let i=b.barnacles.length-1;i>=0;i--){
+    const bn=b.barnacles[i]; bn.t+=dt;
+    const k=Math.min(1,bn.t/bn.dur);
+    bn.x=bn.x+(bn.tx-bn.x)*k; bn.y=bn.y+(bn.ty-bn.y)*k - Math.sin(k*Math.PI)*1.2;
+    if(k>=1){
+      b.barnacles.splice(i,1);
+      // hit! deal O2 damage + slow
+      b.o2=Math.max(0,b.o2-4);    // 4 O2 damage (hurts but not huge)
+      b.speed=Math.max(b.speed*0.55, 0.15*SPD);
+      b.y=Math.min(CONFIG.ROWS-1.5, b.y+0.8);   // pushed slightly deeper
+      state.stingFlash=0.6; sfxPing();
+      if(b.o2<=0){ bossDefeated(); return; }
+    }
+  }
+
   // ── DOLPHIN targets phio's row ──
   if(!state.dolphin){ state.dolphinCd-=dt;
     if(state.dolphinCd<=0){
@@ -2191,7 +2212,9 @@ function updatePhio(dt){
   } else {
     state.dolphin.x+=state.dolphin.dir*CONFIG.dolphinSpeed*dt;
     if(!state.dolphin.hit && Math.abs(state.dolphin.x-b.x)<0.8 && Math.abs(state.dolphin.row-b.y)<0.9){
-      b.stunT=2.5; b.mode='stunned'; b.o2=Math.max(0,b.o2-1);
+      b.stunT=0;   // no freeze — dolphin just slows it briefly
+      b.speed=Math.max(b.speed*0.5, 0.2*SPD);   // temporary speed cut
+      b.o2=Math.max(0,b.o2-1);
       state.dolphin.hit=true; state.stingFlash=0.4; sfxGem(false);
     }
     if(state.dolphin.x<-2.5||state.dolphin.x>CONFIG.COLS+2.5) state.dolphin=null;
@@ -2201,7 +2224,10 @@ function updatePhio(dt){
   if(state.cannons) for(let ci=state.cannons.length-1;ci>=0;ci--){
     const c=state.cannons[ci];
     if(Math.abs(c.x-b.x)<0.7&&Math.abs(c.row-b.y)<0.9){
-      b.stunT=3.0; b.mode='stunned'; b.o2=Math.max(0,b.o2-2);
+      b.stunT=0;   // no freeze — orca hit slows and pushes phio deeper
+      b.speed=Math.max(b.speed*0.4, 0.15*SPD);
+      b.y=Math.min(CONFIG.ROWS-1.5, b.y+1.5);   // pushed deeper
+      b.o2=Math.max(0,b.o2-2);
       state.cannons.splice(ci,1); state.stingFlash=0.5; sfxGem(true);
     }
   }
@@ -2216,6 +2242,21 @@ function updatePhio(dt){
 
   if(state.o2<=0){ state.o2=0; gameOver(); }
   if(state.whale.hop>0) state.whale.hop=Math.max(0,state.whale.hop-dt*7);
+}
+
+function throwPhioBarnacle(){
+  const b=state.boss;
+  if(!b||b.type!=='phio') return;
+  if((b.barnacleCd||0)>0) return;
+  b.barnacleCd=2.0;   // 2s recharge
+  if(!b.barnacles) b.barnacles=[];
+  // barnacle flies toward phio
+  b.barnacles.push({
+    x:state.whale.col, y:state.whale.row,
+    tx:b.x, ty:b.y,
+    t:0, dur:0.35
+  });
+  state.whale.hop=1; sfxThrow();
 }
 
 function phioHurtWhale(o2,b){
@@ -2289,6 +2330,16 @@ function drawPhio(b,w,h){
   if(state.minis) for(const mq of state.minis) drawMini(mq);
   if(state.inks) for(const ink of state.inks) drawInk(ink);
   if(state.inkBalls) for(const ib of state.inkBalls) drawInkBall(ib);
+  // barnacles flying toward phio
+  if(b.barnacles) for(const bn of b.barnacles){
+    const bx=bn.x*CW+CW/2, by2=bn.y*CH+CH/2, r=Math.max(6,CW*0.18);
+    const k=Math.min(1,bn.t/(bn.dur||0.35));
+    ctx.save(); ctx.translate(bx,by2); ctx.rotate(k*Math.PI*4);
+    ctx.fillStyle='#9aa7ad'; ctx.strokeStyle='#5f6b70'; ctx.lineWidth=Math.max(1,r*0.16);
+    ctx.beginPath(); ctx.moveTo(0,-r); ctx.lineTo(r*0.7,r*0.7); ctx.lineTo(-r*0.7,r*0.7); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#d7dee1'; ctx.beginPath(); ctx.arc(0,r*0.1,r*0.28,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
   // lightning warning/strike
   if(b.bolt){
     for(const col of b.bolt.cols){
@@ -2479,7 +2530,8 @@ function drawPhio(b,w,h){
   // prompts
   ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
   const phioPhase=b.o2>66?1:b.o2>33?2:3;
-  const ptxt=rolling?'💀 DEATH ROLL — SWIM AWAY!':surfacing?'⬆ SURFACING — DODGE IT!':b.bolt&&b.bolt.phase==='warn'?'⚡ DODGE THE LIGHTNING!':phioPhase===3?'⚡ PHASE 3 · INK & STORM':phioPhase===2?'⚠ PHASE 2 · DODGE LIGHTNING':'🦈 PHASE 1 · DODGE SHARKS';
+  const canBarn=!b.barnacleCd||b.barnacleCd<=0;
+  const ptxt=rolling?'💀 DEATH ROLL — SWIM AWAY!':surfacing?'⬆ SURFACING — DODGE IT!':b.bolt&&b.bolt.phase==='warn'?'⚡ DODGE THE LIGHTNING!':(canBarn?'🪨 THROW BARNACLES · KEEP PHIO DOWN':phioPhase===3?'⚡ PHASE 3 · INK & STORM':phioPhase===2?'⚠ PHASE 2 · DODGE LIGHTNING':'🦈 PHASE 1 · DODGE SHARKS');
   const pcol=rolling?'#ff5020':surfacing?'#ffcc30':b.o2<30?'#80ff90':'rgba(160,220,255,0.7)';
   const fs=Math.min(13,w*0.034); ctx.font=`${fs}px 'Bebas Neue',sans-serif`;
   const tw=ctx.measureText(ptxt).width;
@@ -2626,6 +2678,7 @@ function throwBarnacle(){
   const b=state.boss;
   if(b && b.type==='megalodon'){ throwIceShard(); return; }
   if(b && b.type==='stampede'){ throwStampedeBarnacle(); return; }
+  if(b && b.type==='phio'){ throwPhioBarnacle(); return; }
   if(!b || b.type!=='turtle' || b.mode!=='recharge') return;   // only when it's grounded & helpless
   if((state.barnacleCd||0)>0) return;
   state.barnacleCd=CONFIG.turtleBarnacleCd;
