@@ -1945,49 +1945,58 @@ function setupPhio(L){
 function updatePhio(dt){
   const b=state.boss;
   if(!b) return;
-  const T=state.t||0;
   const phase=b.o2>66?1:b.o2>33?2:3;
 
-  // ── WHIRLPOOLS — everywhere, hurt both sides ──
+  // ── PHASE TRANSITIONS — clear old enemies when phase changes ──
+  if(phase!==b.lastPhase){
+    b.lastPhase=phase;
+    if(phase===2){
+      // sharks out, jellies + minis in
+      state.bossSharks=[];
+      state.jellies=[]; state.minis=[];
+      state.stingFlash=0.6; sfxBolt();
+    } else if(phase===3){
+      // jellies + minis out, inkballs in
+      state.jellies=[]; state.minis=[];
+      state.inkBalls=[]; state.inks=[];
+      state.stingFlash=0.9; sfxAlarm();
+    }
+  }
+
+  // ── WHIRLPOOLS — always present, hurt only whale ──
   b.whirlCd-=dt;
-  const maxWhirls=3+phase*2;   // 5 in p1, 7 in p2, 9 in p3
+  const maxWhirls=2+phase;   // 3 in p1, 4 in p2, 5 in p3
   if(b.whirlCd<=0 && b.phioWhirls.length<maxWhirls){
     const row=2+Math.floor(Math.random()*(CONFIG.ROWS-4));
     const col=1+Math.floor(Math.random()*(CONFIG.COLS-2));
-    b.phioWhirls.push({row,col,t:0,age:0,life:3.5+Math.random()*2});
-    b.whirlCd=(phase===3?0.5:phase===2?0.9:1.4)+Math.random()*0.6;
+    b.phioWhirls.push({row,col,t:0,age:0,life:4.0+Math.random()*2});
+    b.whirlCd=(phase===3?1.2:phase===2?1.8:2.5)+Math.random()*0.8;
   }
   if((b.whirlSelfCd||0)>0) b.whirlSelfCd-=dt;
   for(let i=b.phioWhirls.length-1;i>=0;i--){
     const wpl=b.phioWhirls[i]; wpl.t+=dt; wpl.age+=dt;
     if(wpl.age>=wpl.life){ b.phioWhirls.splice(i,1); continue; }
     if((b.whirlSelfCd||0)<=0 && wpl.row===state.whale.row && wpl.col===state.whale.col && wpl.age>0.3){
-      const dmg=(phase===3?10:phase===2?7:5)*state.tier.sweepMul;
-      state.o2-=dmg; b.whirlSelfCd=0.8; state.stingFlash=0.8; sfxSwept();
+      const dmg=(phase===3?14:phase===2?10:7)*state.tier.sweepMul;
+      state.o2-=dmg; b.whirlSelfCd=0.9; state.stingFlash=0.7; sfxSwept();
       const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),180);
       state.whale.row=clampi(state.whale.row+(state.whale.row>3?-1:1),0,CONFIG.ROWS-1);
       if(state.o2<=0){ state.o2=0; gameOver(); return; }
     }
-    // drags phio deeper when it hits one
-    if(wpl.age>0.3 && Math.abs(b.x-wpl.col)<0.8 && Math.abs(b.y-wpl.row)<0.8 && b.mode!=='surfacing'){
-      b.o2=Math.max(0,b.o2-1.5*dt);
-      b.y=Math.min(CONFIG.ROWS-1.5,b.y+0.6*dt);
-      b.surfaceCd=Math.max(b.surfaceCd||0,0.8);
-    }
   }
 
-  // ── O2 MECHANICS ──
+  // ── O2 drain ──
   if(b.y<=0.75){
-    b.o2=Math.min(100,b.o2+55*dt);
+    b.o2=Math.min(100,b.o2+45*dt);   // surface recharge
   } else {
     const depthMul=0.5+b.y*0.04;
-    const drainRate=phase===1?0.9:phase===2?1.4:2.0;
+    const drainRate=phase===1?0.28:phase===2?0.45:0.65;
     b.o2=Math.max(0,b.o2-drainRate*depthMul*dt);
   }
   b.hp=b.o2; b.maxHp=100;
   if(b.o2<=0){ bossDefeated(); return; }
 
-  // ── JAW open near whale ──
+  // ── JAW ──
   const dist=Math.hypot(b.x-state.whale.col,b.y-state.whale.row);
   b.jawOpen=Math.min(1,Math.max(0,b.jawOpen+(dist<2.0?3:-2)*dt));
 
@@ -1995,33 +2004,27 @@ function updatePhio(dt){
   if(b.stunT>0){
     b.stunT-=dt; b.mode='stunned'; b.jawOpen=0;
     if(b.stunT<=0) b.mode='hunt';
-    // tick threats even while stunned
   } else if(b.mode==='deathroll'){
     b.rollT-=dt; b.rollAngle+=dt*(8+phase*2);
     if(state.invuln<=0){
-      const pullX=b.rollDir;
-      state.whale.col=clampi(state.whale.col+pullX*Math.round(3.5*dt+0.5),0,CONFIG.COLS-1);
-      if(dist<1.2){ phioHurtWhale(phase===3?12:phase===2?9:6,b); }
+      state.whale.col=clampi(state.whale.col+b.rollDir*Math.round(3.5*dt+0.5),0,CONFIG.COLS-1);
+      if(dist<1.2) phioHurtWhale(phase===3?12:phase===2?9:6,b);
     }
     if(b.rollT<=0){ b.mode='hunt'; b.stunT=0.4; }
   } else if(b.mode==='surfacing'){
-    const surfSpd=2.5+phase*0.8;
-    b.y=Math.max(0,b.y-surfSpd*dt); b.jawOpen=1;
-    if(state.invuln<=0 && Math.abs(b.x-state.whale.col)<1.0 && Math.abs(b.y-state.whale.row)<0.9){
+    b.y=Math.max(0,b.y-(2.5+phase*0.8)*dt); b.jawOpen=1;
+    if(state.invuln<=0 && Math.abs(b.x-state.whale.col)<1.0 && Math.abs(b.y-state.whale.row)<0.9)
       phioHurtWhale(16,b);
-    }
-    if(b.y<=0.5){ b.mode='hunt'; b.surfaceCd=phase===1?5.0:phase===2?3.5:2.0; }
+    if(b.y<=0.5){ b.mode='hunt'; b.surfaceCd=phase===1?5.0:phase===2?3.5:2.2; }
   } else {
-    // ── HUNT ──
     b.mode='hunt';
     const dx=state.whale.col-b.x, dy=state.whale.row-b.y;
-    const distV=Math.sqrt(dx*dx+dy*dy)||0.01;
+    const dv=Math.sqrt(dx*dx+dy*dy)||0.01;
     b.face=dx>0?1:-1;
-    const baseSpd=b.speed*(phase===1?1.0:phase===2?1.45:2.1);
-    const spd=baseSpd*(dist<1.5?1.6:1.0);
-    b.x=Math.max(0.3,Math.min(CONFIG.COLS-1.3,b.x+dx/distV*spd*dt));
-    b.y=Math.max(0.3,Math.min(CONFIG.ROWS-1.5,b.y+dy/distV*spd*0.65*dt));
-    if(state.invuln<=0 && dist<0.9){ phioHurtWhale(phase===3?14:phase===2?11:8,b); }
+    const spd=b.speed*(phase===1?1.0:phase===2?1.45:2.1)*(dist<1.5?1.6:1.0);
+    b.x=Math.max(0.3,Math.min(CONFIG.COLS-1.3,b.x+dx/dv*spd*dt));
+    b.y=Math.max(0.3,Math.min(CONFIG.ROWS-1.5,b.y+dy/dv*spd*0.65*dt));
+    if(state.invuln<=0 && dist<0.9) phioHurtWhale(phase===3?14:phase===2?11:8,b);
     b.deathRollCd-=dt;
     if(b.deathRollCd<=0 && dist<(phase===3?1.5:2.0)){
       b.mode='deathroll'; b.rollT=1.8+phase*0.4; b.rollAngle=0;
@@ -2035,139 +2038,171 @@ function updatePhio(dt){
     }
   }
 
-  // ── PHASE-BASED ENEMY SPAWNERS ──
-  // Phase 1: Sharks + Squids patrol
-  if(!b.sharkCd) b.sharkCd=0;
-  b.sharkCd-=dt;
-  const sharkMax=phase===3?5:phase===2?4:3;
-  if(b.sharkCd<=0 && (state.bossSharks||[]).length<sharkMax){
+  // ══════════════════════════════════════════
+  // PHASE 1 — SHARKS + WHIRLPOOLS
+  // ══════════════════════════════════════════
+  if(phase===1){
+    if(!b.sharkCd) b.sharkCd=0;
+    b.sharkCd-=dt;
     if(!state.bossSharks) state.bossSharks=[];
-    const dir=Math.random()<0.5?1:-1;
-    const row=2+Math.floor(Math.random()*(CONFIG.ROWS-4));
-    state.bossSharks.push({row,x:dir>0?0:CONFIG.COLS-1,dir,speed:(1.8+Math.random()*0.8)*SPD,face:dir,stun:0,life:5.0+Math.random()*2});
-    b.sharkCd=phase===3?1.5:phase===2?2.2:3.5;
-  }
-  // Phase 2+: Mini-squids (minis) that home toward whale
-  if(phase>=2){
-    if(!b.miniCd) b.miniCd=0;
-    b.miniCd-=dt;
-    if(b.miniCd<=0 && (state.minis||[]).length<(phase===3?4:2)){
-      if(!state.minis) state.minis=[];
-      state.minis.push({x:b.x+(Math.random()-0.5)*2, y:b.y+(Math.random()-0.5), speed:CONFIG.miniSpeed});
-      b.miniCd=phase===3?2.0:3.5;
-    }
-  }
-  // Phase 2+: Jellyfish drift across arena
-  if(phase>=2){
-    if(!b.jellyCd) b.jellyCd=0;
-    b.jellyCd-=dt;
-    if(b.jellyCd<=0 && (state.jellies||[]).length<(phase===3?5:3)){
-      if(!state.jellies) state.jellies=[];
-      const row=2+Math.floor(Math.random()*(CONFIG.ROWS-4));
+    if(b.sharkCd<=0 && state.bossSharks.length<4){
       const dir=Math.random()<0.5?1:-1;
-      state.jellies.push({row, x:dir>0?0:CONFIG.COLS-1, dir, cool:0, t:Math.random()*4});
-      b.jellyCd=phase===3?1.8:3.0;
+      const row=2+Math.floor(Math.random()*(CONFIG.ROWS-4));
+      state.bossSharks.push({row,x:dir>0?0:CONFIG.COLS-1,dir,speed:(1.8+Math.random()*0.7)*SPD,face:dir,stun:0,life:6.0});
+      b.sharkCd=3.0+Math.random()*1.5;
     }
-  }
-  // Phase 3: Ink balls fired from behind phio
-  if(phase>=3){
-    if(!b.inkCd) b.inkCd=0;
-    b.inkCd-=dt;
-    if(b.inkCd<=0 && (state.inkBalls||[]).length<3){
-      if(!state.inkBalls) state.inkBalls=[];
-      state.inkBalls.push({x:b.x, y:b.y,
-        vx:(state.whale.col-b.x)*0.8+(Math.random()-0.5)*1.5,
-        vy:(state.whale.row-b.y)*0.8+(Math.random()-0.5)*1.5,
-        t:0
-      });
-      b.inkCd=2.5+Math.random()*1.5;
-    }
-  }
-
-  // ── TICK ACTIVE THREATS ──
-  // Sharks
-  if(state.bossSharks) for(let i=state.bossSharks.length-1;i>=0;i--){
-    const sh=state.bossSharks[i];
-    sh.life-=dt; if(sh.life<=0){ state.bossSharks.splice(i,1); continue; }
-    if(sh.stun>0){ sh.stun-=dt; continue; }
-    sh.x=((sh.x+sh.dir*sh.speed*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
-    if(state.invuln<=0&&sh.row===state.whale.row){
-      let dd=Math.abs(sh.x-state.whale.col); dd=Math.min(dd,CONFIG.COLS-dd);
-      if(dd<CONFIG.hitRadius){
-        state.o2-=CONFIG.bossSharkO2*state.tier.sweepMul; state.invuln=CONFIG.invuln;
-        state.stingFlash=0.5; sfxSwept();
-        const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
-        if(state.o2<=0){ state.o2=0; gameOver(); return; }
+    for(let i=(state.bossSharks||[]).length-1;i>=0;i--){
+      const sh=state.bossSharks[i]; sh.life-=dt;
+      if(sh.life<=0){ state.bossSharks.splice(i,1); continue; }
+      if(sh.stun>0){ sh.stun-=dt; continue; }
+      sh.x=((sh.x+sh.dir*sh.speed*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
+      if(state.invuln<=0&&sh.row===state.whale.row){
+        let dd=Math.abs(sh.x-state.whale.col); dd=Math.min(dd,CONFIG.COLS-dd);
+        if(dd<CONFIG.hitRadius){
+          state.o2-=CONFIG.bossSharkO2*state.tier.sweepMul; state.invuln=CONFIG.invuln;
+          state.stingFlash=0.5; sfxSwept();
+          const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),140);
+          if(state.o2<=0){ state.o2=0; gameOver(); return; }
+        }
       }
     }
   }
-  // Minis (homing squids)
-  if(state.minis) for(let i=state.minis.length-1;i>=0;i--){
-    const mq=state.minis[i];
-    const mdx=state.whale.col-mq.x, mdy=state.whale.row-mq.y, md=Math.hypot(mdx,mdy)||1;
-    const spd2=(CONFIG.miniSpeed||0.8)*SPD;
-    mq.x+=mdx/md*spd2*dt; mq.y+=mdy/md*spd2*dt;
-    if(md<0.55){
-      state.o2=Math.max(0,(state.o2-(CONFIG.miniO2||10)*0.6)); state.invuln=CONFIG.invuln;
-      state.stingFlash=0.6; sfxSwept(); state.minis.splice(i,1);
-      if(state.o2<=0){ state.o2=0; gameOver(); return; }
+
+  // ══════════════════════════════════════════
+  // PHASE 2 — JELLYFISH + MINI-SQUIDS + LIGHTNING
+  // ══════════════════════════════════════════
+  if(phase===2){
+    if(!state.jellies) state.jellies=[];
+    if(!state.minis) state.minis=[];
+    // jellies drift
+    if(!b.jellyCd) b.jellyCd=0;
+    b.jellyCd-=dt;
+    if(b.jellyCd<=0 && state.jellies.length<4){
+      const dir=Math.random()<0.5?1:-1;
+      const row=2+Math.floor(Math.random()*(CONFIG.ROWS-3));
+      state.jellies.push({row,x:dir>0?0:CONFIG.COLS-1,dir,cool:0,t:Math.random()*4});
+      b.jellyCd=2.5+Math.random()*1.5;
     }
-    if(mq.x<-1||mq.x>CONFIG.COLS+1||mq.y<0||mq.y>CONFIG.ROWS) state.minis.splice(i,1);
-  }
-  // Jellies
-  if(state.jellies) for(const j of state.jellies){
-    j.t+=dt; j.x=((j.x+j.dir*CONFIG.jellySpeed*dt)+CONFIG.COLS)%CONFIG.COLS;
-    if(j.cool>0){ j.cool-=dt; continue; }
-    if(j.row===state.whale.row && Math.abs(j.x-state.whale.col)<CONFIG.hitRadius){
-      state.o2=Math.max(0,state.o2-Math.round(CONFIG.jellyStingO2*0.6)); j.cool=1.0; state.stingFlash=0.4; sfxSting();
-      if(state.o2<=0){ state.o2=0; gameOver(); return; }
+    for(const j of state.jellies){
+      j.t+=dt; j.x=((j.x+j.dir*CONFIG.jellySpeed*dt)+CONFIG.COLS)%CONFIG.COLS;
+      if(j.cool>0){ j.cool-=dt; continue; }
+      if(j.row===state.whale.row && Math.abs(j.x-state.whale.col)<CONFIG.hitRadius){
+        state.o2=Math.max(0,state.o2-CONFIG.jellyStingO2*0.6); j.cool=1.0;
+        state.stingFlash=0.5; sfxSting();
+        if(state.o2<=0){ state.o2=0; gameOver(); return; }
+      }
     }
-  }
-  // Ink balls
-  if(state.inkBalls) for(let i=state.inkBalls.length-1;i>=0;i--){
-    const ib=state.inkBalls[i]; ib.t+=dt;
-    ib.x+=ib.vx*dt; ib.y+=ib.vy*dt;
-    if(ib.t>2.5||ib.x<-1||ib.x>CONFIG.COLS+1||ib.y<0||ib.y>CONFIG.ROWS){ state.inkBalls.splice(i,1); continue; }
-    if(state.invuln<=0 && Math.hypot(ib.x-state.whale.col,ib.y-state.whale.row)<0.65){
-      state.o2=Math.max(0,(state.o2-(CONFIG.inkBallO2||12)*0.5)); state.invuln=CONFIG.invuln;
-      state.stingFlash=0.7; sfxSwept();
-      state.inks.push({x:ib.x,y:ib.y,r:0.85,t:0,life:1.2});
-      state.inkBalls.splice(i,1);
-      if(state.o2<=0){ state.o2=0; gameOver(); return; }
+    // mini squids home in
+    if(!b.miniCd) b.miniCd=0;
+    b.miniCd-=dt;
+    if(b.miniCd<=0 && state.minis.length<3){
+      state.minis.push({x:b.x+(Math.random()-0.5)*2, y:b.y+(Math.random()-0.5)*1.5, speed:CONFIG.miniSpeed||0.8});
+      b.miniCd=3.5+Math.random()*1.5;
+    }
+    for(let i=state.minis.length-1;i>=0;i--){
+      const mq=state.minis[i];
+      const mdx=state.whale.col-mq.x, mdy=state.whale.row-mq.y, md=Math.hypot(mdx,mdy)||1;
+      mq.x+=mdx/md*(CONFIG.miniSpeed||0.8)*SPD*dt; mq.y+=mdy/md*(CONFIG.miniSpeed||0.8)*SPD*dt;
+      if(md<0.55){
+        state.o2=Math.max(0,state.o2-(CONFIG.miniO2||10)*0.6); state.invuln=CONFIG.invuln;
+        state.stingFlash=0.5; sfxSwept(); state.minis.splice(i,1);
+        if(state.o2<=0){ state.o2=0; gameOver(); return; }
+      }
+      if(mq.x<-1||mq.x>CONFIG.COLS+1||mq.y<0||mq.y>CONFIG.ROWS) state.minis.splice(i,1);
+    }
+    // lightning — single column strikes
+    if(!b.boltCd) b.boltCd=3.5;
+    b.boltCd-=dt;
+    if(!b.bolt && b.boltCd<=0){
+      const col=1+Math.floor(Math.random()*(CONFIG.COLS-2));
+      b.bolt={cols:[col],t:0,phase:'warn'};
+    }
+    if(b.bolt){
+      b.bolt.t+=dt;
+      if(b.bolt.phase==='warn'&&b.bolt.t>0.9){ b.bolt.phase='strike'; b.bolt.t=0; sfxBolt();
+        if(b.bolt.cols.includes(state.whale.col)&&state.invuln<=0){
+          state.o2-=CONFIG.boltO2*0.7; state.invuln=CONFIG.invuln; state.stingFlash=1.0;
+          if(state.o2<=0){ state.o2=0; gameOver(); }
+        }
+      }
+      if(b.bolt.phase==='strike'&&b.bolt.t>0.35){ b.bolt=null; b.boltCd=3.0+Math.random()*2.0; }
     }
   }
 
-  // ── ORCA targets phio — works as ally ──
-  // Override orca row to target phio's row
-  if(state.orca && state.orca.active){
-    // orca already fires at boss.y from updateOrca — works automatically since b.y is phio's depth
+  // ══════════════════════════════════════════
+  // PHASE 3 — INK BALLS + HEAVY LIGHTNING + CHAOS
+  // ══════════════════════════════════════════
+  if(phase===3){
+    if(!state.inkBalls) state.inkBalls=[];
+    if(!state.inks) state.inks=[];
+    // ink balls fired at whale
+    if(!b.inkCd) b.inkCd=0;
+    b.inkCd-=dt;
+    if(b.inkCd<=0 && state.inkBalls.length<3){
+      const dx=state.whale.col-b.x, dy=state.whale.row-b.y, d=Math.hypot(dx,dy)||1;
+      state.inkBalls.push({x:b.x,y:b.y,vx:dx/d*3+(Math.random()-0.5),vy:dy/d*3+(Math.random()-0.5),t:0});
+      b.inkCd=2.0+Math.random()*1.5;
+    }
+    for(let i=state.inkBalls.length-1;i>=0;i--){
+      const ib=state.inkBalls[i]; ib.t+=dt;
+      ib.x+=ib.vx*dt; ib.y+=ib.vy*dt;
+      if(ib.t>2.5||ib.x<-1||ib.x>CONFIG.COLS+1||ib.y<0||ib.y>CONFIG.ROWS){ state.inkBalls.splice(i,1); continue; }
+      if(state.invuln<=0 && Math.hypot(ib.x-state.whale.col,ib.y-state.whale.row)<0.65){
+        state.o2=Math.max(0,state.o2-(CONFIG.inkBallO2||12)*0.55); state.invuln=CONFIG.invuln;
+        state.stingFlash=0.7; sfxSwept();
+        state.inks.push({x:ib.x,y:ib.y,r:0.85,t:0,life:1.2});
+        state.inkBalls.splice(i,1);
+        if(state.o2<=0){ state.o2=0; gameOver(); return; }
+      }
+    }
+    for(let i=(state.inks||[]).length-1;i>=0;i--){
+      state.inks[i].t+=dt; if(state.inks[i].t>=state.inks[i].life) state.inks.splice(i,1);
+    }
+    // heavy lightning — 2 columns
+    if(!b.boltCd) b.boltCd=2.0;
+    b.boltCd-=dt;
+    if(!b.bolt && b.boltCd<=0){
+      const cols=new Set([1+Math.floor(Math.random()*(CONFIG.COLS-2))]);
+      cols.add(1+Math.floor(Math.random()*(CONFIG.COLS-2)));
+      b.bolt={cols:[...cols],t:0,phase:'warn'};
+    }
+    if(b.bolt){
+      b.bolt.t+=dt;
+      if(b.bolt.phase==='warn'&&b.bolt.t>0.75){ b.bolt.phase='strike'; b.bolt.t=0; sfxBolt();
+        for(const col of b.bolt.cols){
+          if(col===state.whale.col&&state.invuln<=0){
+            state.o2-=CONFIG.boltO2*0.85; state.invuln=CONFIG.invuln; state.stingFlash=1.2;
+            if(state.o2<=0){ state.o2=0; gameOver(); }
+          }
+        }
+      }
+      if(b.bolt.phase==='strike'&&b.bolt.t>0.3){ b.bolt=null; b.boltCd=1.5+Math.random()*1.5; }
+    }
   }
-  updateOrca(dt);
 
-  // ── DOLPHIN stuns phio ──
+  // ── DOLPHIN targets phio's row ──
   if(!state.dolphin){ state.dolphinCd-=dt;
     if(state.dolphinCd<=0){
       const dir=Math.random()<0.5?1:-1;
-      // dolphin targets phio's row
-      const dRow=Math.round(b.y);
-      state.dolphin={row:Math.max(1,Math.min(CONFIG.ROWS-2,dRow)),x:(dir>0?-1.5:CONFIG.COLS+1.5),dir,hit:false};
+      const row=Math.max(1,Math.min(CONFIG.ROWS-2,Math.round(b.y)));
+      state.dolphin={row,x:(dir>0?-1.5:CONFIG.COLS+1.5),dir,hit:false};
       state.dolphinCd=3.5; sfxDolphin();
     }
   } else {
     state.dolphin.x+=state.dolphin.dir*CONFIG.dolphinSpeed*dt;
-    // dolphin actively targets phio
     if(!state.dolphin.hit && Math.abs(state.dolphin.x-b.x)<0.8 && Math.abs(state.dolphin.row-b.y)<0.9){
-      b.stunT=2.2; b.mode='stunned'; b.o2=Math.max(0,b.o2-3);
-      state.dolphin.hit=true; state.stingFlash=0.5; sfxGem(false);
+      b.stunT=2.5; b.mode='stunned'; b.o2=Math.max(0,b.o2-1);
+      state.dolphin.hit=true; state.stingFlash=0.4; sfxGem(false);
     }
     if(state.dolphin.x<-2.5||state.dolphin.x>CONFIG.COLS+2.5) state.dolphin=null;
   }
   // orca cannonball hits phio
+  updateOrca(dt);
   if(state.cannons) for(let ci=state.cannons.length-1;ci>=0;ci--){
     const c=state.cannons[ci];
     if(Math.abs(c.x-b.x)<0.7&&Math.abs(c.row-b.y)<0.9){
-      b.stunT=2.5; b.mode='stunned'; b.o2=Math.max(0,b.o2-5);
-      state.cannons.splice(ci,1); state.stingFlash=0.6; sfxGem(true);
+      b.stunT=3.0; b.mode='stunned'; b.o2=Math.max(0,b.o2-2);
+      state.cannons.splice(ci,1); state.stingFlash=0.5; sfxGem(true);
     }
   }
 
@@ -2247,12 +2282,28 @@ function drawPhio(b,w,h){
   if(state.dolphin) drawDolphin(state.dolphin);
   if(state.orca) drawOrca(state.orca);
   if(state.cannons) for(const c of state.cannons) drawCannon(c);
-  // phase enemies
+  // phase enemies + lightning
+  const phioPhase2=b.o2<=66&&b.o2>33, phioPhase3=b.o2<=33;
   if(state.bossSharks) for(const sh of state.bossSharks) drawEnemy('shark',sh.x,rowY(sh.row),sh.face,sh.stun>0);
   if(state.jellies) for(const j of state.jellies) drawJelly(j);
   if(state.minis) for(const mq of state.minis) drawMini(mq);
-  if(state.inks) for(let i=state.inks.length-1;i>=0;i--){ drawInk(state.inks[i]); if(state.inks[i].t>=state.inks[i].life) state.inks.splice(i,1); }
+  if(state.inks) for(const ink of state.inks) drawInk(ink);
   if(state.inkBalls) for(const ib of state.inkBalls) drawInkBall(ib);
+  // lightning warning/strike
+  if(b.bolt){
+    for(const col of b.bolt.cols){
+      if(b.bolt.phase==='warn'){
+        // pulsing red column warning
+        const bx=colX(col), p=0.15+0.12*Math.sin((state.t||0)*24);
+        ctx.fillStyle=`rgba(255,60,0,${p.toFixed(3)})`; ctx.fillRect(bx,0,CW,h);
+        ctx.strokeStyle='rgba(255,120,40,0.7)'; ctx.lineWidth=2; ctx.setLineDash([6,4]);
+        ctx.beginPath(); ctx.moveTo(bx,0); ctx.lineTo(bx,h); ctx.moveTo(bx+CW,0); ctx.lineTo(bx+CW,h); ctx.stroke();
+        ctx.setLineDash([]);
+      } else {
+        drawBolt(col,w,h);
+      }
+    }
+  }
 
   // ── PHIOMICETUS — drawn large, menacing, like the reference ──
   const px=b.x*CW+CW/2, py=b.y*CH+CH/2;
@@ -2422,13 +2473,13 @@ function drawPhio(b,w,h){
   ctx.fillStyle=hcol; ctx.fillRect(bx,by,bw*frac,bh);
   ctx.font=`600 ${Math.max(9,Math.floor(bh*0.75))}px 'DM Mono',monospace`;
   ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='#fff';
-  const phaseLbl=b.o2>66?'':b.o2>33?' · ⚠ PHASE 2':' · ⚡ PHASE 3';
-  ctx.fillText(`PHIOMICETUS ANUBIS  ·  O₂ ${Math.round(b.o2)}%${phaseLbl}`, w/2, by+bh/2);
+  const phaseLbl=b.o2>66?' · PHASE 1 · SHARKS':b.o2>33?' · PHASE 2 · LIGHTNING':' · PHASE 3 · INK & STORM';
+  ctx.fillText(`PHIOMICETUS  ·  O₂ ${Math.round(b.o2)}%${phaseLbl}`, w/2, by+bh/2);
 
   // prompts
   ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
   const phioPhase=b.o2>66?1:b.o2>33?2:3;
-  const ptxt=rolling?'💀 DEATH ROLL — SWIM AWAY!':surfacing?'⬆ SURFACING — DODGE!':phioPhase===3?'⚡ PHASE 3 · KEEP IT DOWN':phioPhase===2?'⚠ PHASE 2 · DANGER RISING':'KEEP THE PHIOMICETUS UNDERWATER';
+  const ptxt=rolling?'💀 DEATH ROLL — SWIM AWAY!':surfacing?'⬆ SURFACING — DODGE IT!':b.bolt&&b.bolt.phase==='warn'?'⚡ DODGE THE LIGHTNING!':phioPhase===3?'⚡ PHASE 3 · INK & STORM':phioPhase===2?'⚠ PHASE 2 · DODGE LIGHTNING':'🦈 PHASE 1 · DODGE SHARKS';
   const pcol=rolling?'#ff5020':surfacing?'#ffcc30':b.o2<30?'#80ff90':'rgba(160,220,255,0.7)';
   const fs=Math.min(13,w*0.034); ctx.font=`${fs}px 'Bebas Neue',sans-serif`;
   const tw=ctx.measureText(ptxt).width;
@@ -2936,10 +2987,14 @@ function move(dr,dc){
   const nc=clampi(state.whale.col+dc,0,CONFIG.COLS-1);
   if(nr===state.whale.row && nc===state.whale.col) return;
   if(state.rocks && state.rocks.some(k=>k.row===nr && k.col===nc)){ return; }   // rock blocks the cell
-  // megalodon fight: hard wall — cols 1-5, rows 1-6 only (no side or bottom camping)
+  // megalodon fight: hard wall — cols 1-5, rows 1-6 only
   if(state.boss && state.boss.type==='megalodon'){
-    if(nc<=0||nc>=CONFIG.COLS-1) return;   // block cols 0 and 6
-    if(nr>=CONFIG.ROWS-1) return;           // block bottom row
+    if(nc<=0||nc>=CONFIG.COLS-1) return;
+    if(nr>=CONFIG.ROWS-1) return;
+  }
+  // phio fight: row 0 is land — whale can't go there
+  if(state.boss && state.boss.type==='phio'){
+    if(nr<=0) return;   // hard land wall at top
   }
   state.whale.row=nr; state.whale.col=nc; state.whale.hop=1;
   if(dc<0) state.whale.facing=-1; else if(dc>0) state.whale.facing=1;
