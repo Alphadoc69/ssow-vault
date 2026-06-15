@@ -73,7 +73,7 @@
     overflow-y:auto; scrollbar-width:none;}
   .overlay::-webkit-scrollbar{ width:0; height:0; }
   .overlay.hidden{display:none;}
-  #overlayStart{justify-content:flex-start; padding-top:8px; overflow-y:auto; padding-bottom:8px;}
+  #overlayStart{justify-content:flex-start; padding-top:14px;}
   .quit-btn{position:absolute; top:10px; right:10px; z-index:6; font-family:'DM Mono',monospace;
     font-size:0.72rem; font-weight:600; letter-spacing:0.08em; color:#eaf6ff; cursor:pointer;
     background:rgba(8,20,34,0.82); border:1.5px solid rgba(120,200,240,0.55); border-radius:20px; padding:9px 15px;
@@ -112,8 +112,8 @@
   .gemtrail{font-size:1.1rem; letter-spacing:2px; margin-top:0.5rem; min-height:1.4em;}
 
   /* WALLET / WHALE PICKER */
-  .wallet-box{width:100%; max-width:320px; margin:0.5rem auto 0; padding:12px; border:1px solid rgba(91,200,232,0.18);
-    border-radius:8px; background:rgba(91,200,232,0.03); max-height:55vh; overflow-y:auto;}
+  .wallet-box{width:100%; max-width:320px; margin:1rem auto 0; padding:12px; border:1px solid rgba(91,200,232,0.18);
+    border-radius:8px; background:rgba(91,200,232,0.03);}
   .wallet-title{font-size:0.55rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); margin-bottom:8px;}
   .wallet-row{display:flex; gap:6px; border:1px solid rgba(91,200,232,0.2); border-radius:5px; overflow:hidden; background:rgba(0,0,0,0.25);}
   .wallet-row input{flex:1; min-width:0; background:transparent; border:none; outline:none; color:#fff;
@@ -255,8 +255,8 @@
     <button id="quitBtn" class="quit-btn" style="display:none">✕ Quit</button>
 
     <div class="overlay" id="overlayStart">
-      <h2 class="cyan" style="margin:6px 0 2px">SOLO DIVE</h2>
-      <p class="small" style="margin:0 0 4px">Crack the chest, ride the portal, dive deeper. 100 levels down.</p>
+      <h2 class="cyan">SOLO DIVE</h2>
+      <p class="small">Crack the chest, ride the portal, dive deeper. 100 levels down.</p>
 
 
       <div class="wallet-box">
@@ -283,9 +283,9 @@
         </div>
       </div>
 
-      <button class="btn" style="margin-top:0.5rem;width:100%;max-width:320px" id="startBtn">▼ Dive In</button>
-      <button class="btn2" style="margin-top:4px;width:100%;max-width:320px" id="guideBtn">📖 How to Play</button>
-      <p class="small" style="margin-top:4px">Best dive: Lv.<span id="bestStart">1</span></p>
+      <button class="btn" id="startBtn">▼ Dive In</button>
+      <button class="btn2" id="guideBtn">📖 How to Play</button>
+      <p class="small" style="margin-top:0.8rem">Best dive: Lv.<span id="bestStart">1</span></p>
     </div>
 
     <div class="overlay hidden" id="overlayOver">
