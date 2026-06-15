@@ -1588,8 +1588,8 @@ function setupStampede(L){
 function throwStampedeBarnacle(){
   const b=state.boss;
   if(!b||b.type!=='stampede') return;
-  if((b.barnacleCd||0)>0) return;
-  b.barnacleCd=CONFIG.turtleBarnacleCd;
+  if((b.barnacleCd||0)>0) return;  // recharging
+  b.barnacleCd=2.5;   // 2.5s recharge between barnacle throws
   b.stampBarnacles.push({
     x:state.whale.col, y:state.whale.row,
     tx:b.wolfCol, ty:0,   // flies up to wolf on row 0
@@ -1618,7 +1618,7 @@ function updateStampede(dt){
   if(b.wolfStun>0) b.wolfStun=Math.max(0,b.wolfStun-dt);
   if((b.wolfHitCd||0)>0) b.wolfHitCd=Math.max(0,b.wolfHitCd-dt);
   if(b.wolfHowling>0) b.wolfHowling=Math.max(0,b.wolfHowling-dt);
-  if(b.barnacleCd>0) b.barnacleCd=Math.max(0,b.barnacleCd-dt);
+  if((b.barnacleCd||0)>0) b.barnacleCd=Math.max(0,b.barnacleCd-dt);
 
   // ── WOLF HOWL — triggers moose waves ──
   if(b.wolfStun<=0){
@@ -2534,7 +2534,7 @@ function updateOrca(dt){
       if(state.boss.moose) for(let mi=state.boss.moose.length-1;mi>=0;mi--){
         const m=state.boss.moose[mi];
         if(Math.abs(c.x-m.col)<0.7 && Math.abs(c.row-(m.y||0))<1.2){
-          b2.moose.splice(mi,1); state.stingFlash=0.3; sfxGem(false); break;
+          state.boss.moose.splice(mi,1); state.stingFlash=0.3; sfxGem(false); break;
         }
       }
     } else if(boss && state.boss && !state.boss.armored){
