@@ -4886,6 +4886,7 @@ function diveStart(){ commitUpgrades(); startRun(); }
 function quitToMenu(){
   if(state.phase==='idle') return;
   stopBossMusic();
+  document.getElementById('hud').style.visibility='hidden';
   bankPearls();                                   // keep pearls collected so far
   if(state.level>state.best){ state.best=state.level; saveBest(); document.getElementById('bestStart').textContent=state.best; }
   state.phase='idle';
