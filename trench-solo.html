@@ -54,8 +54,9 @@
   .hud .val{font-family:var(--font-display); font-size:1.3rem; letter-spacing:0.06em; color:#fff; line-height:1;}
   .hud .val.cyan{color:var(--cyan-lt);}
   .o2wrap{flex:1; max-width:150px;}
-  .o2bar{height:10px; border:1px solid rgba(91,200,232,0.3); border-radius:6px; overflow:hidden; background:rgba(0,0,0,0.3); margin-top:4px;}
+  .o2bar{position:relative; height:18px; border:1px solid rgba(91,200,232,0.3); border-radius:6px; overflow:hidden; background:rgba(0,0,0,0.3); margin-top:4px;}
   .o2fill{height:100%; width:100%; background:linear-gradient(90deg,#1a9abf,#5bc8e8); transition:width 0.15s linear, background 0.3s;}
+  .o2pct{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:0.55rem; font-weight:700; letter-spacing:0.06em; color:rgba(255,255,255,0.95); pointer-events:none; text-shadow:0 1px 3px rgba(0,0,0,0.9);}
 
   /* STAGE */
   .stage{position:relative; width:100%; display:flex; justify-content:center;}
@@ -226,7 +227,7 @@
 
   <div class="hud">
     <div class="stat"><span class="label">Level</span><span class="val" id="hudLevel">1</span></div>
-    <div class="o2wrap"><span class="label">Oxygen</span><div class="o2bar"><div class="o2fill" id="o2fill"></div></div></div>
+    <div class="o2wrap"><span class="label">Oxygen</span><div class="o2bar"><div class="o2fill" id="o2fill"></div><span class="o2pct" id="o2pct">100%</span></div></div>
     <div class="stat" style="text-align:right"><span class="label">Score</span><span class="val cyan" id="hudScore">0</span></div>
   </div>
 
@@ -959,9 +960,15 @@ function updateMegalodon(dt){
     const validRows=[];
     for(let r=1;r<CONFIG.ROWS-1;r++) validRows.push(r);
     validRows.sort((a,b2)=>(rowCount[a]||0)-(rowCount[b2]||0));
-    // pick from the least-populated rows, with some randomness
-    const pickFrom=validRows.slice(0,Math.min(3,validRows.length));
-    const targetRow=pickFrom[Math.floor(Math.random()*pickFrom.length)];
+    // bias toward filling rows 1-2 so they are never permanently safe
+    const topRowsEmpty=(rowCount[1]||0)===0||(rowCount[2]||0)===0;
+    let targetRow;
+    if(topRowsEmpty && Math.random()<0.6){
+      targetRow=(rowCount[1]||0)<=(rowCount[2]||0)?1:2;
+    } else {
+      const pickFrom=validRows.slice(0,Math.min(3,validRows.length));
+      targetRow=pickFrom[Math.floor(Math.random()*pickFrom.length)];
+    }
     const col=Math.floor(Math.random()*CONFIG.COLS);
     const dir=Math.random()<0.5?1:-1;
     state.bossSharks.push({
@@ -3146,6 +3153,7 @@ function syncHUD(){
   o2.style.background = state.o2<25 ? 'linear-gradient(90deg,#c0392b,#e74c3c)' :
                         state.o2<55 ? 'linear-gradient(90deg,#c98a1a,#e8b94a)' :
                                       'linear-gradient(90deg,#1a9abf,#5bc8e8)';
+  const o2pct=document.getElementById('o2pct'); if(o2pct) o2pct.textContent=Math.max(0,Math.round(state.o2))+'%';
 }
 
 // ── loop ──
