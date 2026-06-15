@@ -550,6 +550,22 @@ const CONFIG = {
   turtleBarnacleCd: 0.4,// min seconds between barnacle throws
   turtleBarnacleDur: 0.3,// barnacle flight time (whale → turtle)
   turtleDolphinGap: 5.5,// seconds between dolphin allies in the turtle fight (rarer = harder)
+  // ── Megalodon boss (level 60) ──
+  megHp: 320,           // health pool — slow but tanks hits
+  megSpeed: 0.9,        // base patrol speed (slow — historically a sluggish swimmer)
+  megChargeSpeed: 7.5,  // burst charge speed when it lunges
+  megChargeCd: 3.8,     // seconds between charges
+  megChargeWind: 0.7,   // telegraph time before charge
+  megBiteO2: 22,        // oxygen lost from a direct bite
+  megRamO2: 18,         // oxygen lost from a body ram
+  megChestO2: 26,       // signature move: chest-cavity shatter (high damage)
+  megChestWind: 1.0,    // telegraph time for chest attack
+  megTouchO2: 14,       // passive contact damage
+  megIceShardDmg: 28,   // damage an ice shard deals (weakness!)
+  megIceShardCd: 0.5,   // min seconds between ice shard throws
+  megIceShardDur: 0.35, // flight time whale → meg
+  megIceSelfStun: 2.2,  // seconds meg is stunned by an ice shard hit
+  megDolphinGap: 6.0,   // seconds between dolphin allies (orcas distract it)
   // Wealthy Whales — XP multiplier, pearls, per-run upgrades
   xpBase: 0.20,       // +20% XP for owning a Wealthy Whale
   xpPer: 0.03,        // +3% per extra whale
@@ -769,6 +785,7 @@ const HAB={
   reef2:     {name:'CORAL GARDENS',    sub:'teeming reef',          top:[34,150,150],bot:[10,70,108],seabed:[190,160,120],decor:'coral',enemy:'shark'},
   // the final 20: dark + colossal + everything
   abyss:     {name:'THE ABYSS',        sub:'colossal squid · sonar',top:[10,22,40],  bot:[1,4,12],   seabed:[12,16,26],  decor:'biolum',dark:true, enemy:['shark','squid','colossal','bear','moose']},
+  megalodon:  {name:'THE MEGALODON',     sub:'throw ice shards — cold water is its weakness',top:[8,18,38],bot:[2,6,18], seabed:[20,14,30], decor:'biolum'},
   kraken:    {name:'THE KRAKEN',       sub:'lure it into the whirlpools',top:[18,10,40],bot:[3,1,14], seabed:[20,12,34], decor:'biolum'},
 };
 const MIDPOOL=[HAB.channels, HAB.openocean, HAB.kelp, HAB.krill, HAB.reef2, HAB.arctic, HAB.channels];
@@ -887,6 +904,380 @@ function setupLevel(L){
   state.orca=null; state.cannons=[]; state.orcaCd=CONFIG.orcaIntervalDive*0.6;
 }
 
+
+// ── MEGALODON BOSS (level 60) ──
+function setupMegalodon(L){
+  state.cfg={drain:CONFIG.bossDrain+0.4};   // faster drain — it's a race
+  state.lanes=[]; state.bubbles=[]; state.jellies=[]; state.rocks=[];
+  state.habitat=HAB.megalodon; state.dark=false;
+  state.whale={row:CONFIG.ROWS-2, col:Math.floor(CONFIG.COLS/2), facing:1, hop:0};
+  state.shieldReady=state.tier.shield || !!state.upg.shield;
+  const hp=CONFIG.megHp;
+  state.boss={
+    type:'megalodon', hp, maxHp:hp, num:3,   // counts as boss 3 for hoard purposes
+    x:(CONFIG.COLS-1)/2, y:1.4,
+    speed:CONFIG.megSpeed*SPD, face:1,
+    hitCd:0, stun:0,
+    mode:'patrol',   // patrol | chargeWind | charge | chestWind | chest | stunned
+    chargeCd:CONFIG.megChargeCd*0.5,
+    chargeDir:1, chargeTarget:0,
+    chestCd:6.0, chestWarned:false,
+    jaw:0, jawDir:1,
+    intro:true, introT:9,
+  };
+  // ice shards — the player throws these (like barnacles vs turtle)
+  state.iceShards=[];  state.iceShardCd=0;
+  // roaming smaller sharks as distractions
+  state.bossSharks=[];
+  for(let i=0;i<2;i++){
+    const row=2+Math.floor(Math.random()*(CONFIG.ROWS-3));
+    const dir=Math.random()<0.5?1:-1;
+    state.bossSharks.push({row, x:Math.random()*CONFIG.COLS, dir, speed:1.4*SPD, face:dir, stun:0});
+  }
+  state.whirls=[]; state.minis=[]; state.inks=[]; state.inkBalls=[];
+  state.barnacles=[];
+  // bubbles
+  const used=new Set();
+  for(let i=0;i<4;i++){ let row,col,tries=0;
+    do{ row=2+Math.floor(Math.random()*(CONFIG.ROWS-3)); col=Math.floor(Math.random()*CONFIG.COLS); tries++; }
+    while(used.has(row+'-'+col)&&tries<16); used.add(row+'-'+col);
+    state.bubbles.push({row,col,taken:false,pop:0}); }
+  state.bubbleCd=CONFIG.bossBubbleSpawn*0.5;
+  state.dolphin=null; state.dolphinCd=CONFIG.megDolphinGap;
+  state.orca=null; state.cannons=[]; state.orcaCd=CONFIG.orcaIntervalBoss*0.6;
+  state.ping=null; state.reveal=0; state.stingFlash=0;
+  state.habName='THE MEGALODON'; state.bannerT=0;
+  sfxAlarm(); startBossMusic();
+}
+
+function throwIceShard(){
+  const b=state.boss;
+  if(!b || b.type!=='megalodon') return;
+  if((state.iceShardCd||0)>0) return;
+  state.iceShardCd=CONFIG.megIceShardCd;
+  if(!state.iceShards) state.iceShards=[];
+  state.iceShards.push({
+    x0:state.whale.col, y0:state.whale.row,
+    x:state.whale.col,  y:state.whale.row,
+    tx:b.x, ty:b.y, t:0, dur:CONFIG.megIceShardDur
+  });
+  state.whale.hop=1; sfxPing();
+}
+
+function megHurtWhale(o2){
+  if(state.invuln>0) return;
+  const b=state.boss;
+  if(state.shieldReady){ state.shieldReady=false; sfxShield(); state.invuln=CONFIG.invuln;
+    const v=document.getElementById('vignette'); v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),200); return; }
+  const skinMul = 1 - 0.10*(state.midUpgrades.thickskin||0);
+  state.o2 -= o2*state.tier.sweepMul*skinMul; sfxSwept();
+  const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),180);
+  const dc=Math.sign(state.whale.col-b.x)||1, dr=Math.sign(state.whale.row-b.y)||1;
+  state.whale.col=clampi(state.whale.col+dc*2,0,CONFIG.COLS-1);
+  state.whale.row=clampi(state.whale.row+dr,0,CONFIG.ROWS-1);
+  state.invuln=CONFIG.invuln; state.stingFlash=0.7;
+  if(state.o2<=0){ state.o2=0; gameOver(); }
+}
+
+function updateMegalodon(dt){
+  const b=state.boss;
+  if(b.stun>0){ b.stun=Math.max(0,b.stun-dt); }
+
+  // jaw animation — opens and closes slowly while patrolling
+  b.jaw=(b.jaw||0)+(b.jawDir||1)*dt*0.8;
+  if(b.jaw>=1){ b.jaw=1; b.jawDir=-1; }
+  if(b.jaw<=0){ b.jaw=0; b.jawDir=1; }
+
+  if(b.mode==='patrol'){
+    if(b.stun<=0){
+      // slow side-to-side patrol at the top, drifting toward player column
+      const dx=state.whale.col-b.x;
+      b.x=Math.max(0.6,Math.min(CONFIG.COLS-1.6, b.x+dx*0.4*dt));
+      b.y=Math.max(0.7,Math.min(1.8, b.y+Math.sin((state.t||0)*0.8)*0.3*dt));
+      b.face=dx>=0?1:-1;
+      // charge cooldown
+      b.chargeCd-=dt;
+      b.chestCd-=dt;
+      // chest attack (signature) — winds up visibly
+      if(b.chestCd<=0 && !b.chestWarned){
+        b.mode='chestWind'; b.atkT=CONFIG.megChestWind; b.chestWarned=true;
+        b.chestTarget={row:state.whale.row, col:state.whale.col};
+      }
+      // charge lunge
+      else if(b.chargeCd<=0){
+        b.mode='chargeWind'; b.atkT=CONFIG.megChargeWind;
+        b.chargeTarget=state.whale.row; b.chargeDir=(state.whale.col>b.x)?1:-1;
+        b.face=b.chargeDir;
+      }
+    }
+    // contact damage
+    if(b.hitCd>0) b.hitCd-=dt;
+    if(Math.hypot(b.x-state.whale.col,b.y-state.whale.row)<1.1 && b.hitCd<=0 && b.stun<=0){
+      megHurtWhale(CONFIG.megTouchO2); b.hitCd=1.2; }
+  }
+  else if(b.mode==='chargeWind'){
+    b.atkT-=dt;
+    // telegraph: jaw opens wide, body tilts toward target row
+    b.jaw=Math.min(1,b.jaw+dt*3);
+    const dy=b.chargeTarget-b.y; b.y+=Math.sign(dy)*Math.min(Math.abs(dy),3*dt);
+    if(b.atkT<=0){ b.mode='charge'; b.chargeT=0; b.chargeHit=false; }
+  }
+  else if(b.mode==='charge'){
+    // LUNGE — fast horizontal dash across the arena
+    b.chargeT=(b.chargeT||0)+dt;
+    b.x=Math.max(-0.5,Math.min(CONFIG.COLS+0.5, b.x+b.chargeDir*CONFIG.megChargeSpeed*SPD*dt));
+    b.jaw=1;
+    if(!b.chargeHit && Math.abs(b.y-state.whale.row)<0.9 && Math.abs(b.x-state.whale.col)<0.85 && state.invuln<=0){
+      megHurtWhale(CONFIG.megBiteO2); b.chargeHit=true; }
+    // done when it exits the arena
+    if(b.x<-0.4 || b.x>CONFIG.COLS+0.4 || b.chargeT>1.8){
+      // loop back to opposite side
+      b.x = b.chargeDir>0 ? 0.6 : CONFIG.COLS-1.6;
+      b.mode='patrol'; b.chargeCd=CONFIG.megChargeCd; b.jaw=0; b.hitCd=0.8; }
+  }
+  else if(b.mode==='chestWind'){
+    // telegraph: CHEST ATTACK warning — meg rears up, jaw fully open
+    b.atkT-=dt; b.jaw=1;
+    const dy=(b.chestTarget.row||2)-b.y; b.y+=Math.sign(dy)*Math.min(Math.abs(dy),4*dt);
+    const dx=(b.chestTarget.col||3)-b.x; b.x+=Math.sign(dx)*Math.min(Math.abs(dx),2*dt);
+    if(b.atkT<=0){ b.mode='chest'; b.atkT=0.3; b.chestHit=false; }
+  }
+  else if(b.mode==='chest'){
+    b.atkT-=dt; b.jaw=1;
+    if(!b.chestHit && Math.hypot(b.x-state.whale.col,b.y-state.whale.row)<1.0 && state.invuln<=0){
+      megHurtWhale(CONFIG.megChestO2); b.chestHit=true; }
+    if(b.atkT<=0){
+      b.mode='patrol'; b.chestCd=9.0; b.chestWarned=false; b.hitCd=1.0; b.jaw=0; }
+  }
+
+  // ice shard cooldown
+  if((state.iceShardCd||0)>0) state.iceShardCd=Math.max(0,state.iceShardCd-dt);
+
+  // ice shards fly toward meg, deal big damage + stun on hit
+  if(!state.iceShards) state.iceShards=[];
+  for(let i=state.iceShards.length-1;i>=0;i--){ const sh=state.iceShards[i];
+    sh.t+=dt; const k=Math.min(1,sh.t/sh.dur);
+    sh.x=sh.x0+(sh.tx-sh.x0)*k; sh.y=sh.y0+(sh.ty-sh.y0)*k - Math.sin(k*Math.PI)*1.1;
+    if(k>=1){
+      state.iceShards.splice(i,1);
+      // hit! cold water = weakness
+      b.hp-=CONFIG.megIceShardDmg;
+      b.stun=Math.max(b.stun, CONFIG.megIceSelfStun);
+      b.mode='patrol'; b.chargeCd=Math.max(b.chargeCd,1.5);
+      state.stingFlash=1.2; sfxShield();
+      if(b.hp<=0){ bossDefeated(); return; }
+    }
+  }
+
+  // roaming sharks
+  if(state.bossSharks) for(const sh of state.bossSharks){
+    if(sh.stun>0){ sh.stun=Math.max(0,sh.stun-dt); continue; }
+    sh.face=sh.dir;
+    sh.x=((sh.x+sh.dir*sh.speed*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
+    if(sh.row===state.whale.row && state.invuln<=0){
+      let dd=Math.abs(sh.x-state.whale.col); dd=Math.min(dd,CONFIG.COLS-dd);
+      if(dd<CONFIG.hitRadius){
+        state.o2-=CONFIG.bossSharkO2*state.tier.sweepMul; state.invuln=CONFIG.invuln; state.stingFlash=0.4; sfxSwept();
+        const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
+        if(state.o2<=0){ state.o2=0; gameOver(); }
+      }
+    }
+  }
+
+  // dolphin allies (orcas harass it, historically accurate)
+  if(!state.dolphin){ state.dolphinCd-=dt;
+    if(state.dolphinCd<=0){ const row=Math.round(b.y); const dir=Math.random()<0.5?1:-1;
+      state.dolphin={row, x:(dir>0?-1.5:CONFIG.COLS+1.5), dir, hit:false};
+      state.dolphinCd=CONFIG.megDolphinGap*(state.midUpgrades.dolphinpact?0.5:1); sfxDolphin(); }
+  } else {
+    state.dolphin.x+=state.dolphin.dir*CONFIG.dolphinSpeed*dt;
+    if(!state.dolphin.hit && Math.abs(state.dolphin.x-b.x)<0.7 && Math.abs(state.dolphin.row-b.y)<0.9 && b.stun<=0){
+      b.hp-=CONFIG.bossDolphinDmg; b.stun=Math.max(b.stun,CONFIG.bossDolphinStun);
+      state.dolphin.hit=true; state.stingFlash=0.5; sfxGem(false); }
+    if(state.dolphin.x<-2.5||state.dolphin.x>CONFIG.COLS+2.5) state.dolphin=null;
+  }
+
+  // orca cannon
+  updateOrca(dt);
+
+  // air bubbles
+  state.bubbleCd-=dt;
+  const liveB=state.bubbles.filter(bub=>!bub.taken).length;
+  if(state.bubbleCd<=0 && liveB<CONFIG.bossBubbleMax){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn; }
+  for(let i=state.bubbles.length-1;i>=0;i--){ const bub=state.bubbles[i];
+    if(!bub.taken && bub.row===state.whale.row && bub.col===state.whale.col){
+      state.o2=Math.min(100,state.o2+CONFIG.bubbleO2); sfxBubble(); state.bubbles.splice(i,1); } }
+
+  if(b.hp<=0){ bossDefeated(); return; }
+  if(state.o2<=0){ state.o2=0; gameOver(); }
+  if(state.whale.hop>0) state.whale.hop=Math.max(0,state.whale.hop-dt*7);
+}
+
+function drawMegalodon(b,w,h){
+  const T=state.t||0;
+  const cx=b.x*CW+CW/2, cy=b.y*CH+CH/2;
+  const sz=Math.min(CW,CH)*2.6;   // massive — much larger than other bosses
+  const stunned=b.stun>0;
+  const charging=b.mode==='charge'||b.mode==='chargeWind';
+  const chest=b.mode==='chestWind'||b.mode==='chest';
+  const jaw=b.jaw||0;
+
+  ctx.save(); ctx.translate(cx,cy);
+
+  // ominous deep glow
+  const gcol=stunned?'rgba(120,200,240,0.5)':charging?'rgba(255,100,60,0.5)':chest?'rgba(255,60,60,0.7)':'rgba(40,80,120,0.35)';
+  const gl=ctx.createRadialGradient(0,0,2,0,0,sz*0.85);
+  gl.addColorStop(0,gcol); gl.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(0,0,sz*0.85,0,Math.PI*2); ctx.fill();
+
+  if(b.face<0) ctx.scale(-1,1);
+
+  const bodyCol = stunned?'#7a8e9a':'#3a4e5a';
+  const bodyLight = stunned?'#9ab0ba':'#5a7080';
+  const belly = stunned?'#b0c4cc':'#d8e8ec';
+  const edge = stunned?'#4a5e6a':'#1a2a32';
+
+  // shadow
+  ctx.fillStyle='rgba(0,0,0,0.25)';
+  ctx.beginPath(); ctx.ellipse(sz*0.04,sz*0.38,sz*0.58,sz*0.1,0,0,Math.PI*2); ctx.fill();
+
+  // tail — big crescent caudal fin
+  ctx.fillStyle=bodyCol; ctx.strokeStyle=edge; ctx.lineWidth=Math.max(2,sz*0.025);
+  ctx.beginPath();
+  ctx.moveTo(-sz*0.44,0);
+  ctx.lineTo(-sz*0.66,-sz*0.26); ctx.lineTo(-sz*0.56,-sz*0.06);
+  ctx.lineTo(-sz*0.44,0);
+  ctx.lineTo(-sz*0.56,sz*0.08); ctx.lineTo(-sz*0.66,sz*0.28);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // body — massive elongated torpedo
+  const bg=ctx.createLinearGradient(0,-sz*0.22,0,sz*0.22);
+  bg.addColorStop(0,bodyLight); bg.addColorStop(0.45,bodyCol); bg.addColorStop(1,'#1a2a32');
+  ctx.fillStyle=bg; ctx.strokeStyle=edge; ctx.lineWidth=Math.max(2,sz*0.03);
+  ctx.beginPath();
+  ctx.moveTo(sz*0.55,0);
+  ctx.quadraticCurveTo(sz*0.1,-sz*0.22,-sz*0.44,-sz*0.09);
+  ctx.quadraticCurveTo(-sz*0.54,0,-sz*0.44,sz*0.1);
+  ctx.quadraticCurveTo(sz*0.1,sz*0.22,sz*0.55,0);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // belly patch — white underside (like a real shark)
+  ctx.fillStyle=belly; ctx.beginPath();
+  ctx.moveTo(sz*0.4,sz*0.05);
+  ctx.quadraticCurveTo(sz*0.0,sz*0.17,-sz*0.36,sz*0.06);
+  ctx.quadraticCurveTo(sz*0.0,sz*0.11,sz*0.4,sz*0.05);
+  ctx.fill();
+
+  // lateral line
+  ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=Math.max(1,sz*0.014);
+  ctx.beginPath(); ctx.moveTo(-sz*0.42,0); ctx.quadraticCurveTo(0,-sz*0.04,sz*0.42,sz*0.01); ctx.stroke();
+
+  // dorsal fin — huge iconic triangle
+  ctx.fillStyle=bodyCol; ctx.strokeStyle=edge; ctx.lineWidth=Math.max(2,sz*0.025);
+  ctx.beginPath();
+  ctx.moveTo(sz*0.06,-sz*0.22);
+  ctx.lineTo(-sz*0.12,-sz*0.52);
+  ctx.lineTo(-sz*0.22,-sz*0.22);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // pectoral fin — large swept-back
+  ctx.beginPath();
+  ctx.moveTo(sz*0.16,sz*0.1);
+  ctx.lineTo(-sz*0.04,sz*0.38);
+  ctx.lineTo(-sz*0.18,sz*0.16);
+  ctx.quadraticCurveTo(sz*0.0,sz*0.12,sz*0.16,sz*0.1);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // second dorsal (smaller)
+  ctx.beginPath();
+  ctx.moveTo(-sz*0.20,-sz*0.18); ctx.lineTo(-sz*0.30,-sz*0.34); ctx.lineTo(-sz*0.38,-sz*0.18);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // gills — 5 slits
+  ctx.strokeStyle='rgba(20,30,38,0.7)'; ctx.lineWidth=Math.max(1,sz*0.018); ctx.lineCap='round';
+  for(let i=0;i<5;i++){
+    const gx=sz*0.28-i*sz*0.045, gy1=-sz*0.08, gy2=sz*0.06;
+    ctx.beginPath(); ctx.moveTo(gx,gy1); ctx.lineTo(gx-sz*0.01,gy2); ctx.stroke();
+  }
+
+  // EYE — small, cold, black
+  ctx.fillStyle='#080e12';
+  ctx.beginPath(); ctx.ellipse(sz*0.28,-sz*0.05,sz*0.038,sz*0.032,0,0,Math.PI*2); ctx.fill();
+  if(!stunned){ ctx.fillStyle='rgba(200,220,230,0.5)'; ctx.beginPath(); ctx.arc(sz*0.275,-sz*0.058,sz*0.012,0,Math.PI*2); ctx.fill(); }
+
+  // ── JAW ── iconic megalodon gape, scales with jaw value
+  const jawOpen=jaw*sz*0.22;
+  // upper jaw
+  ctx.fillStyle=bodyCol; ctx.strokeStyle=edge; ctx.lineWidth=Math.max(2,sz*0.025);
+  ctx.beginPath();
+  ctx.moveTo(sz*0.55,0);
+  ctx.quadraticCurveTo(sz*0.62,-jawOpen*0.4, sz*0.58,-jawOpen*0.5-sz*0.04);
+  ctx.lineTo(sz*0.38,-sz*0.04);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // lower jaw
+  ctx.beginPath();
+  ctx.moveTo(sz*0.55,0);
+  ctx.quadraticCurveTo(sz*0.62,jawOpen*0.4, sz*0.58,jawOpen*0.5+sz*0.04);
+  ctx.lineTo(sz*0.38,sz*0.04);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // TEETH — triangular, multiple rows, more visible when jaw open
+  if(jaw>0.05){
+    const toothCount=6, toothH=Math.max(sz*0.04, jawOpen*0.55);
+    ctx.fillStyle='#f0f4f6'; ctx.strokeStyle='#b0bcc4'; ctx.lineWidth=Math.max(1,sz*0.012);
+    // upper row
+    for(let i=0;i<toothCount;i++){
+      const tx=sz*0.56-i*sz*0.032, ty=-jawOpen*0.18;
+      ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(tx-sz*0.012,ty-toothH); ctx.lineTo(tx-sz*0.024,ty); ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+    // lower row
+    for(let i=0;i<toothCount;i++){
+      const tx=sz*0.56-i*sz*0.032, ty=jawOpen*0.18;
+      ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(tx-sz*0.012,ty+toothH); ctx.lineTo(tx-sz*0.024,ty); ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+    // inner darker row (double-rowed teeth)
+    ctx.fillStyle='#d8dfe2'; ctx.strokeStyle='#90a0a8';
+    for(let i=0;i<4;i++){
+      const tx=sz*0.50-i*sz*0.032, ty=-jawOpen*0.08, th=toothH*0.7;
+      ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(tx-sz*0.01,ty-th); ctx.lineTo(tx-sz*0.02,ty); ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+  }
+
+  // charging red tint
+  if(charging){ ctx.fillStyle='rgba(255,60,30,0.18)'; ctx.beginPath(); ctx.ellipse(0,0,sz*0.6,sz*0.24,0,0,Math.PI*2); ctx.fill(); }
+  if(chest){ ctx.fillStyle='rgba(255,20,20,0.28)'; ctx.beginPath(); ctx.ellipse(0,0,sz*0.7,sz*0.28,0,0,Math.PI*2); ctx.fill(); }
+
+  // stun: ice crystals overlay
+  if(stunned){
+    ctx.strokeStyle='rgba(140,220,255,0.85)'; ctx.lineWidth=Math.max(2,sz*0.035);
+    for(let i=0;i<6;i++){
+      const a=i*Math.PI/3, r=sz*(0.15+Math.random()*0.22);
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r); ctx.stroke();
+      // crystal branches
+      ctx.beginPath(); ctx.moveTo(Math.cos(a)*r*0.5,Math.sin(a)*r*0.5);
+      ctx.lineTo(Math.cos(a+0.5)*r*0.28,Math.sin(a+0.5)*r*0.28); ctx.stroke();
+    }
+    ctx.font=`${Math.floor(sz*0.3)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    if(b.face<0) ctx.scale(-1,1);
+    ctx.fillText('🥶',0,-sz*0.6);
+    if(b.face<0) ctx.scale(-1,1);
+  }
+
+  // telegraph labels
+  if(b.face<0) ctx.scale(-1,1);
+  ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  if(b.mode==='chargeWind'){
+    ctx.fillStyle='rgba(255,140,60,0.97)'; ctx.font=`700 ${Math.floor(sz*0.13)}px 'DM Mono',monospace`;
+    ctx.fillText('INCOMING!', 0, -sz*0.72);
+  }
+  if(b.mode==='chestWind'){
+    ctx.fillStyle='rgba(255,40,40,0.97)'; ctx.font=`700 ${Math.floor(sz*0.13)}px 'DM Mono',monospace`;
+    ctx.fillText('CHEST BITE!', 0, -sz*0.72);
+  }
+
+  ctx.restore();
+}
+
 // ── KRAKEN BOSS ──
 function spawnBossBubble(){
   const occupied=new Set([...state.rocks.map(k=>k.row+'-'+k.col), ...state.bubbles.filter(b=>!b.taken).map(b=>b.row+'-'+b.col)]);
@@ -914,6 +1305,7 @@ function setupBoss(L){
   state.mode='boss';
   const num = L/CONFIG.bossEvery;                  // boss 1..5
   if(L===20){ setupTurtle(L); return; }            // level 20 → Giant Sea Turtle
+  if(L===60){ setupMegalodon(L); return; }          // level 60 → Megalodon
   state.cfg = {drain:CONFIG.bossDrain};
   state.lanes=[]; state.bubbles=[]; state.jellies=[]; state.rocks=[];
   state.habitat=HAB.kraken; state.dark=false;
@@ -1018,6 +1410,7 @@ function turtleHurtWhale(o2){
 }
 function throwBarnacle(){
   const b=state.boss;
+  if(b && b.type==='megalodon'){ throwIceShard(); return; }   // megalodon: throw ice shards any time
   if(!b || b.type!=='turtle' || b.mode!=='recharge') return;   // only when it's grounded & helpless
   if((state.barnacleCd||0)>0) return;
   state.barnacleCd=CONFIG.turtleBarnacleCd;
@@ -1142,7 +1535,7 @@ function bossDefeated(){
   state._hoardNum = num;
   state.boss=null;                              // the boss is slain
   // clear the arena so the victory lap to the chest is safe
-  state.minis=[]; state.inks=[]; state.inkBalls=[]; state.bossSharks=[]; state.barnacles=[];
+  state.minis=[]; state.inks=[]; state.inkBalls=[]; state.bossSharks=[]; state.barnacles=[]; state.iceShards=[];
   state.whirls=[]; state.dolphin=null; state.orca=null; state.cannons=[]; state.rocks=[];
   // drop a treasure chest where the boss was — walk up and crack it
   state.chest={row:1, col:Math.floor(CONFIG.COLS/2)}; state.chestOpened=false; state.portal=null;
@@ -1190,6 +1583,7 @@ function updateBoss(dt){
   const drain=Math.min(CONFIG.bossDrainMax, CONFIG.bossDrain + ramp*b.fightT);
   state.o2 -= drain*state.tier.drain*(state.upg.slow?0.75:1)*dt;
   if(b.type==='turtle'){ updateTurtle(dt); return; }
+  if(b.type==='megalodon'){ updateMegalodon(dt); return; }
   // Kraken chases the whale (holds still while stunned)
   if(b.stun>0){ b.stun=Math.max(0,b.stun-dt); }
   else {
@@ -2427,7 +2821,7 @@ function renderBoss(w,h){
     const r0=Math.max(0,b.sweepRow-1), r1=Math.min(CONFIG.ROWS-1,b.sweepRow+1);
     ctx.fillStyle=`rgba(255,180,80,${a.toFixed(3)})`; ctx.fillRect(0,rowY(r0),w,(r1-r0+1)*CH);
   }
-  if(b){ if(b.type==='turtle') drawTurtle(b,w,h); else drawKraken(b,w,h); }
+  if(b){ if(b.type==='turtle') drawTurtle(b,w,h); else if(b.type==='megalodon') drawMegalodon(b,w,h); else drawKraken(b,w,h); }
   // flying barnacles
   if(state.barnacles) for(const bn of state.barnacles){
     const x=bn.x*CW+CW/2, y=bn.y*CH+CH/2, r=Math.max(6,CW*0.18);
@@ -2475,7 +2869,40 @@ function renderBoss(w,h){
     ctx.fillStyle='rgba(255,255,255,0.22)'; ctx.beginPath(); ctx.ellipse(-r*0.22,-r*0.24,r*0.18,r*0.1,-0.6,0,Math.PI*2); ctx.fill();
     ctx.restore();
   }
+  // flying ice shards (megalodon fight)
+  if(state.iceShards) for(const sh of state.iceShards){
+    const x=sh.x*CW+CW/2, y=sh.y*CH+CH/2, r=Math.max(7,CW*0.20);
+    const k=Math.min(1,sh.t/(sh.dur||0.35));
+    ctx.save(); ctx.translate(x,y); ctx.rotate(k*Math.PI*3);
+    // ice crystal — 6-pointed star
+    ctx.strokeStyle='rgba(160,230,255,0.95)'; ctx.lineWidth=Math.max(2,r*0.18); ctx.lineCap='round';
+    for(let i=0;i<6;i++){
+      const a=i*Math.PI/3;
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r); ctx.stroke();
+      // crystal arms
+      const mx=Math.cos(a)*r*0.55, my=Math.sin(a)*r*0.55;
+      ctx.beginPath(); ctx.moveTo(mx,my); ctx.lineTo(mx+Math.cos(a+Math.PI/2)*r*0.22,my+Math.sin(a+Math.PI/2)*r*0.22); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(mx,my); ctx.lineTo(mx+Math.cos(a-Math.PI/2)*r*0.22,my+Math.sin(a-Math.PI/2)*r*0.22); ctx.stroke();
+    }
+    // bright core
+    const cg=ctx.createRadialGradient(0,0,1,0,0,r*0.32);
+    cg.addColorStop(0,'rgba(255,255,255,0.95)'); cg.addColorStop(1,'rgba(140,220,255,0.4)');
+    ctx.fillStyle=cg; ctx.beginPath(); ctx.arc(0,0,r*0.32,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
   // recharge prompt — the turtle is exposed, pelt it!
+  if(b && b.type==='megalodon'){
+    const pulse=0.5+0.5*Math.sin((state.t||0)*5);
+    const frozen=b.stun>0;
+    const msg = IS_MOBILE ? (frozen?'🥶 STUNNED — KEEP THROWING ICE!':'❄️ TAP TO THROW ICE SHARDS') : (frozen?'🥶 STUNNED — KEEP THROWING! (SPACE)':'❄️ SPACE / TAP — THROW ICE SHARDS');
+    const col = frozen ? '#a0e8ff' : '#d0f0ff';
+    ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
+    const fs=Math.min(16,w*0.042); ctx.font=`${fs}px 'Bebas Neue',sans-serif`;
+    const tw=ctx.measureText(msg).width;
+    ctx.fillStyle='rgba(4,14,28,0.75)'; roundRect(w/2-tw/2-12, h*0.88-fs*0.9, tw+24, fs*1.8, 8); ctx.fill();
+    ctx.globalAlpha=frozen?1:pulse; ctx.fillStyle=col; ctx.fillText(msg, w/2, h*0.88); ctx.globalAlpha=1;
+    ctx.restore();
+  }
   if(b && b.type==='turtle' && b.mode==='recharge'){
     const pulse=0.55+0.45*Math.sin((state.t||0)*7);
     ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
@@ -2528,7 +2955,7 @@ function renderBoss(w,h){
     const grd=ctx.createLinearGradient(bx,0,bx+bw,0); grd.addColorStop(0,'#ff5a7a'); grd.addColorStop(1,'#b06bff');
     ctx.fillStyle=grd; ctx.fillRect(bx,by,bw*frac,bh);
     ctx.font=`600 ${Math.max(9,Math.floor(CW*0.18))}px 'DM Mono',monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillStyle='#fff'; ctx.fillText(b.type==='turtle' ? 'GIANT SEA TURTLE' : `THE KRAKEN  ·  BOSS ${b.num}/5`, w/2, by+bh/2);
+    ctx.fillStyle='#fff'; ctx.fillText(b.type==='turtle' ? 'GIANT SEA TURTLE' : b.type==='megalodon' ? 'MEGALODON  ·  APEX PREDATOR' : `THE KRAKEN  ·  BOSS ${b.num}/5`, w/2, by+bh/2);
   }
   // clearing celebration (gem rise)
   if(state.phase==='clear' && state.clearGem){
@@ -2553,20 +2980,24 @@ function renderBoss(w,h){
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillStyle=`rgba(255,225,225,${(0.7+0.3*dp).toFixed(3)})`;
     ctx.font=`${Math.min(24,w*0.062)}px 'Bebas Neue',sans-serif`;
-    ctx.fillText(b.type==='turtle' ? '⚠   DANGER · SEA TURTLE AHEAD   ⚠' : '⚠   DANGER · KRAKEN AHEAD   ⚠', w/2, by+bh/2);
+    ctx.fillText(b.type==='turtle' ? '⚠   DANGER · SEA TURTLE AHEAD   ⚠' : b.type==='megalodon' ? '⚠   DANGER · MEGALODON AHEAD   ⚠' : '⚠   DANGER · KRAKEN AHEAD   ⚠', w/2, by+bh/2);
     ctx.textBaseline='alphabetic';
     const pw=Math.min(w*0.86, 460), ph=Math.min(h*0.7, 300), px=(w-pw)/2, py=(h-ph)/2;
     ctx.fillStyle='rgba(20,10,40,0.96)'; ctx.strokeStyle='rgba(176,107,255,0.7)'; ctx.lineWidth=2;
     roundRect(px,py,pw,ph,16); ctx.fill(); ctx.stroke();
     ctx.textAlign='center';
     ctx.fillStyle='#fff'; ctx.font=`${Math.min(38,pw*0.10)}px 'Bebas Neue',sans-serif`; ctx.textBaseline='alphabetic';
-    ctx.fillText(b.type==='turtle' ? '🐢 GIANT SEA TURTLE' : '🦑 THE KRAKEN', w/2, py+pw*0.115);
+    ctx.fillText(b.type==='turtle' ? '🐢 GIANT SEA TURTLE' : b.type==='megalodon' ? '🦷 MEGALODON' : '🦑 THE KRAKEN', w/2, py+pw*0.115);
     ctx.fillStyle='rgba(220,200,255,0.8)'; ctx.font=`600 ${Math.min(13,pw*0.034)}px 'DM Mono',monospace`;
-    ctx.fillText(b.type==='turtle' ? 'THE GUARDIAN OF THE DEEP' : `BOSS ${b.num} / 5`, w/2, py+pw*0.115+20);
+    ctx.fillText(b.type==='turtle' ? 'THE GUARDIAN OF THE DEEP' : b.type==='megalodon' ? 'THE APEX PREDATOR · WEAKNESS: ICE' : `BOSS ${b.num} / 5`, w/2, py+pw*0.115+20);
     const lines = b.type==='turtle' ? [
       ['🛡','DODGE the spinning SHELL','— armored & fast; survive it (~10s)'],
       ['🪨','Then THROW BARNACLES','— it lands helpless: tap / space to pelt it'],
       ['🐢','Or BAIT its BITE','— a miss crashes & stuns it for free hits'],
+    ] : b.type==='megalodon' ? [
+      ['❄️','THROW ICE SHARDS','— tap / space; cold water is its weakness'],
+      ['🐬','Let DOLPHINS & ORCAS harass it','— each hit briefly stuns the meg'],
+      ['⚠️','DODGE the CHEST BITE','— red warning = shatter attack, move fast'],
     ] : [
       ['🌀','Lure it onto a WHIRLPOOL','— rips its health, but they hurt you too'],
       ['🐬','Let DOLPHINS ram it','— a strike briefly freezes it'],
