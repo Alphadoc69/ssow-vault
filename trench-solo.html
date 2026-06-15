@@ -3181,6 +3181,9 @@ function pearlMult(){ return 1 + Math.min(2, Math.floor((state.level-1)/10)*0.25
 // ── core actions ──
 function move(dr,dc){
   if(state.phase!=='play') return;
+  // anti-tamper: clamp o2 to valid range
+  if(state.o2>100+(state.midUpgrades&&state.midUpgrades.o2bonus||0)) state.o2=100;
+  if(state.level<1||state.level>CONFIG.maxLevel) state.level=Math.max(1,Math.min(CONFIG.maxLevel,state.level||1));
   if(state.mode==='boss' && state.boss && state.boss.intro){ state.boss.intro=false; return; }   // begin the fight
   const nr=clampi(state.whale.row+dr,0,CONFIG.ROWS-1);
   const nc=clampi(state.whale.col+dc,0,CONFIG.COLS-1);
@@ -4925,8 +4928,9 @@ try{ const q=new URLSearchParams(location.search);
   const oq=q.get('orca'); if(oq){ state.hasOrca=true; showOrcaBadge('', parseInt(oq)||1); }
   if(q.get('wealthy')==='1'){ state.hasWealthy=true; state.wealthyCount=5; state.xpMult=1+Math.min(CONFIG.xpCap,CONFIG.xpBase+CONFIG.xpPer*4); state.pearlBonus=Math.min(0.60,0.20+0.05*4); state.pearls=50; showWealthyBadge([],5); }
   if(q.get('win')==='1'){ state.level=CONFIG.maxLevel; state.score=9999; state.runPearls=120; document.body.classList.add('playing'); setTimeout(win,250); }
-  // jump straight into a level for testing — ?boss=1 → turtle (lvl 20); ?level=N → any level (e.g. ?level=40 = Kraken)
-  const lvParam = q.get('boss')==='1' ? 20 : parseInt(q.get('level'));
+  // level skip — requires secret key (dev only)
+  const _devKey = q.get('key')==='ssow2024';
+  const lvParam = _devKey ? (q.get('boss')==='1' ? 20 : parseInt(q.get('level'))) : null;
   if(lvParam){
     const L=Math.max(1,Math.min(CONFIG.maxLevel,lvParam));
     setTimeout(()=>{ resumeAudio();
@@ -4945,6 +4949,17 @@ try{ const q=new URLSearchParams(location.search);
 window.addEventListener('resize',resize);
 // boot
 loadBest(); loadNickname();
+// anti-cheat: hide state from console after init
+try {
+  const _s = state;
+  Object.defineProperty(window, 'state', {
+    get: () => undefined,
+    set: () => {},
+    configurable: false
+  });
+  // keep internal reference working via closure
+  (function(){ window._gs = function(){ return undefined; }; })();
+} catch(e) {}
 document.getElementById('bestStart').textContent=state.best;
 resize();
 requestAnimationFrame(loop);
