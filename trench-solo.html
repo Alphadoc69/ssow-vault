@@ -853,23 +853,30 @@ function setupMegalodon(L){
   const hp=480;
   state.boss={
     type:'megalodon', hp, maxHp:hp, num:3,
-    jawOpen:1,
-    snapState:'open',
-    snapCd:4.0, snapT:0,
-    mouthRows:4,         // top 4 of 8 rows = 50% of screen
-    sharkSpawnCd:2.5,
-    stun:0, hitCd:0, face:1, x:CONFIG.COLS/2, y:0.5,
+    // head position: 0=retracted above screen, 1=fully lunged down (~40% of canvas)
+    headY:0,
+    headTarget:0,        // what headY we're animating toward
+    jawOpen:0,           // 0=closed, 1=open. Only open during lunge
+    // state machine: idle | lunging | open | retracting
+    mode:'idle',
+    idleCd:2.5,          // seconds between lunges
+    lungeT:0,            // timer for current phase
+    // depth of lunge: how far into the arena the head reaches (in rows)
+    lungeDepth:3.5,      // head tip reaches row ~3 when fully lunged
+    // shark spawner
+    sharkSpawnCd:3.0,
+    stun:0, stunT:0,
+    face:1, x:CONFIG.COLS/2, y:1,
     intro:true, introT:9,
   };
   state.iceShards=[]; state.iceShardCd=0;
   state.bossSharks=[];
   state.whirls=[]; state.minis=[]; state.inks=[]; state.inkBalls=[];
   state.barnacles=[];
-  // bubbles only in safe zone (rows 5+)
   const used=new Set();
   for(let i=0;i<4;i++){
     let row,col,tries=0;
-    do{ row=5+Math.floor(Math.random()*(CONFIG.ROWS-5));
+    do{ row=4+Math.floor(Math.random()*(CONFIG.ROWS-5));
         col=Math.floor(Math.random()*CONFIG.COLS); tries++; }
     while(used.has(row+'-'+col)&&tries<16);
     used.add(row+'-'+col);
@@ -887,17 +894,15 @@ function throwIceShard(){
   const b=state.boss;
   if(!b||b.type!=='megalodon') return;
   if((state.iceShardCd||0)>0) return;
-  if(state.whale.row>=(b.mouthRows||4)){
-    // outside the mouth — flash hint
-    state.stingFlash=0.25; return;
-  }
+  if(b.jawOpen<0.5){ state.stingFlash=0.25; return; }  // jaw closed — can't hit
   state.iceShardCd=0.5;
   if(!state.iceShards) state.iceShards=[];
-  // shard flies UPWARD toward the throat (row 0, center)
+  // shard flies toward the meg's open throat (center-top of canvas)
+  const targetRow = b.lungeDepth * b.headY * 0.5;
   state.iceShards.push({
     x0:state.whale.col, y0:state.whale.row,
     x:state.whale.col,  y:state.whale.row,
-    tx:CONFIG.COLS/2,   ty:0, t:0, dur:0.25
+    tx:CONFIG.COLS/2,   ty:targetRow, t:0, dur:0.30
   });
   state.whale.hop=1; sfxPing();
 }
@@ -909,7 +914,6 @@ function megHurtWhale(o2){
     const v=document.getElementById('vignette'); v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),200); return; }
   state.o2-=o2*state.tier.sweepMul; sfxSwept();
   const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),200);
-  // knock whale downward (out of the mouth)
   state.whale.row=clampi(state.whale.row+3,0,CONFIG.ROWS-1);
   state.invuln=CONFIG.invuln; state.stingFlash=0.9;
   if(state.o2<=0){ state.o2=0; gameOver(); }
@@ -917,49 +921,73 @@ function megHurtWhale(o2){
 
 function updateMegalodon(dt){
   const b=state.boss;
-  if(b.stun>0) b.stun=Math.max(0,b.stun-dt);
 
-  const inMouth = state.whale.row < (b.mouthRows||4);
+  // stun countdown
+  if(b.stun>0){ b.stunT=Math.max(0,b.stunT-dt); if(b.stunT<=0) b.stun=0; }
 
-  // ── JAW STATE MACHINE ──
-  if(b.snapState==='open'){
-    b.jawOpen=Math.min(1,b.jawOpen+2.0*dt);
-    b.snapCd-=dt;
-    if(b.snapCd<=0 && b.stun<=0){ b.snapState='warning'; b.snapT=0.9; sfxBolt(); state.stingFlash=0.4; }
-  } else if(b.snapState==='warning'){
-    b.jawOpen=Math.max(0.45, b.jawOpen-0.4*dt);
-    b.snapT-=dt;
-    if(b.snapT<=0){ b.snapState='snapping'; b.snapT=0.18; }
-  } else if(b.snapState==='snapping'){
-    b.jawOpen=Math.max(0, b.jawOpen-14*dt);
-    b.snapT-=dt;
-    if(inMouth && state.invuln<=0){ megHurtWhale(28); }
-    if(b.snapT<=0){ b.snapState='recovering'; b.snapT=0.9; }
-  } else if(b.snapState==='recovering'){
-    b.jawOpen=Math.min(0.7, b.jawOpen+1.6*dt);
-    b.snapT-=dt;
-    if(b.snapT<=0){ b.snapState='open'; b.snapCd=2.8+(b.hp/b.maxHp)*2.2; }
+  // ── LUNGE STATE MACHINE ──
+  if(b.mode==='idle'){
+    b.jawOpen=Math.max(0,b.jawOpen-3*dt);   // jaw closes while idle
+    b.headY=Math.max(0,b.headY-2.5*dt);     // head retracts
+    if(!b.stun){ b.idleCd-=dt; }
+    if(b.idleCd<=0){
+      b.mode='telegraphing'; b.lungeT=0.7;   // brief telegraph before lunge
+      sfxBolt(); state.stingFlash=0.4;
+    }
+  } else if(b.mode==='telegraphing'){
+    b.lungeT-=dt; b.jawOpen=Math.min(0.3, b.jawOpen+dt);   // jaw cracks open slightly
+    b.headY=Math.min(0.15, b.headY+dt*0.2);                // head creeps forward
+    if(b.lungeT<=0){ b.mode='lunging'; b.lungeT=0.55; }
+  } else if(b.mode==='lunging'){
+    // SLAM down fast — jaw tears open as it lunges
+    b.headY=Math.min(1.0, b.headY+dt*3.5);
+    b.jawOpen=Math.min(1.0, b.jawOpen+dt*4.5);
+    b.lungeT-=dt;
+    // damage: whale hit if inside lunge reach and jaw area
+    const lungeRow = b.lungeDepth*b.headY;
+    if(state.whale.row<=lungeRow && state.invuln<=0 && !b.stun){
+      megHurtWhale(26);
+    }
+    if(b.lungeT<=0){ b.mode='open'; b.lungeT=1.4; }  // hold open — ATTACK WINDOW
+  } else if(b.mode==='open'){
+    // jaw fully open — this is the damage window
+    b.jawOpen=1.0; b.headY=1.0;
+    b.lungeT-=dt;
+    // damage if whale is in jaw area
+    const lungeRow=b.lungeDepth;
+    if(state.whale.row<=lungeRow && state.invuln<=0 && !b.stun){
+      megHurtWhale(18);
+    }
+    if(b.lungeT<=0){ b.mode='retracting'; b.lungeT=0.6; }
+  } else if(b.mode==='retracting'){
+    b.jawOpen=Math.max(0, b.jawOpen-dt*2.5);
+    b.headY=Math.max(0, b.headY-dt*2.0);
+    b.lungeT-=dt;
+    if(b.lungeT<=0){
+      b.mode='idle';
+      // snaps faster as hp drops
+      b.idleCd=1.8+(b.hp/b.maxHp)*2.5;
+    }
   }
 
-  // ── SPAWN SHARKS FROM MOUTH — drop downward into the arena ──
+  // ── SPAWN SHARKS — drop from above when head is retracted ──
   b.sharkSpawnCd-=dt;
   const maxSharks=3+(b.hp<b.maxHp*0.5?2:0);
-  if(b.sharkSpawnCd<=0 && state.bossSharks.length<maxSharks && b.stun<=0){
+  if(b.sharkSpawnCd<=0 && state.bossSharks.length<maxSharks && !b.stun){
     const col=Math.floor(Math.random()*CONFIG.COLS);
     const dir=Math.random()<0.5?1:-1;
-    // spawn at row 2 (just below mouth), patrol horizontally
-    state.bossSharks.push({row:2, x:col, dir, speed:(1.5+Math.random()*0.8)*SPD, face:dir, stun:0, spawnRow:2});
+    state.bossSharks.push({row:1, x:col, dir, speed:(1.5+Math.random()*0.8)*SPD, face:dir, stun:0});
     b.sharkSpawnCd=Math.max(1.4, 3.2-(1-b.hp/b.maxHp)*2.0); sfxSwept();
   }
 
-  // ── SHARK MOVEMENT — patrol rows, chase in same row ──
+  // ── SHARK MOVEMENT ──
   if(state.bossSharks) for(let i=state.bossSharks.length-1;i>=0;i--){
     const sh=state.bossSharks[i];
     if(sh.stun>0){ sh.stun=Math.max(0,sh.stun-dt); continue; }
     if(sh.row===state.whale.row){
       const d=state.whale.col-sh.x; const dir=Math.abs(d)<0.05?0:Math.sign(d);
       if(dir!==0) sh.face=dir;
-      sh.x=Math.max(0,Math.min(CONFIG.COLS-1, sh.x+dir*sh.speed*0.75*dt));
+      sh.x=Math.max(0,Math.min(CONFIG.COLS-1,sh.x+dir*sh.speed*0.75*dt));
     } else {
       sh.face=sh.dir;
       sh.x=((sh.x+sh.dir*sh.speed*dt)%CONFIG.COLS+CONFIG.COLS)%CONFIG.COLS;
@@ -984,25 +1012,26 @@ function updateMegalodon(dt){
     sh.x=sh.x0+(sh.tx-sh.x0)*k; sh.y=sh.y0+(sh.ty-sh.y0)*k;
     if(k>=1){
       state.iceShards.splice(i,1);
-      b.hp-=35; b.stun=Math.max(b.stun,2.2);
-      b.snapState='open'; b.snapCd=3.0; b.jawOpen=1;
-      state.stingFlash=1.5; sfxShield();
-      if(b.hp<=0){ bossDefeated(); return; }
+      if(b.jawOpen>=0.5){   // only counts if jaw is still open
+        b.hp-=35; b.stun=1; b.stunT=2.5;
+        b.mode='retracting'; b.lungeT=0.4; b.jawOpen=0.5;
+        state.stingFlash=1.5; sfxShield();
+        if(b.hp<=0){ bossDefeated(); return; }
+      }
     }
   }
 
-  // ── DOLPHIN — streaks across the arena, rams teeth ──
+  // ── DOLPHIN ──
   if(!state.dolphin){ state.dolphinCd-=dt;
     if(state.dolphinCd<=0){
       const dir=Math.random()<0.5?1:-1;
-      state.dolphin={row:2, x:(dir>0?-1.5:CONFIG.COLS+1.5), dir, hit:false};
+      state.dolphin={row:2,x:(dir>0?-1.5:CONFIG.COLS+1.5),dir,hit:false};
       state.dolphinCd=6.0*(state.midUpgrades&&state.midUpgrades.dolphinpact?0.5:1); sfxDolphin();
     }
   } else {
     state.dolphin.x+=state.dolphin.dir*CONFIG.dolphinSpeed*dt;
-    if(!state.dolphin.hit && b.stun<=0 &&
-       state.dolphin.x>CONFIG.COLS*0.3 && state.dolphin.x<CONFIG.COLS*0.7){
-      b.hp-=CONFIG.bossDolphinDmg; b.stun=Math.max(b.stun,CONFIG.bossDolphinStun);
+    if(!state.dolphin.hit && b.jawOpen>=0.5){
+      b.hp-=CONFIG.bossDolphinDmg; b.stun=1; b.stunT=CONFIG.bossDolphinStun;
       state.dolphin.hit=true; state.stingFlash=0.5; sfxGem(false);
     }
     if(state.dolphin.x<-2.5||state.dolphin.x>CONFIG.COLS+2.5) state.dolphin=null;
@@ -1010,7 +1039,6 @@ function updateMegalodon(dt){
 
   updateOrca(dt);
 
-  // bubbles
   state.bubbleCd-=dt;
   const liveB=state.bubbles.filter(bub=>!bub.taken).length;
   if(state.bubbleCd<=0&&liveB<CONFIG.bossBubbleMax){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn; }
@@ -1025,14 +1053,18 @@ function updateMegalodon(dt){
 
 function drawMegalodon(b,w,h){
   const T=state.t||0;
+  const headY=b.headY||0;          // 0=offscreen, 1=fully lunged
   const jaw=b.jawOpen||0;
   const stunned=b.stun>0;
-  const warning=b.snapState==='warning';
-  const snapping=b.snapState==='snapping';
-  const mouthRows=b.mouthRows||4;
-  const mouthH=mouthRows*CH;        // ~50% of canvas height
+  const lunging=b.mode==='lunging';
+  const open=b.mode==='open';
+  const telegraphing=b.mode==='telegraphing';
 
-  // ── OCEAN BACKGROUND (full canvas) ──
+  // How far the head tip has descended into the canvas (pixels)
+  const lungeDepthPx = b.lungeDepth * CH;
+  const headTipY = headY * lungeDepthPx;   // pixel Y of the jaw hinge point
+
+  // ── OCEAN BACKGROUND ──
   const H=HAB_MEG;
   for(let r=0;r<CONFIG.ROWS;r++){
     const t=r/(CONFIG.ROWS-1);
@@ -1042,253 +1074,297 @@ function drawMegalodon(b,w,h){
     ctx.fillStyle=`rgb(${cr},${cg},${cb})`; ctx.fillRect(0,rowY(r),w,CH+1);
   }
 
-  // ── DANGER ZONE TINT ──
-  if(warning||snapping){
-    const a=snapping?0.45:(0.12+0.12*Math.sin(T*20));
-    ctx.fillStyle=`rgba(255,10,0,${a.toFixed(3)})`;
-    ctx.fillRect(0,0,w,mouthH+CH*0.6);
-  } else {
-    ctx.fillStyle='rgba(40,0,0,0.28)';
-    ctx.fillRect(0,0,w,mouthH);
+  // ── CAVE OPENING at top — stone arch where the meg bursts through ──
+  const archH = CH*0.6;
+  // dark rock walls on left and right, arch in center
+  ctx.fillStyle='#0a0c0e';
+  ctx.fillRect(0,-archH,w*0.15,archH+CH*0.2);
+  ctx.fillRect(w*0.85,-archH,w*0.15,archH+CH*0.2);
+  // rock texture patches
+  ctx.fillStyle='#141618';
+  for(const [rx,ry,rw2,rh] of [[0,0,w*0.12,CH*0.18],[w*0.88,0,w*0.12,CH*0.12],[w*0.02,CH*0.1,w*0.08,CH*0.08],[w*0.90,CH*0.06,w*0.08,CH*0.1]]){
+    ctx.fillRect(rx,ry,rw2,rh);
   }
-
-  // ══════════════════════════════════════════════
-  // MEGALODON HEAD — occupies top 50% of canvas
-  // Head bleeds off top; lower jaw hangs down to mouthH
-  // ══════════════════════════════════════════════
-  const lowerJawBottom = mouthH * jaw;   // jaw=1 → lower jaw tip at mouthH
-  const upperJawBottom = 0;              // upper jaw sits at canvas top row
-
-  // ── HEAD BODY (behind everything else) ──
-  // The skull fills the whole top half with organic shapes
-  const skinTop = stunned?'#1e4a68':'#14222e';
-  const skinMid = stunned?'#2a6888':'#1e3040';
-  const skinEdge= stunned?'#0e2838':'#080f18';
-
-  // Main skull mass
-  const sg=ctx.createRadialGradient(w*0.5,-h*0.1,w*0.05,w*0.5,-h*0.1,w*0.75);
-  sg.addColorStop(0,stunned?'#2a6888':'#22364a');
-  sg.addColorStop(0.5,stunned?'#1a4860':'#141e2c');
-  sg.addColorStop(1,stunned?'#0a2030':'#060c14');
-  ctx.fillStyle=sg; ctx.strokeStyle=skinEdge; ctx.lineWidth=Math.max(3,w*0.008);
+  // arch shape — stone keystone arch
+  ctx.fillStyle='#0a0c0e'; ctx.strokeStyle='#1c2024'; ctx.lineWidth=Math.max(3,w*0.01);
   ctx.beginPath();
-  ctx.moveTo(-w*0.02, mouthH*0.55);
-  ctx.bezierCurveTo(-w*0.05,-h*0.05, w*0.15,-h*0.22, w*0.5,-h*0.24);
-  ctx.bezierCurveTo(w*0.85,-h*0.22, w*1.05,-h*0.05, w*1.02, mouthH*0.55);
+  ctx.moveTo(0,0);
+  ctx.lineTo(w*0.14,0);
+  ctx.quadraticCurveTo(w*0.2,-archH*0.6, w*0.5,-archH*0.55);
+  ctx.quadraticCurveTo(w*0.8,-archH*0.6, w*0.86,0);
+  ctx.lineTo(w,0); ctx.lineTo(w,-archH*2); ctx.lineTo(0,-archH*2);
   ctx.closePath(); ctx.fill(); ctx.stroke();
-
-  // Skin texture — subtle muscle lines
-  ctx.strokeStyle='rgba(0,0,0,0.22)'; ctx.lineWidth=Math.max(1,w*0.005);
-  const texLines=[
-    [[w*0.1,-h*0.05],[w*0.35,-h*0.12],[w*0.5,-h*0.14]],
-    [[w*0.9,-h*0.05],[w*0.65,-h*0.12],[w*0.5,-h*0.14]],
-    [[w*0.05,mouthH*0.3],[w*0.2,mouthH*0.15],[w*0.4,mouthH*0.08]],
-    [[w*0.95,mouthH*0.3],[w*0.8,mouthH*0.15],[w*0.6,mouthH*0.08]],
-  ];
-  for(const pts of texLines){
-    ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]);
-    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]);
-    ctx.stroke();
+  // stone block lines on arch
+  ctx.strokeStyle='rgba(40,44,48,0.9)'; ctx.lineWidth=Math.max(1,w*0.004);
+  for(let i=0;i<6;i++){
+    const t=i/5;
+    const ax=w*0.14+t*(w*0.72), ay=-(archH*0.55)*Math.sin(t*Math.PI)*0.6;
+    ctx.beginPath(); ctx.moveTo(ax-w*0.02,ay-CH*0.06); ctx.lineTo(ax+w*0.02,ay-CH*0.06); ctx.stroke();
+  }
+  // moss/algae drips on arch edges
+  ctx.fillStyle='rgba(20,60,30,0.5)';
+  for(let i=0;i<8;i++){
+    const dx=w*0.02+i*w*0.12, dy=Math.sin(i*1.4)*CH*0.04;
+    ctx.beginPath(); ctx.ellipse(dx,dy,w*0.008,CH*0.06+Math.random()*CH*0.04,0,0,Math.PI*2); ctx.fill();
   }
 
-  // ── ROSTRUM (snout) — bulges down between the jaws ──
-  const rostrumG=ctx.createLinearGradient(w*0.5,-h*0.05,w*0.5,mouthH*0.5);
-  rostrumG.addColorStop(0,stunned?'#2a6888':'#1e3040');
-  rostrumG.addColorStop(1,stunned?'#3a88a8':'#2a4860');
-  ctx.fillStyle=rostrumG; ctx.strokeStyle=skinEdge; ctx.lineWidth=Math.max(2,w*0.006);
-  ctx.beginPath();
-  ctx.moveTo(w*0.3, upperJawBottom);
-  ctx.bezierCurveTo(w*0.35, mouthH*0.15, w*0.42, mouthH*0.3, w*0.5, mouthH*0.42);
-  ctx.bezierCurveTo(w*0.58, mouthH*0.3, w*0.65, mouthH*0.15, w*0.7, upperJawBottom);
-  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // only draw the meg if it has started to appear
+  if(headY>0.01){
 
-  // ── EYES — large, cold, positioned on either side of rostrum ──
-  const eyeY = mouthH*0.18;
-  const eyePairs=[[w*0.16, eyeY],[w*0.84, eyeY]];
-  for(const [ex,ey] of eyePairs){
-    // orbital socket — dark sunken area
-    ctx.fillStyle='rgba(0,0,0,0.55)';
-    ctx.beginPath(); ctx.ellipse(ex,ey,w*0.075,w*0.058,0,0,Math.PI*2); ctx.fill();
-    // sclera — whites of the eye (cold grey-white, not warm)
-    const eg=ctx.createRadialGradient(ex-w*0.015,ey-w*0.012,1,ex,ey,w*0.058);
-    eg.addColorStop(0,stunned?'#b0d8e8':'#c8d4ce');
-    eg.addColorStop(0.7,stunned?'#7ab0c8':'#90a89e');
-    eg.addColorStop(1,'#404840');
-    ctx.fillStyle=eg; ctx.beginPath(); ctx.ellipse(ex,ey,w*0.058,w*0.044,0,0,Math.PI*2); ctx.fill();
-    // iris — amber/gold ring (predator eyes)
-    ctx.strokeStyle=stunned?'rgba(60,160,220,0.8)':'rgba(160,120,40,0.9)';
-    ctx.lineWidth=Math.max(3,w*0.014);
-    ctx.beginPath(); ctx.ellipse(ex,ey,w*0.038,w*0.030,0,0,Math.PI*2); ctx.stroke();
-    // pupil — vertical slit like a real shark
-    ctx.fillStyle='#000407';
-    ctx.beginPath(); ctx.ellipse(ex,ey,w*0.010,w*0.028,0,0,Math.PI*2); ctx.fill();
-    // specular highlight
-    ctx.fillStyle='rgba(255,255,255,0.55)';
-    ctx.beginPath(); ctx.arc(ex-w*0.016,ey-w*0.013,w*0.010,0,Math.PI*2); ctx.fill();
-    // heavy brow — creates the menacing glare
-    ctx.fillStyle=stunned?'#0e2838':'#08121c';
+    // ── HEAD BODY — wide snout filling the arch opening ──
+    // The neck/body goes off screen top; only the front face is visible
+    const headW=w*0.72;   // snout width
+    const headCX=w*0.5;
+    const bodyTopY=-CH*2;  // body extends up off screen
+
+    // head glow — green teal like the reference
+    const gc=stunned?'rgba(80,200,255,0.4)':'rgba(30,180,120,0.35)';
+    const gl=ctx.createRadialGradient(headCX,headTipY,w*0.05,headCX,headTipY,w*0.6);
+    gl.addColorStop(0,gc); gl.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=gl; ctx.fillRect(0,bodyTopY,w,headTipY+CH*2);
+
+    // skin gradient — bluish grey, like the reference art
+    const skinG=ctx.createLinearGradient(0,bodyTopY,0,headTipY);
+    skinG.addColorStop(0,stunned?'#1a4a6a':'#1c2e3c');
+    skinG.addColorStop(0.5,stunned?'#2a6a8a':'#2a4050');
+    skinG.addColorStop(1,stunned?'#3a8aaa':'#3a5c70');
+    ctx.fillStyle=skinG; ctx.strokeStyle=stunned?'#0e3050':'#0a1820';
+    ctx.lineWidth=Math.max(3,w*0.012);
+
+    // main head shape — wide at top, tapers to snout at headTipY
     ctx.beginPath();
-    ctx.moveTo(ex-w*0.09,ey-w*0.025);
-    ctx.bezierCurveTo(ex-w*0.04,ey-w*0.075, ex+w*0.04,ey-w*0.075, ex+w*0.09,ey-w*0.025);
-    ctx.lineTo(ex+w*0.082,ey-w*0.008);
-    ctx.bezierCurveTo(ex+w*0.03,ey-w*0.048, ex-w*0.03,ey-w*0.048, ex-w*0.082,ey-w*0.008);
-    ctx.closePath(); ctx.fill();
-  }
-
-  // ── NOSTRILS ──
-  ctx.fillStyle='rgba(0,0,0,0.7)';
-  for(const nx of [w*0.44,w*0.56]){
-    ctx.beginPath(); ctx.ellipse(nx,mouthH*0.32,w*0.018,w*0.012,nx<w*0.5?0.4:-0.4,0,Math.PI*2); ctx.fill();
-  }
-
-  // ── UPPER JAW FLESH — dark red, meaty ──
-  const uFleshG=ctx.createLinearGradient(0,-h*0.02,0,mouthH*0.25);
-  uFleshG.addColorStop(0,stunned?'#1a4a60':'#280808');
-  uFleshG.addColorStop(1,stunned?'#2a6a80':'#6a1010');
-  ctx.fillStyle=uFleshG;
-  ctx.fillRect(0,upperJawBottom,w,mouthH*0.22);
-
-  // ── LOWER JAW FLESH — hinges and drops down ──
-  const lFleshG=ctx.createLinearGradient(0,lowerJawBottom-mouthH*0.18,0,lowerJawBottom);
-  lFleshG.addColorStop(0,stunned?'#2a6a80':'#8a1414');
-  lFleshG.addColorStop(1,stunned?'#1a4a60':'#3a0808');
-  ctx.fillStyle=lFleshG;
-  // lower jaw arcs slightly (realistic jaw shape)
-  ctx.beginPath();
-  ctx.moveTo(-w*0.02, lowerJawBottom-mouthH*0.16);
-  ctx.quadraticCurveTo(w*0.5, lowerJawBottom+mouthH*0.04, w*1.02, lowerJawBottom-mouthH*0.16);
-  ctx.lineTo(w*1.02, lowerJawBottom);
-  ctx.quadraticCurveTo(w*0.5, lowerJawBottom+mouthH*0.12, -w*0.02, lowerJawBottom);
-  ctx.closePath(); ctx.fill();
-
-  // ── TEETH — real megalodon teeth: wide base, serrated edges, slightly curved ──
-  const nTeeth=9;   // fewer, much larger teeth
-  const tW=w/nTeeth;
-
-  function drawTooth(tipX, baseLeft, baseRight, baseY, tipY, serrate){
-    // main tooth body — tapered, slightly curved
-    ctx.beginPath();
-    ctx.moveTo(baseLeft, baseY);
-    ctx.bezierCurveTo(baseLeft+tW*0.04, baseY+(tipY-baseY)*0.4,
-                      tipX-tW*0.05, baseY+(tipY-baseY)*0.7, tipX, tipY);
-    ctx.bezierCurveTo(tipX+tW*0.05, baseY+(tipY-baseY)*0.7,
-                      baseRight-tW*0.04, baseY+(tipY-baseY)*0.4, baseRight, baseY);
+    ctx.moveTo(-w*0.02,bodyTopY);
+    ctx.lineTo(w*1.02,bodyTopY);
+    ctx.lineTo(headCX+headW*0.5, headTipY-CH*0.3);
+    ctx.bezierCurveTo(headCX+headW*0.4,headTipY, headCX+headW*0.2,headTipY+CH*0.1, headCX,headTipY+CH*0.05);
+    ctx.bezierCurveTo(headCX-headW*0.2,headTipY+CH*0.1, headCX-headW*0.4,headTipY, headCX-headW*0.5,headTipY-CH*0.3);
     ctx.closePath(); ctx.fill(); ctx.stroke();
-    // serrations on edges (the defining megalodon feature)
-    if(serrate && Math.abs(tipY-baseY)>CH*0.3){
-      ctx.strokeStyle='rgba(80,100,90,0.7)'; ctx.lineWidth=Math.max(1,tW*0.025);
-      const nSerr=4; const side=tW*0.06;
-      for(let s=0;s<nSerr;s++){
-        const t=0.25+s*0.18;
-        // left serration
-        const lx=baseLeft+(tipX-baseLeft)*t, ly=baseY+(tipY-baseY)*t;
-        ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(lx-side,ly+(tipY-baseY)*0.06); ctx.stroke();
-        // right serration
-        const rx=baseRight+(tipX-baseRight)*t, ry=baseY+(tipY-baseY)*t;
-        ctx.beginPath(); ctx.moveTo(rx,ry); ctx.lineTo(rx+side,ry+(tipY-baseY)*0.06); ctx.stroke();
-      }
-      ctx.strokeStyle=stunned?'#8ab0c0':'#90a898'; ctx.lineWidth=Math.max(1,tW*0.06);
-    }
-  }
 
-  const toothH=mouthH*0.55;   // teeth are TALL — more than half the mouth height
-  const toothCol=stunned?'#c0d8e2':'#eef5f0';
-  const toothEdge=stunned?'#88b0c0':'#8ab898';
-  const toothShad=stunned?'#a0c4d2':'#c8dece';
-
-  // Upper teeth (hang DOWN from upper jaw)
-  for(let i=0;i<nTeeth;i++){
-    const cx2=tW*(i+0.5);
-    const th=toothH*(0.55+0.45*Math.sin(i*2.2+0.4))*( i===0||i===nTeeth-1?0.45:1);
-    const bW=tW*(0.62+0.1*Math.sin(i*1.3));   // wider at base
-    ctx.fillStyle=toothCol; ctx.strokeStyle=toothEdge; ctx.lineWidth=Math.max(2,tW*0.06);
-    drawTooth(cx2, cx2-bW/2, cx2+bW/2, mouthH*0.20, mouthH*0.20+th, true);
-    // shadow/depth shading on tooth
-    const sdg=ctx.createLinearGradient(cx2-bW/2,0,cx2+bW/2,0);
-    sdg.addColorStop(0,'rgba(0,0,0,0.28)'); sdg.addColorStop(0.45,'rgba(0,0,0,0)'); sdg.addColorStop(1,'rgba(0,0,0,0.22)');
-    ctx.fillStyle=sdg;
-    ctx.beginPath(); ctx.moveTo(cx2-bW/2,mouthH*0.20); ctx.lineTo(cx2,mouthH*0.20+th); ctx.lineTo(cx2+bW/2,mouthH*0.20); ctx.closePath(); ctx.fill();
-  }
-
-  // Lower teeth (point UP from lower jaw)
-  for(let i=0;i<nTeeth;i++){
-    const cx2=tW*(i+0.5);
-    const th=toothH*(0.5+0.45*Math.sin(i*1.9+1.1))*(i===0||i===nTeeth-1?0.4:1);
-    const bW=tW*(0.58+0.1*Math.sin(i*1.7));
-    const baseY=lowerJawBottom-mouthH*0.08;
-    ctx.fillStyle=toothCol; ctx.strokeStyle=toothEdge; ctx.lineWidth=Math.max(2,tW*0.06);
-    drawTooth(cx2, cx2-bW/2, cx2+bW/2, baseY, baseY-th, true);
-    const sdg=ctx.createLinearGradient(cx2-bW/2,0,cx2+bW/2,0);
-    sdg.addColorStop(0,'rgba(0,0,0,0.24)'); sdg.addColorStop(0.45,'rgba(0,0,0,0)'); sdg.addColorStop(1,'rgba(0,0,0,0.18)');
-    ctx.fillStyle=sdg;
-    ctx.beginPath(); ctx.moveTo(cx2-bW/2,baseY); ctx.lineTo(cx2,baseY-th); ctx.lineTo(cx2+bW/2,baseY); ctx.closePath(); ctx.fill();
-  }
-
-  // Inner row of smaller teeth (real megs had multiple tooth rows)
-  const nInner=8; const iTW=w/nInner;
-  for(let pass=0;pass<2;pass++){
-    for(let i=0;i<nInner;i++){
-      const cx2=iTW*(i+0.5)+iTW*0.5;
-      const th2=(toothH*0.38)*(0.5+0.5*Math.sin(i*2.5+pass));
-      const bW2=iTW*0.42;
-      const col2=pass===0?toothShad:toothCol;
-      // upper inner
-      const uy=mouthH*0.22;
-      ctx.fillStyle=col2; ctx.strokeStyle=toothEdge; ctx.lineWidth=Math.max(1,iTW*0.04);
-      ctx.beginPath(); ctx.moveTo(cx2-bW2/2,uy); ctx.lineTo(cx2,uy+th2); ctx.lineTo(cx2+bW2/2,uy); ctx.closePath(); ctx.fill(); ctx.stroke();
-      // lower inner
-      const ly2=lowerJawBottom-mouthH*0.10;
-      ctx.beginPath(); ctx.moveTo(cx2-bW2/2,ly2); ctx.lineTo(cx2,ly2-th2); ctx.lineTo(cx2+bW2/2,ly2); ctx.closePath(); ctx.fill(); ctx.stroke();
-    }
-  }
-
-  // ── DARK THROAT / MOUTH VOID between teeth ──
-  const throatTop=mouthH*0.22+toothH*0.2;
-  const throatBot=lowerJawBottom-mouthH*0.08-toothH*0.2;
-  if(throatBot>throatTop){
-    const vg=ctx.createLinearGradient(0,throatTop,0,throatBot);
-    vg.addColorStop(0,'rgba(0,0,0,0.96)');
-    vg.addColorStop(0.4,'rgba(4,0,0,0.88)');
-    vg.addColorStop(1,'rgba(4,0,0,0.2)');
-    ctx.fillStyle=vg; ctx.fillRect(0,throatTop,w,throatBot-throatTop);
-    // uvula / back of throat
-    ctx.fillStyle=stunned?'#1a4a60':'#5a1010';
+    // belly — lighter underside like a real shark
+    ctx.fillStyle=stunned?'rgba(180,220,235,0.5)':'rgba(210,230,228,0.42)';
     ctx.beginPath();
-    ctx.ellipse(w*0.5,(throatTop+throatBot)*0.5,w*0.06,toothH*0.14,0,0,Math.PI*2);
+    ctx.moveTo(headCX-headW*0.28,headTipY-CH*0.25);
+    ctx.bezierCurveTo(headCX-headW*0.15,headTipY+CH*0.1,headCX+headW*0.15,headTipY+CH*0.1,headCX+headW*0.28,headTipY-CH*0.25);
+    ctx.quadraticCurveTo(headCX,headTipY+CH*0.18,headCX-headW*0.28,headTipY-CH*0.25);
     ctx.fill();
-    // blood vessel texture in throat
-    ctx.strokeStyle='rgba(80,0,0,0.4)'; ctx.lineWidth=Math.max(1.5,w*0.005); ctx.lineCap='round';
-    for(let i=0;i<5;i++){
-      const vx=w*(0.2+i*0.15), vy1=throatTop+4, vy2=vy1+toothH*(0.2+0.1*Math.sin(i*2));
-      ctx.beginPath(); ctx.moveTo(vx,vy1); ctx.quadraticCurveTo(vx+w*0.03,vy1+(vy2-vy1)*0.5,vx,vy2); ctx.stroke();
-    }
-  }
 
-  // ── SNAP WARNING VISUAL — jaw creeps toward center ──
-  if(warning){
-    const pulse=0.12+0.10*Math.sin(T*24);
-    ctx.fillStyle=`rgba(255,0,0,${pulse.toFixed(3)})`; ctx.fillRect(0,0,w,mouthH+CH);
-    // warning stripes on the danger line
-    for(let i=0;i<Math.ceil(w/40);i++){
-      const stripe=(i%2===0)?'rgba(255,60,0,0.35)':'rgba(0,0,0,0)';
-      ctx.fillStyle=stripe; ctx.fillRect(i*40,mouthH-4,40,8);
+    // skin texture — wrinkle lines on the face
+    ctx.strokeStyle='rgba(0,0,0,0.20)'; ctx.lineWidth=Math.max(1,w*0.004); ctx.lineCap='round';
+    const wrinkles=[
+      [headCX-headW*0.45,headTipY-CH*1.2, headCX-headW*0.2,headTipY-CH*0.5],
+      [headCX+headW*0.45,headTipY-CH*1.2, headCX+headW*0.2,headTipY-CH*0.5],
+      [headCX-headW*0.3,headTipY-CH*0.8,  headCX,headTipY-CH*0.4],
+      [headCX+headW*0.3,headTipY-CH*0.8,  headCX,headTipY-CH*0.4],
+    ];
+    for(const [x1,y1,x2,y2] of wrinkles){
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.quadraticCurveTo((x1+x2)/2,(y1+y2)/2-CH*0.1,x2,y2); ctx.stroke();
     }
-  }
-  if(snapping){
-    ctx.fillStyle='rgba(255,0,0,0.28)'; ctx.fillRect(0,0,w,h);
-  }
 
-  // ── ICE STUN OVERLAY ──
-  if(stunned){
-    ctx.fillStyle='rgba(80,200,255,0.07)'; ctx.fillRect(0,0,w,mouthH);
-    ctx.strokeStyle='rgba(140,230,255,0.75)'; ctx.lineWidth=2; ctx.lineCap='round';
-    for(let i=0;i<10;i++){
-      const sx=w*0.05+i*w*0.10, sy=mouthH*0.3+Math.sin(i*1.7)*mouthH*0.12;
-      ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(sx+CW*0.35,sy+CH*0.6);
-      ctx.lineTo(sx-CW*0.14,sy+CH*0.96); ctx.stroke();
+    // ── EYES — huge, forward-facing, predator ──
+    const eyeY=headTipY-CH*1.05;
+    for(const [ex,flip] of [[headCX-headW*0.22,1],[headCX+headW*0.22,-1]]){
+      // orbital socket
+      ctx.fillStyle='rgba(0,0,0,0.6)';
+      ctx.beginPath(); ctx.ellipse(ex,eyeY,w*0.072,w*0.055,flip*0.15,0,Math.PI*2); ctx.fill();
+      // sclera — cold grey-white
+      const eg=ctx.createRadialGradient(ex+flip*w*0.015,eyeY-w*0.01,1,ex,eyeY,w*0.055);
+      eg.addColorStop(0,stunned?'#b0d4e8':'#c8d0cc');
+      eg.addColorStop(0.6,stunned?'#7aaac0':'#8a9e98');
+      eg.addColorStop(1,'#303830');
+      ctx.fillStyle=eg; ctx.beginPath(); ctx.ellipse(ex,eyeY,w*0.055,w*0.042,flip*0.15,0,Math.PI*2); ctx.fill();
+      // iris ring — amber/gold predator eyes
+      ctx.strokeStyle=stunned?'rgba(60,160,220,0.85)':'rgba(180,130,30,0.9)';
+      ctx.lineWidth=Math.max(3,w*0.014);
+      ctx.beginPath(); ctx.ellipse(ex,eyeY,w*0.036,w*0.028,flip*0.15,0,Math.PI*2); ctx.stroke();
+      // pupil — vertical slit
+      ctx.fillStyle='#010305';
+      ctx.beginPath(); ctx.ellipse(ex,eyeY,w*0.009,w*0.028,0,0,Math.PI*2); ctx.fill();
+      // specular
+      ctx.fillStyle='rgba(255,255,255,0.5)';
+      ctx.beginPath(); ctx.arc(ex-flip*w*0.014,eyeY-w*0.012,w*0.009,0,Math.PI*2); ctx.fill();
+      // heavy brow for menacing look
+      ctx.fillStyle=stunned?'#0e2840':'#06101c';
+      ctx.beginPath();
+      ctx.moveTo(ex-w*0.085,eyeY-w*0.018);
+      ctx.bezierCurveTo(ex-w*0.03,eyeY-w*0.07, ex+w*0.03,eyeY-w*0.07, ex+w*0.085,eyeY-w*0.018);
+      ctx.lineTo(ex+w*0.078,eyeY-w*0.005);
+      ctx.bezierCurveTo(ex+w*0.025,eyeY-w*0.045, ex-w*0.025,eyeY-w*0.045, ex-w*0.078,eyeY-w*0.005);
+      ctx.closePath(); ctx.fill();
     }
-    ctx.font=`${Math.floor(w*0.09)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('🥶',w*0.5,mouthH*0.5);
+
+    // nostrils
+    ctx.fillStyle='rgba(0,0,0,0.75)';
+    for(const [nx,ang] of [[headCX-headW*0.09,0.4],[headCX+headW*0.09,-0.4]]){
+      ctx.beginPath(); ctx.ellipse(nx,headTipY-CH*0.55,w*0.016,w*0.011,ang,0,Math.PI*2); ctx.fill();
+    }
+
+    // gills — 5 slits on each side
+    ctx.strokeStyle='rgba(8,20,30,0.65)'; ctx.lineWidth=Math.max(2,w*0.008); ctx.lineCap='round';
+    for(let side=-1;side<=1;side+=2){
+      for(let g=0;g<4;g++){
+        const gx=headCX+side*(headW*0.34+g*w*0.046);
+        const gy1=headTipY-CH*0.9+g*CH*0.05;
+        const gy2=gy1+CH*0.38;
+        ctx.beginPath(); ctx.moveTo(gx,gy1); ctx.lineTo(gx+side*w*0.008,gy2); ctx.stroke();
+      }
+    }
+
+    // ── THE JAW — opens downward from headTipY ──
+    const jawGape = jaw * CH * 3.2;   // jaw opens up to 3.2 rows into arena
+    const upperJawY = headTipY;
+    const lowerJawY = headTipY + jawGape;
+
+    // upper jaw / palate (fixed)
+    const ujG=ctx.createLinearGradient(0,upperJawY-CH*0.3,0,upperJawY+CH*0.1);
+    ujG.addColorStop(0,stunned?'#2a5a78':'#1e0c0c');
+    ujG.addColorStop(1,stunned?'#3a7a98':'#6a1414');
+    ctx.fillStyle=ujG;
+    ctx.beginPath();
+    ctx.moveTo(headCX-headW*0.5,upperJawY-CH*0.3);
+    ctx.quadraticCurveTo(headCX,upperJawY+CH*0.08, headCX+headW*0.5,upperJawY-CH*0.3);
+    ctx.lineTo(headCX+headW*0.5,upperJawY+CH*0.12);
+    ctx.quadraticCurveTo(headCX,upperJawY+CH*0.22, headCX-headW*0.5,upperJawY+CH*0.12);
+    ctx.closePath(); ctx.fill();
+
+    // lower jaw (swings down)
+    if(jaw>0.02){
+      const ljG=ctx.createLinearGradient(0,lowerJawY-CH*0.1,0,lowerJawY+CH*0.15);
+      ljG.addColorStop(0,stunned?'#4a8aaa':'#8a1414');
+      ljG.addColorStop(1,stunned?'#2a6a8a':'#3a0808');
+      ctx.fillStyle=ljG; ctx.strokeStyle=stunned?'#1a4060':'#1a0404'; ctx.lineWidth=Math.max(2,w*0.008);
+      ctx.beginPath();
+      ctx.moveTo(headCX-headW*0.44, upperJawY+CH*0.05);
+      ctx.quadraticCurveTo(headCX-headW*0.48, upperJawY+jawGape*0.5, headCX-headW*0.38, lowerJawY);
+      ctx.quadraticCurveTo(headCX, lowerJawY+CH*0.14, headCX+headW*0.38, lowerJawY);
+      ctx.quadraticCurveTo(headCX+headW*0.48, upperJawY+jawGape*0.5, headCX+headW*0.44, upperJawY+CH*0.05);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+
+      // gums — fleshy red/pink edge
+      const gumG=ctx.createLinearGradient(0,lowerJawY,0,lowerJawY+CH*0.14);
+      gumG.addColorStop(0,stunned?'rgba(60,140,200,0.9)':'rgba(200,20,20,0.95)');
+      gumG.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=gumG;
+      ctx.beginPath();
+      ctx.moveTo(headCX-headW*0.38,lowerJawY);
+      ctx.quadraticCurveTo(headCX,lowerJawY+CH*0.14,headCX+headW*0.38,lowerJawY);
+      ctx.lineTo(headCX+headW*0.38,lowerJawY+CH*0.14);
+      ctx.quadraticCurveTo(headCX,lowerJawY+CH*0.24,headCX-headW*0.38,lowerJawY+CH*0.14);
+      ctx.closePath(); ctx.fill();
+
+      // upper gum
+      ctx.fillStyle=stunned?'rgba(40,120,180,0.75)':'rgba(160,15,15,0.8)';
+      ctx.beginPath();
+      ctx.moveTo(headCX-headW*0.48,upperJawY+CH*0.08);
+      ctx.quadraticCurveTo(headCX,upperJawY+CH*0.22,headCX+headW*0.48,upperJawY+CH*0.08);
+      ctx.lineTo(headCX+headW*0.46,upperJawY+CH*0.14);
+      ctx.quadraticCurveTo(headCX,upperJawY+CH*0.28,headCX-headW*0.46,upperJawY+CH*0.14);
+      ctx.closePath(); ctx.fill();
+    }
+
+    // ── TEETH ──
+    if(jaw>0.05){
+      const nTeeth=8;
+      const tW=(headW*0.88)/nTeeth;
+      const toothStartX=headCX-headW*0.44;
+      const toothH=Math.min(jaw*CH*1.6, CH*1.5);
+
+      ctx.lineCap='round';
+      for(let i=0;i<nTeeth;i++){
+        const tx=toothStartX+i*tW;
+        const tcx=tx+tW*0.5;
+        const th=toothH*(0.55+0.45*Math.sin(i*2.1+0.5))*(i===0||i===nTeeth-1?0.55:1.0);
+        const bW=tW*0.72;
+
+        // upper tooth — hangs DOWN from upper jaw
+        const uBase=upperJawY+CH*0.18;
+        const toothG=ctx.createLinearGradient(tcx-bW/2,uBase,tcx+bW/2,uBase);
+        toothG.addColorStop(0,'rgba(0,0,0,0.3)'); toothG.addColorStop(0.45,'rgba(255,255,255,0.1)'); toothG.addColorStop(1,'rgba(0,0,0,0.25)');
+        ctx.fillStyle=stunned?'#b8d4dc':'#e8f2ee'; ctx.strokeStyle=stunned?'#80aab8':'#8ab898';
+        ctx.lineWidth=Math.max(1.5,tW*0.07);
+        ctx.beginPath();
+        ctx.moveTo(tx+tW*0.04, uBase);
+        ctx.bezierCurveTo(tx+tW*0.04,uBase+th*0.5, tcx-tW*0.06,uBase+th*0.85, tcx,uBase+th);
+        ctx.bezierCurveTo(tcx+tW*0.06,uBase+th*0.85, tx+tW*0.96,uBase+th*0.5, tx+tW*0.96,uBase);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        // depth shading
+        ctx.fillStyle=toothG;
+        ctx.beginPath();
+        ctx.moveTo(tx+tW*0.04,uBase); ctx.bezierCurveTo(tx+tW*0.04,uBase+th*0.5,tcx-tW*0.06,uBase+th*0.85,tcx,uBase+th);
+        ctx.bezierCurveTo(tcx+tW*0.06,uBase+th*0.85,tx+tW*0.96,uBase+th*0.5,tx+tW*0.96,uBase);
+        ctx.closePath(); ctx.fill();
+        // serration marks
+        ctx.strokeStyle='rgba(100,130,110,0.55)'; ctx.lineWidth=Math.max(1,tW*0.025);
+        for(let s=1;s<=3;s++){
+          const t2=s/4;
+          ctx.beginPath(); ctx.moveTo(tx+tW*0.04+(tcx-tW*0.06-(tx+tW*0.04))*t2*1.1, uBase+th*t2);
+          ctx.lineTo(tx-tW*0.04, uBase+th*t2+CH*0.04); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(tx+tW*0.96+(tcx+tW*0.06-(tx+tW*0.96))*t2*1.1, uBase+th*t2);
+          ctx.lineTo(tx+tW*1.04, uBase+th*t2+CH*0.04); ctx.stroke();
+        }
+        ctx.strokeStyle=stunned?'#80aab8':'#8ab898'; ctx.lineWidth=Math.max(1.5,tW*0.07);
+
+        // lower tooth — points UP from lower jaw
+        if(jaw>0.15){
+          const lBase=lowerJawY+CH*0.02;
+          const lth=th*0.85*(i===0||i===nTeeth-1?0.5:1.0);
+          ctx.fillStyle=stunned?'#b8d4dc':'#deeee8'; ctx.strokeStyle=stunned?'#80aab8':'#8ab898';
+          ctx.beginPath();
+          ctx.moveTo(tx+tW*0.1, lBase);
+          ctx.bezierCurveTo(tx+tW*0.1,lBase-lth*0.5, tcx-tW*0.05,lBase-lth*0.85, tcx,lBase-lth);
+          ctx.bezierCurveTo(tcx+tW*0.05,lBase-lth*0.85, tx+tW*0.9,lBase-lth*0.5, tx+tW*0.9,lBase);
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+        }
+      }
+
+      // ── THROAT — dark void between teeth, uvula, blood vessels ──
+      const throatMid=(upperJawY+CH*0.18+toothH*0.5+lowerJawY)/2;
+      const tg=ctx.createRadialGradient(headCX,throatMid,CH*0.1,headCX,throatMid,headW*0.35);
+      tg.addColorStop(0,'rgba(0,0,0,0.98)');
+      tg.addColorStop(0.5,'rgba(5,0,0,0.85)');
+      tg.addColorStop(1,'rgba(5,0,0,0)');
+      ctx.fillStyle=tg;
+      ctx.beginPath(); ctx.ellipse(headCX,throatMid,headW*0.28,CH*1.1,0,0,Math.PI*2); ctx.fill();
+      // uvula
+      ctx.fillStyle=stunned?'#1a5070':'#6a1010';
+      ctx.beginPath(); ctx.ellipse(headCX,throatMid-CH*0.15,w*0.04,CH*0.22,0,0,Math.PI*2); ctx.fill();
+      // blood vessels
+      ctx.strokeStyle='rgba(100,0,0,0.45)'; ctx.lineWidth=Math.max(1.5,w*0.004); ctx.lineCap='round';
+      for(let i=0;i<4;i++){
+        const vx=headCX-headW*0.14+i*headW*0.09;
+        ctx.beginPath(); ctx.moveTo(vx,upperJawY+CH*0.22);
+        ctx.quadraticCurveTo(vx+w*0.02,throatMid,vx,throatMid+CH*0.2); ctx.stroke();
+      }
+    }
+
+    // ── ICE STUN ──
+    if(stunned){
+      ctx.fillStyle='rgba(80,200,255,0.08)'; ctx.fillRect(0,0,w,headTipY+jawGape+CH);
+      ctx.strokeStyle='rgba(140,230,255,0.8)'; ctx.lineWidth=2; ctx.lineCap='round';
+      for(let i=0;i<8;i++){
+        const sx=w*0.1+i*w*0.115, sy=headTipY-CH*0.6+Math.sin(i*1.7)*CH*0.2;
+        ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(sx+CW*0.32,sy+CH*0.55);
+        ctx.lineTo(sx-CW*0.12,sy+CH*0.85); ctx.stroke();
+      }
+      ctx.font=`${Math.floor(w*0.09)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('🥶',w*0.5,headTipY-CH*0.5);
+    }
+
+    // ── LUNGE TELEGRAPH ──
+    if(telegraphing){
+      const p=0.15+0.12*Math.sin(T*22);
+      ctx.fillStyle=`rgba(255,80,0,${p.toFixed(3)})`; ctx.fillRect(0,0,w,h*0.5);
+      ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle='rgba(255,120,40,0.9)'; ctx.font=`700 ${Math.min(22,w*0.055)}px 'Bebas Neue',sans-serif`;
+      ctx.fillText('⚠  INCOMING  ⚠', w*0.5, headTipY+CH*1.2); ctx.restore();
+    }
+    if(lunging||open){
+      const p=0.6+0.4*Math.sin(T*18);
+      ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.globalAlpha=p;
+      ctx.fillStyle=open?'#80e8ff':'#ff4010';
+      ctx.font=`700 ${Math.min(22,w*0.055)}px 'Bebas Neue',sans-serif`;
+      ctx.fillText(open?'❄️ THROW ICE NOW!':'💥 LUNGE!', w*0.5, lowerJawY+CH*0.8);
+      ctx.globalAlpha=1; ctx.restore();
+    }
   }
 
   // ── ICE SHARDS ──
@@ -1309,30 +1385,15 @@ function drawMegalodon(b,w,h){
     ctx.restore();
   }
 
-  // ── DANGER LINE ──
-  ctx.strokeStyle=warning?'rgba(255,40,0,0.95)':stunned?'rgba(80,200,255,0.55)':'rgba(180,20,20,0.55)';
-  ctx.lineWidth=Math.max(2,w*0.006); ctx.setLineDash([12,8]);
-  ctx.beginPath(); ctx.moveTo(0,mouthH); ctx.lineTo(w,mouthH); ctx.stroke();
-  ctx.setLineDash([]);
-
-  // ── LABELS ──
+  // ── HUD PROMPT ──
   ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
-  if(warning||snapping){
-    const pulse=0.7+0.3*Math.sin(T*22);
-    ctx.globalAlpha=pulse;
-    ctx.fillStyle=snapping?'#ff0808':'#ff4a08';
-    ctx.font=`700 ${Math.min(26,w*0.065)}px 'Bebas Neue',sans-serif`;
-    ctx.fillText(snapping?'💥  SNAP!  💥':'⚠  JAWS CLOSING  ⚠', w*0.5, mouthH+CH*0.55);
-    ctx.globalAlpha=1;
-  }
-  const inMouth=state.whale.row<(b.mouthRows||4);
-  const canThrow=!((state.iceShardCd||0)>0);
-  const ptxt=inMouth?(canThrow?'❄️ THROW ICE NOW!':'❄️ RELOADING…'):'↑ SWIM INTO THE MOUTH · THROW ICE SHARDS';
-  const pcol=inMouth?(canThrow?'#80e8ff':'#50a0c0'):'rgba(200,235,255,0.7)';
+  const jawVisible=jaw>0.4;
+  const ptxt=jawVisible?'❄️ THROW ICE INTO THE THROAT':'WAIT FOR THE LUNGE · THEN THROW ICE';
+  const pcol=jawVisible?'#80e8ff':'rgba(180,220,255,0.6)';
   const fs=Math.min(13,w*0.034); ctx.font=`${fs}px 'Bebas Neue',sans-serif`;
   const tw=ctx.measureText(ptxt).width;
   ctx.fillStyle='rgba(4,12,24,0.75)'; roundRect(w/2-tw/2-10,h*0.91-fs,tw+20,fs*2,5); ctx.fill();
-  const pp=inMouth?(canThrow?1:0.45):0.5+0.5*Math.sin(T*3.5);
+  const pp=jawVisible?0.9+0.1*Math.sin(T*6):0.45+0.35*Math.sin(T*2);
   ctx.globalAlpha=pp; ctx.fillStyle=pcol; ctx.fillText(ptxt,w*0.5,h*0.91); ctx.globalAlpha=1;
   ctx.restore();
 }
@@ -2843,7 +2904,7 @@ function renderBoss(w,h){
     const grd=ctx.createLinearGradient(bx,0,bx+bw,0); grd.addColorStop(0,'#ff5a7a'); grd.addColorStop(1,'#b06bff');
     ctx.fillStyle=grd; ctx.fillRect(bx,by,bw*frac,bh);
     ctx.font=`600 ${Math.max(9,Math.floor(CW*0.18))}px 'DM Mono',monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillStyle='#fff'; ctx.fillText(b.type==='turtle' ? 'GIANT SEA TURTLE' : `THE KRAKEN  ·  BOSS ${b.num}/5`, w/2, by+bh/2);
+    ctx.fillStyle='#fff'; ctx.fillText(b.type==='turtle' ? 'GIANT SEA TURTLE' : b.type==='megalodon' ? 'MEGALODON  ·  APEX PREDATOR' : `THE KRAKEN  ·  BOSS ${b.num}/5`, w/2, by+bh/2);
   }
   // clearing celebration (gem rise)
   if(state.phase==='clear' && state.clearGem){
