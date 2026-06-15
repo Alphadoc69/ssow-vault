@@ -215,24 +215,15 @@
     canvas{max-width:100%;}
     .hud{max-width:100%;}
   }
-  /* depth reward overlay bg lines */
-  .mid-bg-lines{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
-  .mid-bg-line{position:absolute;top:-10%;width:1px;height:120%;background:linear-gradient(to bottom,transparent,rgba(91,200,232,0.5),transparent);animation:midLineFloat linear infinite;}
-  @keyframes midLineFloat{from{transform:translateY(-20%)}to{transform:translateY(20%)}}
-  /* cards */
-  .mid-upg-card{display:flex;flex-direction:row;align-items:flex-start;gap:10px;background:rgba(12,28,50,0.9);border:1.5px solid rgba(91,200,232,0.2);border-radius:12px;padding:14px 12px;cursor:pointer;text-align:left;transition:border-color 0.18s,background 0.18s,box-shadow 0.18s,transform 0.12s;width:100%;box-sizing:border-box;}
-  .mid-upg-card:hover{border-color:rgba(91,200,232,0.85);background:rgba(18,45,75,0.95);box-shadow:0 0 20px rgba(91,200,232,0.2),inset 0 0 12px rgba(91,200,232,0.05);transform:translateY(-2px);}
-  .mid-upg-card:active{transform:translateY(0);}
-  .mid-upg-card.wealthy{border-color:rgba(255,210,80,0.3);}
-  .mid-upg-card.wealthy:hover{border-color:rgba(255,210,80,0.9);box-shadow:0 0 20px rgba(255,200,60,0.25);}
-  .mid-upg-card.locked{opacity:0.4;cursor:not-allowed;filter:grayscale(0.4);}
-  .mid-card-icon{font-size:1.8rem;flex-shrink:0;line-height:1;margin-top:2px;}
-  .mid-card-body{display:flex;flex-direction:column;gap:3px;min-width:0;}
-  .mid-card-name{font-family:'Bebas Neue',sans-serif;font-size:1.0rem;letter-spacing:0.07em;color:#e8f4ff;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-  .mid-card-desc{font-size:0.68rem;color:rgba(170,205,225,0.7);font-family:'DM Mono',monospace;line-height:1.4;}
-  .mid-card-lock{font-size:0.6rem;color:#ffd060;letter-spacing:0.07em;margin-top:3px;}
-  .mid-stack-badge{background:rgba(255,210,60,0.2);border:1px solid rgba(255,210,60,0.5);color:#ffd060;font-size:0.6rem;padding:1px 5px;border-radius:4px;font-family:'DM Mono',monospace;}
-  .mid-active-badge{background:rgba(91,200,232,0.15);border:1px solid rgba(91,200,232,0.4);color:#5bc8e8;font-size:0.58rem;padding:1px 5px;border-radius:4px;font-family:'DM Mono',monospace;letter-spacing:0.06em;}
+  .mid-upg-card{display:flex;flex-direction:column;align-items:flex-start;gap:3px;background:rgba(20,40,60,0.85);border:1.5px solid rgba(91,200,232,0.3);border-radius:10px;padding:12px 14px;cursor:pointer;text-align:left;transition:border-color 0.15s,background 0.15s;width:100%;box-sizing:border-box;}
+  .mid-upg-card:hover{border-color:rgba(91,200,232,0.8);background:rgba(30,60,90,0.9);}
+  .mid-upg-card.wealthy{border-color:rgba(255,210,80,0.4);}
+  .mid-upg-card.wealthy:hover{border-color:rgba(255,210,80,0.9);}
+  .mid-upg-card.locked{opacity:0.45;cursor:not-allowed;}
+  .mid-upg-icon{font-size:1.4rem;}
+  .mid-upg-name{font-family:'Bebas Neue',sans-serif;font-size:1.0rem;letter-spacing:0.07em;color:#e8f4ff;}
+  .mid-upg-desc{font-size:0.72rem;color:rgba(180,210,230,0.7);font-family:'DM Mono',monospace;}
+  .mid-upg-lock{font-size:0.65rem;color:#ffd060;letter-spacing:0.06em;margin-top:2px;}
 </style>
 </head>
 <body>
@@ -257,7 +248,6 @@
     <div class="overlay" id="overlayStart">
       <h2 class="cyan">SOLO DIVE</h2>
       <p class="small">Crack the chest, ride the portal, dive deeper. 100 levels down.</p>
-
 
       <div class="wallet-box">
         <p class="wallet-title">Dive as your own whale</p>
@@ -305,7 +295,7 @@
       <button class="btn" id="rewardBtn">Collect &amp; Dive On ▼</button>
     </div>
 
-    <div class="overlay hidden" id="overlayMidUpgrade">
+    <div class="overlay hidden" id="overlayMidUpgrade" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(8,14,28,0.96);align-items:center;justify-content:center;flex-direction:column;">
   <div style="max-width:380px;width:90%;padding:24px;text-align:center;">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:0.08em;color:#5bc8e8;margin-bottom:4px;">⚡ DEPTH REWARD</div>
     <div style="font-size:0.72rem;color:rgba(160,210,230,0.65);margin-bottom:18px;letter-spacing:0.1em;">CHOOSE AN UPGRADE</div>
@@ -389,15 +379,11 @@
       <p><b>1. Earn pearls.</b> Glowing pearls drift through the dives — swim into them to collect. They're <b>worth more the deeper you go</b> (a rising ×multiplier you'll see up top), and beating a <b>Kraken</b> drops a fat pearl bonus in its hoard.</p>
       <p><b>2. Keep them — or lose them.</b> Pearls you pick up are <b>AT RISK</b> until banked. If you run out of air, the deep keeps <b>every unbanked pearl</b>. Lock them in safely by <b>surfacing</b> (the Surface button) or by <b>clearing a Kraken</b> (a checkpoint). So every level is a bet: push deeper for more, or surface and bank what you've got.</p>
       <p><b>3. Spend them.</b> Banked pearls live in your <b>Vault</b> (saved to your wallet between runs). Before a dive, spend them in the shop on stackable upgrades:</p>
-      <div class="g-row"><span>🐢 Slow Drain — O2 drains 30% slower</span><span class="g-x">18</span></div>
-      <div class="g-row"><span>🛡 Iron Shell — shield every 2 levels</span><span class="g-x">22</span></div>
-      <div class="g-row"><span>🫧 Bubble Bloom — bubbles worth +50% more O2</span><span class="g-x">15</span></div>
-      <div class="g-row"><span>❤️ Extra Life — stackable up to ×3</span><span class="g-x">25 each</span></div>
-      <div class="g-row"><span>⚡ Turbo Fins — +25% move speed</span><span class="g-x">20</span></div>
-      <div class="g-row"><span>💎 Pearl Vault — +50% pearls earned</span><span class="g-x">28</span></div>
-      <div class="g-row"><span>🔵 Orca Shield — orca fires 2× faster, +50% cannon dmg</span><span class="g-x">35</span></div>
-      <div class="g-row"><span>👻 Ghost Step — first hit each level does 0 damage</span><span class="g-x">30</span></div>
-      <p>You also get a permanent <b>XP multiplier</b> (+20% for one whale, up to +50% for a pod) <i>and</i> a <b>pearl bonus</b> (+20% for one WW, scaling to +60% for a large pod) — so every boss clear earns more pearls the more Wealthy Whales you hold.</p>
+      <div class="g-row"><span>🐢 Slow Drain — oxygen drains 25% slower</span><span class="g-x">12</span></div>
+      <div class="g-row"><span>🛡 Spare Shield — a shield every level</span><span class="g-x">10</span></div>
+      <div class="g-row"><span>🫧 Bubble Bloom — more air, worth more</span><span class="g-x">8</span></div>
+      <div class="g-row"><span>❤️ Revive — resurface once instead of dying</span><span class="g-x">15</span></div>
+      <p>You also get a permanent <b>XP multiplier</b> (+20% for one whale, up to +50%) <i>and</i> a <b>pearl bonus</b> (+20% for one WW, up to +60% for a large pod) — more Wealthy Whales = more pearls per boss clear.</p>
     </div>
     <div class="g-sec">
       <h3>⚡ Depth Rewards (every 5 levels)</h3>
@@ -406,64 +392,41 @@
       <p style="font-size:0.78rem;color:rgba(160,210,230,0.7);letter-spacing:0.05em;margin-bottom:6px;">FREE PICKS — 3 shown each time</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px;">
         <div style="background:rgba(20,45,65,0.8);border:1px solid rgba(91,200,232,0.25);border-radius:8px;padding:9px 11px;">
-          <div style="font-size:1.1rem;">🫧</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#e8f4ff;letter-spacing:0.05em;">O2 Cache</div>
-          <div style="font-size:0.68rem;color:rgba(160,210,230,0.6);">+10 max O2 · stacks ×3</div>
-        </div>
+          <div style="font-size:1.1rem;">🫧</div><div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#e8f4ff;">O2 Cache</div>
+          <div style="font-size:0.68rem;color:rgba(160,210,230,0.6);">+10 max O2 · stacks ×3</div></div>
         <div style="background:rgba(20,45,65,0.8);border:1px solid rgba(91,200,232,0.25);border-radius:8px;padding:9px 11px;">
-          <div style="font-size:1.1rem;">🏄</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#e8f4ff;letter-spacing:0.05em;">Speed Fins</div>
-          <div style="font-size:0.68rem;color:rgba(160,210,230,0.6);">moves cost 30% less O2</div>
-        </div>
+          <div style="font-size:1.1rem;">🏄</div><div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#e8f4ff;">Speed Fins</div>
+          <div style="font-size:0.68rem;color:rgba(160,210,230,0.6);">moves cost 30% less O2</div></div>
         <div style="background:rgba(20,45,65,0.8);border:1px solid rgba(91,200,232,0.25);border-radius:8px;padding:9px 11px;">
-          <div style="font-size:1.1rem;">🛡</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#e8f4ff;letter-spacing:0.05em;">Thick Hide</div>
-          <div style="font-size:0.68rem;color:rgba(160,210,230,0.6);">sweeps hurt 20% less</div>
-        </div>
+          <div style="font-size:1.1rem;">🛡</div><div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#e8f4ff;">Thick Hide</div>
+          <div style="font-size:0.68rem;color:rgba(160,210,230,0.6);">sweeps hurt 20% less</div></div>
         <div style="background:rgba(20,45,65,0.8);border:1px solid rgba(91,200,232,0.25);border-radius:8px;padding:9px 11px;">
-          <div style="font-size:1.1rem;">🌊</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#e8f4ff;letter-spacing:0.05em;">Current Read</div>
-          <div style="font-size:0.68rem;color:rgba(160,210,230,0.6);">predators 15% slower</div>
-        </div>
+          <div style="font-size:1.1rem;">🌊</div><div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#e8f4ff;">Current Read</div>
+          <div style="font-size:0.68rem;color:rgba(160,210,230,0.6);">predators 15% slower</div></div>
         <div style="background:rgba(20,45,65,0.8);border:1px solid rgba(91,200,232,0.25);border-radius:8px;padding:9px 11px;grid-column:span 2;">
-          <div style="font-size:1.1rem;">📡</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#e8f4ff;letter-spacing:0.05em;">Sonar Boost <span style="color:#ffd060;font-size:0.65rem;">· unlocks at level 80</span></div>
-          <div style="font-size:0.68rem;color:rgba(160,210,230,0.6);">+1 sonar ping per level</div>
-        </div>
+          <div style="font-size:1.1rem;">📡</div><div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#e8f4ff;">Sonar Boost <span style="color:#ffd060;font-size:0.65rem;">· unlocks at level 80</span></div>
+          <div style="font-size:0.68rem;color:rgba(160,210,230,0.6);">+1 sonar ping per level</div></div>
       </div>
-
       <p style="font-size:0.78rem;color:#ffd060;letter-spacing:0.05em;margin-bottom:6px;">🔒 WEALTHY WHALE EXCLUSIVE — 1 shown each time</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px;">
         <div style="background:rgba(30,25,10,0.8);border:1px solid rgba(255,210,80,0.3);border-radius:8px;padding:9px 11px;">
-          <div style="font-size:1.1rem;">🐚</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#ffd060;letter-spacing:0.05em;">Pearl Aura</div>
-          <div style="font-size:0.68rem;color:rgba(255,210,80,0.6);">pearls worth 2×</div>
-        </div>
+          <div style="font-size:1.1rem;">🐚</div><div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#ffd060;">Pearl Aura</div>
+          <div style="font-size:0.68rem;color:rgba(255,210,80,0.6);">pearls worth 2×</div></div>
         <div style="background:rgba(30,25,10,0.8);border:1px solid rgba(255,210,80,0.3);border-radius:8px;padding:9px 11px;">
-          <div style="font-size:1.1rem;">👑</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#ffd060;letter-spacing:0.05em;">Deep Luck</div>
-          <div style="font-size:0.68rem;color:rgba(255,210,80,0.6);">chest rolls rarity twice</div>
-        </div>
+          <div style="font-size:1.1rem;">👑</div><div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#ffd060;">Deep Luck</div>
+          <div style="font-size:0.68rem;color:rgba(255,210,80,0.6);">chest rolls rarity twice</div></div>
         <div style="background:rgba(30,25,10,0.8);border:1px solid rgba(255,210,80,0.3);border-radius:8px;padding:9px 11px;">
-          <div style="font-size:1.1rem;">🐬</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#ffd060;letter-spacing:0.05em;">Dolphin Pact</div>
-          <div style="font-size:0.68rem;color:rgba(255,210,80,0.6);">dolphins 2× as often</div>
-        </div>
+          <div style="font-size:1.1rem;">🐬</div><div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#ffd060;">Dolphin Pact</div>
+          <div style="font-size:0.68rem;color:rgba(255,210,80,0.6);">dolphins 2× as often</div></div>
         <div style="background:rgba(30,25,10,0.8);border:1px solid rgba(255,210,80,0.3);border-radius:8px;padding:9px 11px;">
-          <div style="font-size:1.1rem;">🌀</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#ffd060;letter-spacing:0.05em;">Whirl Dodge</div>
-          <div style="font-size:0.68rem;color:rgba(255,210,80,0.6);">whirlpools -40% damage</div>
-        </div>
+          <div style="font-size:1.1rem;">🌀</div><div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#ffd060;">Whirl Dodge</div>
+          <div style="font-size:0.68rem;color:rgba(255,210,80,0.6);">whirlpools -40% damage</div></div>
         <div style="background:rgba(30,25,10,0.8);border:1px solid rgba(255,210,80,0.3);border-radius:8px;padding:9px 11px;">
-          <div style="font-size:1.1rem;">🦑</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#ffd060;letter-spacing:0.05em;">Ink Resist</div>
-          <div style="font-size:0.68rem;color:rgba(255,210,80,0.6);">ink balls deal 0 damage</div>
-        </div>
+          <div style="font-size:1.1rem;">🦑</div><div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#ffd060;">Ink Resist</div>
+          <div style="font-size:0.68rem;color:rgba(255,210,80,0.6);">ink balls deal 0 damage</div></div>
         <div style="background:rgba(30,25,10,0.8);border:1px solid rgba(255,210,80,0.3);border-radius:8px;padding:9px 11px;">
-          <div style="font-size:1.1rem;">🧲</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#ffd060;letter-spacing:0.05em;">Pearl Pull</div>
-          <div style="font-size:0.68rem;color:rgba(255,210,80,0.6);">auto-collect nearby pearls</div>
-        </div>
+          <div style="font-size:1.1rem;">🧲</div><div style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;color:#ffd060;">Pearl Pull</div>
+          <div style="font-size:0.68rem;color:rgba(255,210,80,0.6);">auto-collect nearby pearls</div></div>
       </div>
       <p style="font-size:0.72rem;color:rgba(160,210,230,0.5);">All depth rewards reset on death or when you beat level 100.</p>
     </div>
@@ -472,22 +435,49 @@
       <p>Own a <b>Secret Society Security Orca</b>? Load your wallet and it joins the dive. The Orca surfaces now and then and <b>fires a cannonball</b> down a row — freezing any predators it hits, and blasting the <b>Kraken</b> for damage in boss fights. Your own armed escort to the bottom.</p>
     </div>
     <div class="g-sec">
-      <h3>🌊 Echolocation (the final 20 levels)</h3>
-      <p>In the Abyss the water goes black. Like a real sperm whale, you <b>ping sonar</b> — an expanding ring that lights the field and <b>freezes the single nearest predator lane</b>. Moose swim at the surface, so sonar can't touch them. Time your moves to each ping.</p>
-    </div>
-    <div class="g-sec">
       <h3>🎯 Boss Fights</h3>
       <p>Every 20 levels is a boss fight. You get a <b>Depth Reward</b> before each one (except level 100). Each boss is completely unique:</p>
-      <div class="g-row"><span>🐢 <b>Level 20</b> — Giant Sea Turtle</span><span class="g-x">dodge the shell · throw barnacles when it lands</span></div>
-      <div class="g-row"><span>🦑 <b>Level 40</b> — The Kraken</span><span class="g-x">dodge lightning · lure into whirlpools</span></div>
-      <div class="g-row"><span>🦷 <b>Level 60</b> — Megalodon</span><span class="g-x">lunge from above · enter mouth when open · throw ice</span></div>
-      <div class="g-row"><span>🐺 <b>Level 80</b> — Wolf Stampede</span><span class="g-x">wolf on land howls · moose charge down · throw barnacles at wolf when howling</span></div>
-      <div class="g-row"><span>🦴 <b>Level 100</b> — Phiomicetus Anubis</span><span class="g-x">keep it underwater · O2 drains per second · 3 phases (sharks → lightning+squids → ink+moose) · throw barnacles only during the 2s window after death roll · dolphin+orca slow it down</span></div>
+      <div class="g-row"><span>🐢 <b>Level 20</b> — Giant Sea Turtle</span><span class="g-x">figure it out 👀</span></div>
+      <div class="g-row"><span>🦑 <b>Level 40</b> — The Kraken</span><span class="g-x">figure it out 👀</span></div>
+      <div class="g-row"><span>🦷 <b>Level 60</b> — Megalodon</span><span class="g-x">figure it out 👀</span></div>
+      <div class="g-row"><span>🐺 <b>Level 80</b> — Wolf Stampede</span><span class="g-x">figure it out 👀</span></div>
+      <div class="g-row"><span>🦴 <b>Level 100</b> — Phiomicetus Anubis</span><span class="g-x">good luck 💀</span></div>
     </div>
     <div class="g-sec">
       <h3>🌊 Echolocation (the final 20 levels)</h3>
       <p>In the Abyss the water goes black. Like a real sperm whale, you <b>ping sonar</b> — an expanding ring that lights the field and <b>freezes the single nearest predator lane</b>. Moose swim at the surface, so sonar can't touch them. Time your moves to each ping.</p>
     </div>
+    <div class="g-sec">
+      <h3>🌊 Echolocation (the final 20 levels)</h3>
+      <p>In the Abyss the water goes black. Like a real sperm whale, you <b>ping sonar</b> — an expanding ring that lights the field and <b>freezes the single nearest predator lane</b>. Moose swim at the surface, so sonar can't touch them. Time your moves to each ping.</p>
+    </div>
+    <div class="g-sec">
+      <h3>🐢 Giant Sea Turtle (level 20)</h3>
+      <p>The first boss is the <b>Guardian of the Deep</b> — a giant sea turtle. It <b>bites</b> (it rears back first — when you see "BITE!", slide out of the way; a <b>missed bite makes it crash and stun itself</b>, a window to hurt it), <b>sweeps its flippers</b> across a glowing band of rows ("SWEEP!" — step out of the highlighted rows), and tucks into its <b>armored shell to pinball around the arena</b> for ~10s — it can't be hurt while spinning, so just dodge it. When the shell finally <b>lands shell-down it's helpless for 5 seconds</b> — that's your moment: <b>tap the screen (or press space) to hurl barnacles</b> at it for big damage. Dolphins and your Orca cannon also chip in while its head is out. Every diver fights it — no pearls needed.</p>
+      <h3>🦑 Kraken Boss (Level 40)</h3>
+      <p>At level 40 a giant <b>Kraken</b> blocks the trench. It chases you and hurls <b>lightning</b> down columns — dodge to a dark column before it strikes. Whirlpools flicker in and out across the arena: <b>lead the Kraken onto one</b> for big damage (but they'll suck <i>you</i> in too, so don't linger). And let the <b>dolphin allies</b> ram it — each hit briefly freezes the Kraken. Drain its health bar to break through. Deeper Krakens get nastier: more lightning columns at once, rock obstacles, roaming sharks, <b>balls of ink</b> thrown at you, and <b>mini-squids</b> it summons to chase you down — keep moving, and let your cannon or dolphins freeze them.</p>
+      <p><b>The Hoard.</b> Beat the Kraken and the arena clears — a <b>treasure chest</b> drops where it was. Swim up and crack it for the biggest payout in the game: a pile of <b>score</b> for everyone, plus a stack of <b>pearls</b> for Wealthy Whale holders (more the deeper the boss). It's also a <b>safe checkpoint</b> — cracking the hoard banks all your at-risk pearls. Then step into the portal beside it to dive on.</p>
+    </div>
+    <div class="g-sec">
+      <h3>💎 The Treasure</h3>
+      <p>Every chest you crack rolls a <b>rarity</b> — rarer tiers get more likely the deeper you dive, and Epic/Legendary pay a bonus:</p>
+      <div class="g-row"><span>🐚 Driftwood</span><span class="g-x">+0</span></div>
+      <div class="g-row"><span>🔴 Common</span><span class="g-x">+6</span></div>
+      <div class="g-row"><span>🔵 Uncommon</span><span class="g-x">+11</span></div>
+      <div class="g-row"><span>🟢 Rare</span><span class="g-x">+18</span></div>
+      <div class="g-row"><span>💎 Epic</span><span class="g-x">+30 & bonus</span></div>
+      <div class="g-row"><span>👑 Legendary</span><span class="g-x">+60 & jackpot</span></div>
+    </div>
+    <div class="g-sec">
+      <h3>⭐ Whale Rarity Perks</h3>
+      <p>Dive as one of your own SSoW whales — the rarer the whale, the stronger its edge in the deep.</p>
+      <div class="g-row"><span style="color:#90e0f5"><b>APEX</b> · rank ≤100</span><span class="g-x">Longest breath · nimble · shrugs off the 1st squid each level 🛡</span></div>
+      <div class="g-row"><span style="color:#b48cff"><b>LEVIATHAN</b> · ≤500</span><span class="g-x">Long breath · nimble · attacks hurt less</span></div>
+      <div class="g-row"><span style="color:#5bc8e8"><b>DEEP DIVER</b> · ≤1000</span><span class="g-x">Better lungs · tougher</span></div>
+      <div class="g-row"><span style="color:#6fe0a0"><b>DIVER</b> · ≤3000</span><span class="g-x">Slightly longer breath</span></div>
+      <div class="g-row"><span style="color:#8aa6b5"><b>PUP</b> · the rest</span><span class="g-x">No perks — pure skill</span></div>
+    </div>
+    <button class="btn" id="guideDive" style="width:100%;margin:8px 0 30px">▼ Dive In</button>
   </div>
 </div>
 
@@ -2989,7 +2979,6 @@ function openBossHoard(){
   let pearlGain=0;
   if(state.hasWealthy){
     pearlGain = CONFIG.bossPearls*num + 6;
-    // scale by WW count pearl bonus
     const pb=state.pearlBonus||0.20;
     pearlGain=Math.round(pearlGain*(1+pb));
     if(state.upg&&state.upg.vault) pearlGain=Math.round(pearlGain*1.5);
@@ -3293,17 +3282,17 @@ function sweep(){
 
 // ── MID-DIVE UPGRADES (every 5 levels, skip boss levels) ──
 const MID_PERKS = [
-  {id:'o2cache',    name:'O2 Cache',      icon:'🫧', desc:'+10 max O2 · stacks ×3 · resets on death', wealthy:false, maxStack:3},
-  {id:'speedfins',  name:'Speed Fins',    icon:'🏄', desc:'Move costs 30% less O2 · resets on death',           wealthy:false},
-  {id:'thickskin',  name:'Thick Hide',    icon:'🛡', desc:'Sweeps hurt 20% less · resets on death',    wealthy:false},
-  {id:'currentread',name:'Current Read',  icon:'🌊', desc:'Predators 15% slower · resets on death',    wealthy:false},
-  {id:'sonarboost', name:'Sonar Boost',   icon:'📡', desc:'Grants +1 sonar ping per level · unlocks at lvl 80',   wealthy:false, minLevel:80},
-  {id:'pearlaura',  name:'Pearl Aura',    icon:'🐚', desc:'Pearls worth 2× · resets on death',         wealthy:true},
-  {id:'deepluck',   name:'Deep Luck',     icon:'👑', desc:'Chest rolls rarity twice · resets on death', wealthy:true},
-  {id:'dolphinpact',name:'Dolphin Pact',  icon:'🐬', desc:'Dolphins 2× more frequent · resets on death',   wealthy:true},
+  {id:'o2cache',    name:'O2 Cache',      icon:'🫧', desc:'+10 max oxygen this run (×3 max)', wealthy:false, maxStack:3},
+  {id:'speedfins',  name:'Speed Fins',    icon:'🏄', desc:'Move costs 30% less O2',           wealthy:false},
+  {id:'thickskin',  name:'Thick Hide',    icon:'🛡', desc:'Sweeps hurt 20% less this run',    wealthy:false},
+  {id:'currentread',name:'Current Read',  icon:'🌊', desc:'Predators 15% slower this run',    wealthy:false},
+  {id:'sonarboost', name:'Sonar Boost',   icon:'📡', desc:'Grants +1 sonar ping per level',   wealthy:false},
+  {id:'pearlaura',  name:'Pearl Aura',    icon:'🐚', desc:'Pearls worth 2× this run',         wealthy:true},
+  {id:'deepluck',   name:'Deep Luck',     icon:'👑', desc:'Chest rolls rarity twice, keep best', wealthy:true},
+  {id:'dolphinpact',name:'Dolphin Pact',  icon:'🐬', desc:'Dolphins appear twice as often',   wealthy:true},
   {id:'whirldodge', name:'Whirl Dodge',   icon:'🌀', desc:'Whirlpools deal 40% less damage',  wealthy:true},
-  {id:'inkresist',  name:'Ink Resist',    icon:'🦑', desc:'Ink balls deal 0 damage · resets on death',          wealthy:true},
-  {id:'pearlpull',  name:'Pearl Pull',    icon:'🧲', desc:'Auto-collect nearby pearls · resets on death',       wealthy:true},
+  {id:'inkresist',  name:'Ink Resist',    icon:'🦑', desc:'Ink balls deal 0 damage',          wealthy:true},
+  {id:'pearlpull',  name:'Pearl Pull',    icon:'🧲', desc:'Auto-collect nearby pearls',       wealthy:true},
 ];
 
 function showMidUpgradeScreen(){
@@ -3311,9 +3300,8 @@ function showMidUpgradeScreen(){
   const overlay=document.getElementById('overlayMidUpgrade');
   if(!overlay) return;
   // pick 2 free + 1 wealthy locked
-  // always show all eligible free perks — already-picked ones show as active
-  const free=MID_PERKS.filter(p=>!p.wealthy&&(!p.maxStack||(state.midUpgrades[p.id]||0)<p.maxStack)&&(!p.minLevel||state.level>=p.minLevel));
-  const wealthy=MID_PERKS.filter(p=>p.wealthy&&(state.midUpgrades[p.id]||0)<1);
+  const free=MID_PERKS.filter(p=>!p.wealthy&&(!(state.midUpgrades[p.id])||(p.maxStack&&(state.midUpgrades[p.id]||0)<p.maxStack)));
+  const wealthy=MID_PERKS.filter(p=>p.wealthy&&!state.midUpgrades[p.id]);
   // shuffle
   for(let i=free.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [free[i],free[j]]=[free[j],free[i]]; }
   for(let i=wealthy.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [wealthy[i],wealthy[j]]=[wealthy[j],wealthy[i]]; }
@@ -3324,15 +3312,11 @@ function showMidUpgradeScreen(){
   picks.forEach(p=>{
     const btn=document.createElement('button');
     btn.className='mid-upg-card'+(p.wealthy?' wealthy':'');
-    const alreadyHave=(state.midUpgrades[p.id]||0)>0;
-    const stackCnt=p.maxStack?(state.midUpgrades[p.id]||0):0;
-    const stackTag=stackCnt>0?`<span class="mid-stack-badge">×${stackCnt}</span>`:'';
-    const activeTag=alreadyHave&&!p.maxStack?'<span class="mid-active-badge">ACTIVE</span>':'';
-    btn.innerHTML=`<div class="mid-card-icon">${p.icon}</div><div class="mid-card-body"><div class="mid-card-name">${p.name}${stackTag}${activeTag}</div><div class="mid-card-desc">${p.desc}</div>${p.wealthy?'<div class="mid-card-lock">🔒 WEALTHY WHALE ONLY</div>':''}</div>`;
+    btn.innerHTML=`<span class="mid-upg-icon">${p.icon}</span><span class="mid-upg-name">${p.name}</span><span class="mid-upg-desc">${p.desc}</span>${p.wealthy?'<span class="mid-upg-lock">🔒 WEALTHY WHALE</span>':''}`;
     btn.onclick=()=>{
       if(p.wealthy && !state.hasWealthy) return;
       applyMidUpgrade(p.id);
-      overlay.classList.add('hidden');
+      overlay.style.display='none';
       setupLevel(state.level); state.phase='play'; state.last=performance.now();
     };
     if(p.wealthy && !state.hasWealthy) btn.classList.add('locked');
@@ -3341,15 +3325,10 @@ function showMidUpgradeScreen(){
   // skip button
   const skip=document.getElementById('midUpgSkip');
   if(skip) skip.onclick=()=>{
-    overlay.classList.add('hidden');
+    overlay.style.display='none';
     setupLevel(state.level); state.phase='play'; state.last=performance.now();
   };
-  // set level badge
-  const lvlNum=document.getElementById('midUpgLevelNum'); if(lvlNum) lvlNum.textContent=state.level;
-  // animate bg lines
-  const bgLines=document.getElementById('midBgLines');
-  if(bgLines&&!bgLines.childElementCount){ for(let i=0;i<12;i++){ const l=document.createElement('div'); l.className='mid-bg-line'; l.style.cssText=`left:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${2+Math.random()*3}s;opacity:${0.03+Math.random()*0.06}`; bgLines.appendChild(l); } }
-  overlay.classList.remove('hidden');
+  overlay.style.display='flex';
 }
 
 function applyMidUpgrade(id){
@@ -3392,7 +3371,6 @@ function levelComplete(){
   }, 650);
 }
 function win(){
-  state.midUpgrades={};   // clear mid-run upgrades on win
   state.phase='over'; sfxLevel(); stopBossMusic();
   const got=state.runPearls;
   bankPearls();
@@ -3411,7 +3389,6 @@ function gameOver(){
     state.whale.row=0; state.whale.col=Math.floor(CONFIG.COLS/2);
     return;
   }
-  state.midUpgrades={};   // clear mid-run upgrades on death
   state.phase='over'; sfxOver(); stopBossMusic();
   const lost = (state.hasWealthy && state.runPearls>0) ? state.runPearls : 0;
   state.runPearls=0;                       // the deep keeps your unbanked pearls
@@ -3429,8 +3406,7 @@ function startRun(){
   state.level=1; state.score=0; state.o2=100; state.gems=[];
   state.invuln=0; state.habName='';
   state.runPearls=0; state.revived=false; state.hoardPhase=false; state.lootReveal=0;
-  // midUpgrades persist until death or game reset — NOT cleared here
-  if(!state.midUpgrades) state.midUpgrades={};
+  state.midUpgrades={};
   state.revivesLeft=state.upg.revive?Math.min(3,state.upg.reviveStack||1):0;
   state.ghostReady=!!state.upg.ghosted;
   if(state.upg.turbo) CONFIG.holdRepeat=65; else CONFIG.holdRepeat=120;
@@ -3765,12 +3741,7 @@ function drawPearl(p){
 }
 function drawLoadout(y){
   const ic=[];
-  if(state.upg){ if(state.upg.slow)ic.push('🐢'); if(state.upg.bubbles)ic.push('🫧');
-    // show remaining extra lives as hearts
-    const livesLeft=state.revivesLeft||0;
-    for(let li=0;li<livesLeft;li++) ic.push('❤️');
-    if(state.ghostReady) ic.push('👻');
-  }
+  if(state.upg){ if(state.upg.slow)ic.push('🐢'); if(state.upg.bubbles)ic.push('🫧'); if(state.upg.revive&&!state.revived)ic.push('❤️'); }
   if(!ic.length) return;
   ctx.save(); ctx.font=`${Math.max(12,Math.floor(CW*0.3))}px serif`; ctx.textAlign='left'; ctx.textBaseline='top';
   ctx.globalAlpha=0.95; ctx.fillText(ic.join(' '), 8, y); ctx.restore();
@@ -4933,7 +4904,6 @@ try{
   const wj=JSON.parse(localStorage.getItem('trench_solo_wealthy')||'null');
   if(wj && wj.count){ state.hasWealthy=true; state.wealthyCount=wj.count;
     state.xpMult=1+Math.min(CONFIG.xpCap, CONFIG.xpBase+CONFIG.xpPer*(wj.count-1));
-    // pearl bonus: +20% base, +5% per extra WW, capped at +60%
     state.pearlBonus=Math.min(0.60, 0.20+0.05*Math.max(0,wj.count-1));
     showWealthyBadge(wj.images||[], wj.count); }
   if(savedWallet && savedWallet.startsWith('0x')) checkWealthy(savedWallet);
