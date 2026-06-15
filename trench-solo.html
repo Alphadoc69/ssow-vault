@@ -54,8 +54,9 @@
   .hud .val{font-family:var(--font-display); font-size:1.3rem; letter-spacing:0.06em; color:#fff; line-height:1;}
   .hud .val.cyan{color:var(--cyan-lt);}
   .o2wrap{flex:1; max-width:150px;}
-  .o2bar{height:10px; border:1px solid rgba(91,200,232,0.3); border-radius:6px; overflow:hidden; background:rgba(0,0,0,0.3); margin-top:4px;}
+  .o2bar{position:relative; height:16px; border:1px solid rgba(91,200,232,0.3); border-radius:6px; overflow:hidden; background:rgba(0,0,0,0.3); margin-top:4px;}
   .o2fill{height:100%; width:100%; background:linear-gradient(90deg,#1a9abf,#5bc8e8); transition:width 0.15s linear, background 0.3s;}
+  .o2pct{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:0.52rem; font-weight:600; letter-spacing:0.05em; color:rgba(255,255,255,0.9); pointer-events:none; text-shadow:0 1px 3px rgba(0,0,0,0.8);}
 
   /* STAGE */
   .stage{position:relative; width:100%; display:flex; justify-content:center;}
@@ -247,7 +248,7 @@
 
   <div class="hud">
     <div class="stat"><span class="label">Level</span><span class="val" id="hudLevel">1</span></div>
-    <div class="o2wrap"><span class="label">Oxygen</span><div class="o2bar"><div class="o2fill" id="o2fill"></div></div></div>
+    <div class="o2wrap"><span class="label">Oxygen</span><div class="o2bar"><div class="o2fill" id="o2fill"></div><span class="o2pct" id="o2pct">100%</span></div></div>
     <div class="stat" style="text-align:right"><span class="label">Score</span><span class="val cyan" id="hudScore">0</span></div>
   </div>
 
@@ -2429,11 +2430,49 @@ function renderBoss(w,h){
   if(b){ if(b.type==='turtle') drawTurtle(b,w,h); else drawKraken(b,w,h); }
   // flying barnacles
   if(state.barnacles) for(const bn of state.barnacles){
-    const x=bn.x*CW+CW/2, y=bn.y*CH+CH/2, r=Math.max(5,CW*0.16);
-    ctx.save(); ctx.translate(x,y);
-    ctx.fillStyle='#9aa7ad'; ctx.strokeStyle='#5f6b70'; ctx.lineWidth=Math.max(1,r*0.16);
-    ctx.beginPath(); ctx.moveTo(0,-r); ctx.lineTo(r*0.7,r*0.7); ctx.lineTo(-r*0.7,r*0.7); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle='#d7dee1'; ctx.beginPath(); ctx.arc(0,r*0.1,r*0.28,0,Math.PI*2); ctx.fill();
+    const x=bn.x*CW+CW/2, y=bn.y*CH+CH/2, r=Math.max(6,CW*0.18);
+    const T=state.t||0, spin=bn.t*4;  // spin as it flies
+    ctx.save(); ctx.translate(x,y); ctx.rotate(spin);
+    // motion trail
+    ctx.strokeStyle='rgba(180,210,220,0.25)'; ctx.lineWidth=r*0.3; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,r*0.9); ctx.stroke();
+    // outer shell — ridged cone shape
+    const shellCol=ctx.createRadialGradient(-r*0.2,-r*0.3,r*0.05,0,0,r);
+    shellCol.addColorStop(0,'#d4dde2'); shellCol.addColorStop(0.5,'#8fa8b4'); shellCol.addColorStop(1,'#4a6270');
+    ctx.fillStyle=shellCol; ctx.strokeStyle='#3a5060'; ctx.lineWidth=Math.max(1,r*0.08);
+    // hexagonal barnacle shell (6 plates)
+    ctx.beginPath();
+    for(let i=0;i<6;i++){
+      const a=i*Math.PI/3 - Math.PI/6;
+      const rr = i%2===0 ? r : r*0.88;
+      i===0 ? ctx.moveTo(Math.cos(a)*rr, Math.sin(a)*rr) : ctx.lineTo(Math.cos(a)*rr, Math.sin(a)*rr);
+    }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // plate ridges (6 lines from center to edge)
+    ctx.strokeStyle='rgba(60,80,96,0.55)'; ctx.lineWidth=Math.max(1,r*0.06);
+    for(let i=0;i<6;i++){
+      const a=i*Math.PI/3 - Math.PI/6;
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*r*0.92, Math.sin(a)*r*0.92); ctx.stroke();
+    }
+    // barnacle opening — dark oval center
+    const opening=ctx.createRadialGradient(0,0,r*0.05,0,0,r*0.38);
+    opening.addColorStop(0,'#0a1820'); opening.addColorStop(0.6,'#1a3040'); opening.addColorStop(1,'rgba(26,48,64,0)');
+    ctx.fillStyle=opening; ctx.beginPath(); ctx.ellipse(0,0,r*0.38,r*0.34,0,0,Math.PI*2); ctx.fill();
+    // inner ridges of the opening
+    ctx.strokeStyle='rgba(80,120,140,0.6)'; ctx.lineWidth=Math.max(1,r*0.05);
+    for(let i=0;i<3;i++){
+      const rr=r*(0.14+i*0.08);
+      ctx.beginPath(); ctx.ellipse(0,0,rr,rr*0.85,0,0,Math.PI*2); ctx.stroke();
+    }
+    // barnacle cirri (feeding legs) peeking out — tiny white wisps
+    ctx.strokeStyle='rgba(220,235,240,0.7)'; ctx.lineWidth=Math.max(1,r*0.04); ctx.lineCap='round';
+    for(let i=0;i<4;i++){
+      const a=i*Math.PI/2+T*3; const len=r*0.18;
+      ctx.beginPath(); ctx.moveTo(Math.cos(a)*r*0.1,Math.sin(a)*r*0.1);
+      ctx.lineTo(Math.cos(a)*len, Math.sin(a)*len); ctx.stroke();
+    }
+    // highlight
+    ctx.fillStyle='rgba(255,255,255,0.22)'; ctx.beginPath(); ctx.ellipse(-r*0.22,-r*0.24,r*0.18,r*0.1,-0.6,0,Math.PI*2); ctx.fill();
     ctx.restore();
   }
   // recharge prompt — the turtle is exposed, pelt it!
@@ -2677,6 +2716,7 @@ function syncHUD(){
   o2.style.background = state.o2<25 ? 'linear-gradient(90deg,#c0392b,#e74c3c)' :
                         state.o2<55 ? 'linear-gradient(90deg,#c98a1a,#e8b94a)' :
                                       'linear-gradient(90deg,#1a9abf,#5bc8e8)';
+  const o2pct=document.getElementById('o2pct'); if(o2pct) o2pct.textContent=Math.max(0,Math.round(state.o2))+'%';
 }
 
 // ── loop ──
