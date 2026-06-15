@@ -2919,7 +2919,15 @@ function openBossHoard(){
   const scoreGain = Math.round(gemXp*state.xpMult) + 40;
   state.score += scoreGain;
   let pearlGain=0;
-  if(state.hasWealthy){ pearlGain = CONFIG.bossPearls*num + 6; state.runPearls += pearlGain; }
+  if(state.hasWealthy){
+    pearlGain = CONFIG.bossPearls*num + 6;
+    // scale by WW count pearl bonus
+    const pb=state.pearlBonus||0.20;
+    pearlGain=Math.round(pearlGain*(1+pb));
+    if(state.upg&&state.upg.vault) pearlGain=Math.round(pearlGain*1.5);
+    if(state.midUpgrades&&state.midUpgrades.pearlaura) pearlGain=Math.round(pearlGain*2);
+    state.runPearls += pearlGain;
+  }
   bankPearls();                                 // a cleared Kraken is a safe checkpoint
   state.o2=Math.min(100, state.o2+CONFIG.levelRefill+25);
   state.clearGem={e:'🧰', name: pearlGain ? `+${scoreGain} SCORE   +${pearlGain} PEARLS` : `+${scoreGain} SCORE`,
@@ -3306,6 +3314,7 @@ function levelComplete(){
   }, 650);
 }
 function win(){
+  state.midUpgrades={};   // clear mid-run upgrades on win
   state.phase='over'; sfxLevel(); stopBossMusic();
   const got=state.runPearls;
   bankPearls();
@@ -3324,6 +3333,7 @@ function gameOver(){
     state.whale.row=0; state.whale.col=Math.floor(CONFIG.COLS/2);
     return;
   }
+  state.midUpgrades={};   // clear mid-run upgrades on death
   state.phase='over'; sfxOver(); stopBossMusic();
   const lost = (state.hasWealthy && state.runPearls>0) ? state.runPearls : 0;
   state.runPearls=0;                       // the deep keeps your unbanked pearls
@@ -3341,7 +3351,8 @@ function startRun(){
   state.level=1; state.score=0; state.o2=100; state.gems=[];
   state.invuln=0; state.habName='';
   state.runPearls=0; state.revived=false; state.hoardPhase=false; state.lootReveal=0;
-  state.midUpgrades={};
+  // midUpgrades persist until death or game reset — NOT cleared here
+  if(!state.midUpgrades) state.midUpgrades={};
   state.revivesLeft=state.upg.revive?Math.min(3,state.upg.reviveStack||1):0;
   state.ghostReady=!!state.upg.ghosted;
   if(state.upg.turbo) CONFIG.holdRepeat=65; else CONFIG.holdRepeat=120;
@@ -4749,7 +4760,8 @@ async function bankPearls(){
 function showWealthyBadge(images,count){
   const box=document.getElementById('wealthyBox'); if(!box) return;
   box.style.display='flex';
-  document.getElementById('wealthyName').textContent=`🐚 Wealthy Whale${count>1?`s ×${count}`:''} · +${Math.round((state.xpMult-1)*100)}% XP`;
+  const pb2=Math.round((state.pearlBonus||0.20)*100);
+  document.getElementById('wealthyName').textContent=`🐚 Wealthy Whale${count>1?`s ×${count}`:''} · +${Math.round((state.xpMult-1)*100)}% XP · +${pb2}% PEARLS`;
   const wrap=document.getElementById('wealthyThumbs'); wrap.innerHTML='';
   (images||[]).slice(0,8).forEach(u=>{ const im=document.createElement('img'); im.className='orca-thumb'; im.loading='lazy'; im.src=u; wrap.appendChild(im); });
   buildShop();
@@ -4838,13 +4850,15 @@ try{
   const wj=JSON.parse(localStorage.getItem('trench_solo_wealthy')||'null');
   if(wj && wj.count){ state.hasWealthy=true; state.wealthyCount=wj.count;
     state.xpMult=1+Math.min(CONFIG.xpCap, CONFIG.xpBase+CONFIG.xpPer*(wj.count-1));
+    // pearl bonus: +20% base, +5% per extra WW, capped at +60%
+    state.pearlBonus=Math.min(0.60, 0.20+0.05*Math.max(0,wj.count-1));
     showWealthyBadge(wj.images||[], wj.count); }
   if(savedWallet && savedWallet.startsWith('0x')) checkWealthy(savedWallet);
 }catch(e){}
 // ?orca=1 / ?wealthy=1 force allies on for testing
 try{ const q=new URLSearchParams(location.search);
   const oq=q.get('orca'); if(oq){ state.hasOrca=true; showOrcaBadge('', parseInt(oq)||1); }
-  if(q.get('wealthy')==='1'){ state.hasWealthy=true; state.wealthyCount=5; state.xpMult=1+Math.min(CONFIG.xpCap,CONFIG.xpBase+CONFIG.xpPer*4); state.pearls=50; showWealthyBadge([],5); }
+  if(q.get('wealthy')==='1'){ state.hasWealthy=true; state.wealthyCount=5; state.xpMult=1+Math.min(CONFIG.xpCap,CONFIG.xpBase+CONFIG.xpPer*4); state.pearlBonus=Math.min(0.60,0.20+0.05*4); state.pearls=50; showWealthyBadge([],5); }
   if(q.get('win')==='1'){ state.level=CONFIG.maxLevel; state.score=9999; state.runPearls=120; document.body.classList.add('playing'); setTimeout(win,250); }
   // jump straight into a level for testing — ?boss=1 → turtle (lvl 20); ?level=N → any level (e.g. ?level=40 = Kraken)
   const lvParam = q.get('boss')==='1' ? 20 : parseInt(q.get('level'));
