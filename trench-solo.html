@@ -4663,7 +4663,7 @@ async function openLeaderboard(){
   content.innerHTML='<p style="text-align:center;color:rgba(160,210,230,0.5);font-size:0.8rem;">Loading…</p>';
   const scores = await fetchSoloLeaderboard();
   if(!scores.length||(scores[0]&&scores[0]._placeholder)){
-    content.innerHTML='<p style="text-align:center;color:rgba(160,210,230,0.5);font-size:0.8rem;padding:20px 0;">No scores yet — be the first!<br><span style="font-size:0.65rem;opacity:0.5">(deploy api/leaderboard-solo.js to enable)</span></p>';
+    content.innerHTML='<p style="text-align:center;color:rgba(160,210,230,0.5);font-size:0.8rem;padding:20px 0;">No scores yet — be the first! 🐋</p>';
     return;
   }
   let html=`<table style="width:100%;border-collapse:collapse;font-size:0.78rem;font-family:'DM Mono',monospace;">
@@ -4978,6 +4978,8 @@ function quitToMenu(){
   if(state.phase==='idle') return;
   stopBossMusic();
   document.getElementById('hud').style.visibility='hidden';
+  state.runTime=Math.round((Date.now()-(state.runStart||Date.now()))/1000);
+  submitSoloScore('quit');
   bankPearls();                                   // keep pearls collected so far
   if(state.level>state.best){ state.best=state.level; saveBest(); document.getElementById('bestStart').textContent=state.best; }
   state.phase='idle';
