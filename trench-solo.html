@@ -3395,6 +3395,7 @@ function startRun(){
   state.ghostReady=!!state.upg.ghosted;
   if(state.upg.turbo) CONFIG.holdRepeat=65; else CONFIG.holdRepeat=120;
   if(state.best<1) state.best=1;
+  state.runStart=Date.now(); state.runTime=0;
   setupLevel(1); state.phase='play'; state.last=performance.now();
   document.getElementById('overlayStart').classList.add('hidden');
   document.getElementById('overlayOver').classList.add('hidden');
@@ -4637,6 +4638,34 @@ const picker=document.getElementById('picker');
 const pickerGrid=document.getElementById('pickerGrid');
 const pickerSub=document.getElementById('pickerSub');
 let loadedNfts=[];
+async function submitSoloScore(result){
+  const nick = state.nickname || state.wallet || 'anon';
+  if(!nick || nick==='anon') return;
+  try {
+    await fetch('/api/leaderboard-solo', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name: nick,
+        wallet: state.wallet||'',
+        level: state.level,
+        score: state.score,
+        time: state.runTime||0,
+        result,
+        ts: Date.now()
+      })
+    });
+  } catch(e) { console.warn('leaderboard submit failed', e); }
+}
+
+async function fetchSoloLeaderboard(){
+  try {
+    const r = await fetch('/api/leaderboard-solo');
+    const data = await r.json();
+    return data.scores||[];
+  } catch(e) { return []; }
+}
+
 function saveNickname(val){
   const v=val.trim();
   if(v) localStorage.setItem('ssow_nick',v);
