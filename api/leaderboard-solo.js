@@ -1,19 +1,21 @@
-// api/leaderboard-solo.js — deploy to /api/ on GitHub
-// Uses Upstash Redis REST API (pipeline format)
+// api/leaderboard-solo.js
 
+const KV_URL   = process.env.KV_REST_API_URL   || process.env.UPSTASH_REDIS_REST_URL;
+const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 const KEY = 'solo:scores';
 const MAX = 100;
 
-async function upstash(...args) {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  const r = await fetch(url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(args)
-  });
-  const data = await r.json();
-  return data.result !== undefined ? data.result : data;
+async function redis(cmd) {
+  if (!KV_URL || !KV_TOKEN) return null;
+  try {
+    const r = await fetch(KV_URL, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(cmd),
+    });
+    const j = await r.json();
+    return j.result;
+  } catch { return null; }
 }
 
 export default async function handler(req, res) {
@@ -24,7 +26,9 @@ export default async function handler(req, res) {
 
   // ── POST: submit score ──
   if (req.method === 'POST') {
-    const { name, wallet, level, score, time, result, ts } = req.body || {};
+    let body = req.body;
+    if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+    const { name, wallet, level, score, time, result, ts } = body || {};
     if (!name || level == null) return res.status(400).json({ error: 'missing fields' });
 
     const entry = JSON.stringify({
@@ -37,27 +41,23 @@ export default async function handler(req, res) {
       ts: ts || Date.now()
     });
 
-    // sort key: level is primary, score secondary
     const sortKey = Number(level) * 1000000 + (Number(score) || 0);
-
-    await upstash('ZADD', KEY, sortKey, entry);
-    await upstash('ZREMRANGEBYRANK', KEY, 0, -(MAX + 1));
+    await redis(['ZADD', KEY, sortKey, entry]);
+    await redis(['ZREMRANGEBYRANK', KEY, 0, -(MAX + 1)]);
 
     return res.status(200).json({ ok: true });
   }
 
   // ── GET: fetch scores ──
   if (req.method === 'GET') {
-    // Secret reset
     const qs = req.url?.split('?')[1] || '';
     const params = new URLSearchParams(qs);
     if (params.get('reset') === 'ssow2024') {
-      await upstash('DEL', KEY);
+      await redis(['DEL', KEY]);
       return res.status(200).json({ ok: true, message: 'leaderboard cleared' });
     }
 
-    // Top 50, highest first
-    const raw = await upstash('ZREVRANGE', KEY, 0, 49);
+    const raw = await redis(['ZREVRANGE', KEY, 0, 49]);
     const scores = (Array.isArray(raw) ? raw : []).map(s => {
       try { return JSON.parse(s); } catch { return null; }
     }).filter(Boolean);
