@@ -282,6 +282,7 @@
 
       <button class="btn" id="startBtn">▼ Dive In</button>
       <button class="btn2" id="guideBtn">📖 How to Play</button>
+      <button class="btn2" id="lbBtn" style="margin-top:4px">🏆 Leaderboard</button>
       <p class="small" style="margin-top:0.8rem">Best dive: Lv.<span id="bestStart">1</span></p>
     </div>
 
@@ -302,7 +303,16 @@
       <button class="btn" id="rewardBtn">Collect &amp; Dive On ▼</button>
     </div>
 
-    <div class="overlay hidden" id="overlayMidUpgrade" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(8,14,28,0.96);align-items:center;justify-content:center;flex-direction:column;">
+    <div class="picker hidden" id="overlayLB">
+  <div class="picker-head">
+    <div><div class="picker-title">🏆 Leaderboard</div><div class="picker-sub">Solo Dive · Beta</div></div>
+    <button class="picker-close" id="lbClose">✕</button>
+  </div>
+  <div id="lbContent" style="padding:12px 16px;overflow-y:auto;max-height:70vh;">
+    <p style="text-align:center;color:rgba(160,210,230,0.5);font-size:0.8rem;">Loading…</p>
+  </div>
+</div>
+<div class="overlay hidden" id="overlayMidUpgrade" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(8,14,28,0.96);align-items:center;justify-content:center;flex-direction:column;">
   <div style="max-width:380px;width:90%;padding:24px;text-align:center;">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:0.08em;color:#5bc8e8;margin-bottom:4px;">⚡ DEPTH REWARD</div>
     <div style="font-size:0.72rem;color:rgba(160,210,230,0.65);margin-bottom:18px;letter-spacing:0.1em;">CHOOSE AN UPGRADE</div>
@@ -4627,6 +4637,8 @@ document.getElementById('winMenuBtn').addEventListener('click',()=>{
 });
 const guide=document.getElementById('guide');
 document.getElementById('guideBtn').addEventListener('click',()=>guide.classList.add('open'));
+document.getElementById('lbBtn').addEventListener('click',openLeaderboard);
+document.getElementById('lbClose').addEventListener('click',()=>document.getElementById('overlayLB').classList.add('hidden'));
 document.getElementById('guideClose').addEventListener('click',()=>guide.classList.remove('open'));
 document.getElementById('guideDive').addEventListener('click',()=>{ guide.classList.remove('open'); startRun(); });
 
@@ -4638,6 +4650,49 @@ const picker=document.getElementById('picker');
 const pickerGrid=document.getElementById('pickerGrid');
 const pickerSub=document.getElementById('pickerSub');
 let loadedNfts=[];
+function formatTime(s){
+  if(!s) return '—';
+  const m=Math.floor(s/60), sec=s%60;
+  return m>0?`${m}m ${sec}s`:`${sec}s`;
+}
+
+async function openLeaderboard(){
+  const overlay=document.getElementById('overlayLB');
+  const content=document.getElementById('lbContent');
+  overlay.classList.remove('hidden');
+  content.innerHTML='<p style="text-align:center;color:rgba(160,210,230,0.5);font-size:0.8rem;">Loading…</p>';
+  const scores = await fetchSoloLeaderboard();
+  if(!scores.length){
+    content.innerHTML='<p style="text-align:center;color:rgba(160,210,230,0.5);font-size:0.8rem;">No scores yet — be the first!</p>';
+    return;
+  }
+  let html=`<table style="width:100%;border-collapse:collapse;font-size:0.78rem;font-family:'DM Mono',monospace;">
+    <thead><tr style="color:rgba(91,200,232,0.7);border-bottom:1px solid rgba(91,200,232,0.2);">
+      <th style="padding:6px 4px;text-align:left;">#</th>
+      <th style="padding:6px 4px;text-align:left;">PLAYER</th>
+      <th style="padding:6px 4px;text-align:center;">LVL</th>
+      <th style="padding:6px 4px;text-align:center;">SCORE</th>
+      <th style="padding:6px 4px;text-align:center;">TIME</th>
+      <th style="padding:6px 4px;text-align:center;">RESULT</th>
+    </tr></thead><tbody>`;
+  scores.forEach((s,i)=>{
+    const isWin=s.result==='win';
+    const row=i%2===0?'rgba(255,255,255,0.02)':'transparent';
+    const nameColor=isWin?'#ffd060':'#e8f4ff';
+    const winBadge=isWin?' 👑':'';
+    html+=`<tr style="background:${row};">
+      <td style="padding:6px 4px;color:rgba(160,210,230,0.5);">${i+1}</td>
+      <td style="padding:6px 4px;color:${nameColor};font-weight:600;">${s.name}${winBadge}</td>
+      <td style="padding:6px 4px;text-align:center;color:#5bc8e8;">${s.level}</td>
+      <td style="padding:6px 4px;text-align:center;">${(s.score||0).toLocaleString()}</td>
+      <td style="padding:6px 4px;text-align:center;color:rgba(160,210,230,0.6);">${formatTime(s.time)}</td>
+      <td style="padding:6px 4px;text-align:center;">${isWin?'🏆':'💀'}</td>
+    </tr>`;
+  });
+  html+='</tbody></table>';
+  content.innerHTML=html;
+}
+
 async function submitSoloScore(result){
   const nick = state.nickname || state.wallet || 'anon';
   if(!nick || nick==='anon') return;
