@@ -517,7 +517,7 @@ const CONFIG = {
   swipeRepeat: 130,   // min ms between hops when drag-steering (stops the whale zooming)
   bubbleO2: 20,       // oxygen restored per air bubble
   bubblesBase: 4,     // air bubbles per level
-  invuln: 0.7,        // seconds of safety after a hitno chain hits)
+  invuln: 0.3,        // short — pushback happens but no coasting through enemiesno chain hits)
   pingInterval: 2.6,  // seconds between sonar pings on dark levels
   pingSpeed: 7,       // sonar ring expansion (cells/sec)
   stunTime: 1.7,      // seconds a squid is stunned by sonar
@@ -984,7 +984,7 @@ function throwIceShard(){
 function megHurtWhale(o2){
   if(state.invuln>0) return;
   const b=state.boss;
-  if(state.shieldReady){ state.shieldReady=false; sfxShield(); state.invuln=CONFIG.invuln;
+  if(state.shieldReady){ state.shieldReady=false; sfxShield(); state.invuln=0.4;   // brief — shield absorbs but you're still in play
     const v=document.getElementById('vignette'); v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),200); return; }
   state.o2-=o2*state.tier.sweepMul; sfxSwept();
   const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),200);
@@ -1671,7 +1671,7 @@ function throwStampedeBarnacle(){
 function stampedeHurtWhale(o2){
   if(state.invuln>0) return;
   const b=state.boss;
-  if(state.shieldReady){ state.shieldReady=false; sfxShield(); state.invuln=CONFIG.invuln;
+  if(state.shieldReady){ state.shieldReady=false; sfxShield(); state.invuln=0.4;   // brief — shield absorbs but you're still in play
     const v=document.getElementById('vignette'); v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),200); return; }
   state.o2-=o2*state.tier.sweepMul; sfxSwept();
   const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),180);
@@ -2387,7 +2387,7 @@ function throwPhioBarnacle(){
 
 function phioHurtWhale(o2,b){
   if(state.invuln>0) return;
-  if(state.shieldReady){ state.shieldReady=false; sfxShield(); state.invuln=CONFIG.invuln;
+  if(state.shieldReady){ state.shieldReady=false; sfxShield(); state.invuln=0.4;   // brief — shield absorbs but you're still in play
     const v=document.getElementById('vignette'); v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),200); return; }
   state.o2-=o2*state.tier.sweepMul; sfxSwept();
   const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),200);
@@ -2812,7 +2812,7 @@ function toStalk(b,gap){ b.mode='stalk'; b.armored=false; b.flipUp=0; b.jaw=0; b
 function turtleHurtWhale(o2){
   if(state.invuln>0) return;
   const b=state.boss;
-  if(state.shieldReady){ state.shieldReady=false; sfxShield(); state.invuln=CONFIG.invuln;
+  if(state.shieldReady){ state.shieldReady=false; sfxShield(); state.invuln=0.4;   // brief — shield absorbs but you're still in play
     const v=document.getElementById('vignette'); v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),200); return; }
   state.o2-=o2*state.tier.sweepMul; sfxSwept();
   const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
@@ -2933,7 +2933,7 @@ function updateTurtle(dt){
 function krakenTouch(){
   if(state.invuln>0) return;
   const b=state.boss;
-  if(state.shieldReady){ state.shieldReady=false; sfxShield(); state.invuln=CONFIG.invuln;
+  if(state.shieldReady){ state.shieldReady=false; sfxShield(); state.invuln=0.4;   // brief — shield absorbs but you're still in play
     const v=document.getElementById('vignette'); v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),200); return; }
   state.o2-=CONFIG.bossTouchO2*state.tier.sweepMul; sfxSwept();
   const v=document.getElementById('vignette'); v.classList.add('sweep'); setTimeout(()=>v.classList.remove('sweep'),150);
@@ -3262,7 +3262,7 @@ function sweep(){
   if(state.phase!=='play' || state.invuln>0) return;
   const v=document.getElementById('vignette');
   if(state.shieldReady){            // perk: absorb the hit entirely, hold position
-    state.shieldReady=false; sfxShield(); state.invuln=CONFIG.invuln;
+    state.shieldReady=false; sfxShield(); state.invuln=0.4;   // brief — shield absorbs but you're still in play
     v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),200);
     return;
   }
