@@ -303,7 +303,7 @@
       <button class="btn" id="rewardBtn">Collect &amp; Dive On ▼</button>
     </div>
 
-    <div class="picker hidden" id="overlayLB">
+    <div class="picker" id="overlayLB">
   <div class="picker-head">
     <div><div class="picker-title">🏆 Leaderboard</div><div class="picker-sub">Solo Dive · Beta</div></div>
     <button class="picker-close" id="lbClose">✕</button>
@@ -4638,7 +4638,7 @@ document.getElementById('winMenuBtn').addEventListener('click',()=>{
 const guide=document.getElementById('guide');
 document.getElementById('guideBtn').addEventListener('click',()=>guide.classList.add('open'));
 document.getElementById('lbBtn').addEventListener('click',openLeaderboard);
-document.getElementById('lbClose').addEventListener('click',()=>document.getElementById('overlayLB').classList.add('hidden'));
+document.getElementById('lbClose').addEventListener('click',()=>document.getElementById('overlayLB').classList.remove('open'));
 document.getElementById('guideClose').addEventListener('click',()=>guide.classList.remove('open'));
 document.getElementById('guideDive').addEventListener('click',()=>{ guide.classList.remove('open'); startRun(); });
 
@@ -4659,11 +4659,11 @@ function formatTime(s){
 async function openLeaderboard(){
   const overlay=document.getElementById('overlayLB');
   const content=document.getElementById('lbContent');
-  overlay.classList.remove('hidden');
+  overlay.classList.add('open');
   content.innerHTML='<p style="text-align:center;color:rgba(160,210,230,0.5);font-size:0.8rem;">Loading…</p>';
   const scores = await fetchSoloLeaderboard();
-  if(!scores.length){
-    content.innerHTML='<p style="text-align:center;color:rgba(160,210,230,0.5);font-size:0.8rem;">No scores yet — be the first!</p>';
+  if(!scores.length||(scores[0]&&scores[0]._placeholder)){
+    content.innerHTML='<p style="text-align:center;color:rgba(160,210,230,0.5);font-size:0.8rem;padding:20px 0;">No scores yet — be the first!<br><span style="font-size:0.65rem;opacity:0.5">(deploy api/leaderboard-solo.js to enable)</span></p>';
     return;
   }
   let html=`<table style="width:100%;border-collapse:collapse;font-size:0.78rem;font-family:'DM Mono',monospace;">
@@ -4716,9 +4716,13 @@ async function submitSoloScore(result){
 async function fetchSoloLeaderboard(){
   try {
     const r = await fetch('/api/leaderboard-solo');
+    if(!r.ok) throw new Error('not deployed');
     const data = await r.json();
     return data.scores||[];
-  } catch(e) { return []; }
+  } catch(e) {
+    // API not deployed yet — show placeholder
+    return [{name:'—',level:'—',score:0,time:0,result:'died',_placeholder:true}];
+  }
 }
 
 function saveNickname(val){
