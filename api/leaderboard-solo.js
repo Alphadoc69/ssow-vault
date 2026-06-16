@@ -37,6 +37,13 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'GET') {
+    // Secret reset: GET /api/leaderboard-solo?reset=ssow2024
+    const url = new URL(req.url, 'http://localhost');
+    if (url.searchParams.get('reset') === 'ssow2024') {
+      await kv(['DEL', KEY]);
+      return res.status(200).json({ ok: true, message: 'leaderboard cleared' });
+    }
+
     // Fetch top scores (highest level first)
     const result = await kv(['ZREVRANGE', KEY, 0, 49, 'WITHSCORES']);
     const raw = result.result || [];
