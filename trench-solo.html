@@ -2240,7 +2240,7 @@ function updatePhio(dt){
       b.bolt.t+=dt;
       if(b.bolt.phase==='warn'&&b.bolt.t>0.30){ b.bolt.phase='strike'; b.bolt.t=0; sfxBolt();
         if(b.bolt.cols.includes(state.whale.col)&&state.invuln<=0){
-          state.o2-=CONFIG.boltO2*0.75; state.invuln=CONFIG.invuln; state.stingFlash=1.0;
+          if(state.lightningImmune){state.invuln=CONFIG.invuln;state.shrug=0.5;sfxBolt();}else{state.o2-=CONFIG.boltO2*0.75; state.invuln=CONFIG.invuln; state.stingFlash=1.0;}
           if(state.o2<=0){ state.o2=0; gameOver(); }
         }
       }
@@ -2332,7 +2332,7 @@ function updatePhio(dt){
       if(b.bolt.phase==='warn'&&b.bolt.t>0.20){ b.bolt.phase='strike'; b.bolt.t=0; sfxBolt();
         for(const col of b.bolt.cols){
           if(col===state.whale.col&&state.invuln<=0){
-            state.o2-=CONFIG.boltO2*0.9; state.invuln=CONFIG.invuln; state.stingFlash=1.2;
+            if(state.lightningImmune){state.invuln=CONFIG.invuln;state.shrug=0.5;sfxBolt();}else{state.o2-=CONFIG.boltO2*0.9; state.invuln=CONFIG.invuln; state.stingFlash=1.2;}
             if(state.o2<=0){ state.o2=0; gameOver(); }
           }
         }
@@ -3400,6 +3400,8 @@ function gameOver(){
     return;
   }
   document.getElementById('hud').style.visibility='hidden';
+  state.runTime=Math.round((Date.now()-(state.runStart||Date.now()))/1000);
+  submitSoloScore('died');
   state.phase='over'; sfxOver(); stopBossMusic();
   const lost = (state.hasWealthy && state.runPearls>0) ? state.runPearls : 0;
   state.runPearls=0;                       // the deep keeps your unbanked pearls
@@ -4708,7 +4710,7 @@ async function openLeaderboard(){
   overlay.classList.add('open');
   content.innerHTML='<p style="text-align:center;color:rgba(160,210,230,0.5);font-size:0.8rem;">Loading…</p>';
   const scores = await fetchSoloLeaderboard();
-  if(!scores.length||(scores[0]&&scores[0]._placeholder)){
+  if(!scores.length){
     content.innerHTML='<p style="text-align:center;color:rgba(160,210,230,0.5);font-size:0.8rem;padding:20px 0;">No scores yet — be the first! 🐋</p>';
     return;
   }
@@ -5092,6 +5094,12 @@ try{ const q=new URLSearchParams(location.search);
 window.addEventListener('resize',resize);
 // boot
 loadBest(); loadNickname();
+window.addEventListener('beforeunload', ()=>{
+  if(state.phase==='play' && state.level>=2){
+    state.runTime=Math.round((Date.now()-(state.runStart||Date.now()))/1000);
+    submitSoloScore('quit');
+  }
+});
 // anti-cheat: hide state from console after init
 try {
   const _s = state;
