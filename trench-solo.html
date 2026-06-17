@@ -3372,6 +3372,8 @@ function levelComplete(){
   }, 650);
 }
 function win(){
+  state.runTime=Math.round((Date.now()-(state.runStart||Date.now()))/1000);
+  submitSoloScore('win');
   state.phase='over'; sfxLevel(); stopBossMusic();
   const got=state.runPearls;
   bankPearls();
@@ -3383,13 +3385,14 @@ function win(){
   document.getElementById('overlayWin').classList.remove('hidden');
 }
 function gameOver(){
-  // Revive upgrade: resurface once instead of dying
-  if(state.upg.revive && !state.revived){
-    state.revived=true; state.o2=55; state.invuln=2.5; sfxShield();
+  // Revive upgrade: stackable extra lives
+  if(state.upg.revive && (state.revivesLeft||0)>0){
+    state.revivesLeft--; state.o2=65; state.invuln=2.5; sfxShield();
     const v=document.getElementById('vignette'); v.classList.add('shield'); setTimeout(()=>v.classList.remove('shield'),300);
-    state.whale.row=0; state.whale.col=Math.floor(CONFIG.COLS/2);
+    state.whale.row=Math.max(1,CONFIG.ROWS-2); state.whale.col=Math.floor(CONFIG.COLS/2);
     return;
   }
+  document.getElementById('hud').style.visibility='hidden';
   state.phase='over'; sfxOver(); stopBossMusic();
   const lost = (state.hasWealthy && state.runPearls>0) ? state.runPearls : 0;
   state.runPearls=0;                       // the deep keeps your unbanked pearls
@@ -4682,12 +4685,14 @@ async function openLeaderboard(){
       <th style="padding:6px 4px;text-align:center;">SCORE</th>
       <th style="padding:6px 4px;text-align:center;">TIME</th>
       <th style="padding:6px 4px;text-align:center;">RESULT</th>
+      <th style="padding:6px 4px;text-align:left;">WALLET</th>
     </tr></thead><tbody>`;
   scores.forEach((s,i)=>{
     const isWin=s.result==='win';
     const row=i%2===0?'rgba(255,255,255,0.02)':'transparent';
     const nameColor=isWin?'#ffd060':'#e8f4ff';
     const winBadge=isWin?' 👑':'';
+    const shortWallet = s.wallet ? s.wallet.slice(0,6)+'…'+s.wallet.slice(-4) : '—';
     html+=`<tr style="background:${row};">
       <td style="padding:6px 4px;color:rgba(160,210,230,0.5);">${i+1}</td>
       <td style="padding:6px 4px;color:${nameColor};font-weight:600;">${s.name}${winBadge}</td>
@@ -4695,6 +4700,7 @@ async function openLeaderboard(){
       <td style="padding:6px 4px;text-align:center;">${(s.score||0).toLocaleString()}</td>
       <td style="padding:6px 4px;text-align:center;color:rgba(160,210,230,0.6);">${formatTime(s.time)}</td>
       <td style="padding:6px 4px;text-align:center;">${isWin?'🏆':'💀'}</td>
+      <td style="padding:6px 4px;color:rgba(160,210,230,0.4);font-size:0.65rem;">${shortWallet}</td>
     </tr>`;
   });
   html+='</tbody></table>';
