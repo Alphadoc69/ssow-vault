@@ -3202,6 +3202,8 @@ function pearlMult(){ return 1 + Math.min(2, Math.floor((state.level-1)/10)*0.25
 function move(dr,dc){
   if(state.phase!=='play') return;
   if((state.jellyStun||0)>0) return;   // stunned by jellyfish
+  if((state.bearSlow||0)>0 && (state.bearMoveCd||0)>0){ return; }   // slowed by bear
+  if((state.bearSlow||0)>0){ state.bearMoveCd=0.35; }   // 350ms between moves when slowed
   // anti-tamper: clamp o2 to valid range
   if((state.jellyStun||0)>0) state.jellyStun=Math.max(0,state.jellyStun-dt);
   if(state.o2>100+(state.midUpgrades&&state.midUpgrades.o2bonus||0)) state.o2=100;
@@ -3484,6 +3486,8 @@ function update(dt){
   if(state.phase!=='play') return;
   if(state.lootReveal>0) state.lootReveal=Math.max(0,state.lootReveal-dt);
   if((state.jellyStun||0)>0) state.jellyStun=Math.max(0,state.jellyStun-dt);  // always tick
+  if((state.bearSlow||0)>0) state.bearSlow=Math.max(0,state.bearSlow-dt);
+  if((state.bearMoveCd||0)>0) state.bearMoveCd=Math.max(0,state.bearMoveCd-dt);
   if(state.mode==='boss'){ updateBoss(dt); return; }
   if(state.invuln>0) state.invuln=Math.max(0,state.invuln-dt);
   if(state.bannerT>0) state.bannerT=Math.max(0,state.bannerT-dt);
@@ -3573,7 +3577,7 @@ function update(dt){
     for(const b of lane.blocks){
       if(b.stun>0) continue;                          // stunned squid can't catch you
       let d=Math.abs(b.x-state.whale.col); d=Math.min(d,CONFIG.COLS-d);
-      if(d<hitR){ sweep(); break; }
+      if(d<hitR){ if(lane.enemy==='bear') state.bearSlow=5.0; sweep(); break; }
     }
   }
   if(state.o2<=0){ state.o2=0; gameOver(); }
@@ -3751,6 +3755,18 @@ function drawPearl(p){
   ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(-r*0.32,-r*0.32,r*0.22,0,Math.PI*2); ctx.fill();
   ctx.restore();
 }
+function drawBearSlow(){
+  if(!(state.bearSlow>0)) return;
+  const w=cv.clientWidth, h=cv.clientHeight;
+  ctx.save();
+  ctx.font=`bold ${Math.max(11,Math.floor(CW*0.3))}px 'DM Mono',monospace`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle='rgba(150,220,255,0.85)';
+  ctx.shadowColor='rgba(150,220,255,0.5)'; ctx.shadowBlur=8;
+  ctx.fillText(`🐻‍❄️ SLOWED ${Math.ceil(state.bearSlow)}s`, w/2, h*0.38);
+  ctx.restore();
+}
+
 function drawJellyStun(){
   if(!(state.jellyStun>0)) return;
   const w=cv.clientWidth, h=cv.clientHeight;
@@ -4356,7 +4372,7 @@ function renderBoss(w,h){
   }
   // sting / impact flash
   if(state.stingFlash>0){ ctx.fillStyle=`rgba(150,80,220,${(0.2*state.stingFlash).toFixed(3)})`; ctx.fillRect(0,0,w,h); }
-  if(state.phase==='play' && b && !b.intro) drawLoadout(8); drawNickname(); drawJellyStun();
+  if(state.phase==='play' && b && !b.intro) drawLoadout(8); drawNickname(); drawJellyStun(); drawBearSlow();
   // boss HP bar
   if(b && b.type!=='megalodon' && b.type!=='stampede' && b.type!=='phio'){
     const bw=w*0.7, bx=(w-bw)/2, by=8, bh=Math.max(7,CH*0.12);
@@ -4543,7 +4559,7 @@ function render(){
     ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle='rgba(220,245,255,0.45)';
     ctx.fillText(state.habitat.name, 8, 24);
   }
-  if(state.phase==='play'){ drawLoadout(40); drawNickname(); drawJellyStun(); }
+  if(state.phase==='play'){ drawLoadout(40); drawNickname(); drawJellyStun(); drawBearSlow(); }
   // portal hint
   if(state.hintT>0){
     state.hintT=Math.max(0,state.hintT-0.016);
@@ -4642,7 +4658,7 @@ cv.addEventListener('touchend',e=>{ if(!tMoved) throwBarnacle(); },{passive:true
 cv.addEventListener('mousedown',e=>{ if(state.phase==='play') throwBarnacle(); });
 // pad with hold-repeat
 let holdTimer=null;
-function startHold(dir){ move(...DIRS[dir]); clearInterval(holdTimer); holdTimer=setInterval(()=>move(...DIRS[dir]),CONFIG.holdRepeat); }
+function startHold(dir){ move(...DIRS[dir]); clearInterval(holdTimer); const rep=CONFIG.holdRepeat*((state.bearSlow||0)>0?2.2:1); holdTimer=setInterval(()=>move(...DIRS[dir]),rep); }
 function stopHold(){ clearInterval(holdTimer); holdTimer=null; }
 document.querySelectorAll('.pad button[data-dir]').forEach(b=>{
   const dir=b.dataset.dir;
