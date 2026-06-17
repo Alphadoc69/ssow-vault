@@ -4714,20 +4714,24 @@ async function openLeaderboard(){
 async function submitSoloScore(result){
   const nick = state.nickname || (state.wallet ? state.wallet.slice(0,6)+'…'+state.wallet.slice(-4) : 'Guest');
   if(state.level<2) return;   // don't submit level 1 quits
+  const payload = {
+    name: nick,
+    wallet: state.wallet||'',
+    level: state.level,
+    score: state.score,
+    time: state.runTime||0,
+    result,
+    ts: Date.now()
+  };
+  console.log('📊 Submitting score:', payload);
   try {
-    await fetch('/api/leaderboard-solo', {
+    const r = await fetch('/api/leaderboard-solo', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        name: nick,
-        wallet: state.wallet||'',
-        level: state.level,
-        score: state.score,
-        time: state.runTime||0,
-        result,
-        ts: Date.now()
-      })
+      body: JSON.stringify(payload)
     });
+    const data = await r.json();
+    console.log('📊 Submit response:', r.status, data);
   } catch(e) { console.warn('leaderboard submit failed', e); }
 }
 
