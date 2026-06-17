@@ -1,10 +1,9 @@
 // api/leaderboard-solo.js
-// One entry per player (wallet or nickname), keeps best score only
+// Simple approach: store each player score as a JSON string at a key
+// All player keys tracked in a list
 
 const KV_URL   = process.env.KV_REST_API_URL   || process.env.UPSTASH_REDIS_REST_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-const ZKEY = 'solo:lb:v3';   // sorted set: member=playerKey, score=sortKey
-const HKEY = 'solo:lb:data'; // hash: field=playerKey, value=JSON entry
 
 async function redis(cmd) {
   if (!KV_URL || !KV_TOKEN) return null;
@@ -16,7 +15,7 @@ async function redis(cmd) {
     });
     const j = await r.json();
     return j.result;
-  } catch (e) { console.error('redis error', e); return null; }
+  } catch (e) { return null; }
 }
 
 export default async function handler(req, res) {
@@ -32,15 +31,23 @@ export default async function handler(req, res) {
     const { name, wallet, level, score, time, result, ts } = body || {};
     if (!name || level == null) return res.status(400).json({ error: 'missing fields' });
 
-    const playerKey = wallet ? wallet.toLowerCase() : `nick_${String(name).toLowerCase().replace(/\s+/g,'_')}`;
+    // unique player key
+    const pk = wallet ? `solo:p:${wallet.toLowerCase()}` : `solo:p:nick_${String(name).toLowerCase().replace(/\s+/g,'_')}`;
     const sortKey = Number(level) * 1000000 + (Number(score) || 0);
 
-    // only update if this is a better score
-    const existing = await redis(['ZSCORE', ZKEY, playerKey]);
-    if (existing !== null && Number(existing) >= sortKey) {
-      return res.status(200).json({ ok: true, kept: 'existing' });
+    // check existing best
+    const existing = await redis(['GET', pk]);
+    if (existing) {
+      try {
+        const prev = JSON.parse(existing);
+        const prevKey = prev.level * 1000000 + (prev.score || 0);
+        if (prevKey >= sortKey) {
+          return res.status(200).json({ ok: true, kept: 'existing' });
+        }
+      } catch {}
     }
 
+    // save new best
     const entry = JSON.stringify({
       name: String(name).slice(0, 24),
       wallet: wallet || '',
@@ -51,11 +58,11 @@ export default async function handler(req, res) {
       ts: ts || Date.now()
     });
 
-    // store sort score and entry data atomically
-    await redis(['ZADD', ZKEY, sortKey, playerKey]);
-    await redis(['HSET', HKEY, playerKey, entry]);
+    await redis(['SET', pk, entry]);
+    // track player key in a set
+    await redis(['SADD', 'solo:players', pk]);
 
-    return res.status(200).json({ ok: true, kept: 'new', level: Number(level) });
+    return res.status(200).json({ ok: true, kept: 'new' });
   }
 
   // ── GET: fetch leaderboard ──
@@ -64,25 +71,29 @@ export default async function handler(req, res) {
     const params = new URLSearchParams(qs);
 
     if (params.get('reset') === 'ssow2024') {
-      await redis(['DEL', ZKEY]);
-      await redis(['DEL', HKEY]);
+      const keys = await redis(['SMEMBERS', 'solo:players']) || [];
+      for (const k of keys) await redis(['DEL', k]);
+      await redis(['DEL', 'solo:players']);
       return res.status(200).json({ ok: true, message: 'leaderboard cleared' });
     }
 
-    // get top 50 player keys
-    const playerKeys = await redis(['ZREVRANGE', ZKEY, 0, 49]);
-    if (!Array.isArray(playerKeys) || !playerKeys.length) {
-      return res.status(200).json({ scores: [] });
+    // get all player keys
+    const keys = await redis(['SMEMBERS', 'solo:players']) || [];
+    if (!keys.length) return res.status(200).json({ scores: [] });
+
+    // fetch each player's best score
+    const scores = [];
+    for (const k of keys) {
+      const raw = await redis(['GET', k]);
+      if (raw) {
+        try { scores.push(JSON.parse(raw)); } catch {}
+      }
     }
 
-    // fetch all entries in one HMGET call
-    const raw = await redis(['HMGET', HKEY, ...playerKeys]);
-    const scores = (Array.isArray(raw) ? raw : []).map(s => {
-      if (!s) return null;
-      try { return JSON.parse(s); } catch { return null; }
-    }).filter(Boolean);
+    // sort by level desc, then score desc
+    scores.sort((a, b) => b.level !== a.level ? b.level - a.level : b.score - a.score);
 
-    return res.status(200).json({ scores });
+    return res.status(200).json({ scores: scores.slice(0, 50) });
   }
 
   return res.status(405).json({ error: 'method not allowed' });
