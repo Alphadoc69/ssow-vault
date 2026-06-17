@@ -3203,8 +3203,7 @@ function move(dr,dc){
   if(state.phase!=='play') return;
   if((state.jellyStun||0)>0) return;   // stunned by jellyfish
   // anti-tamper: clamp o2 to valid range
-  // tick jelly stun
-  if((state.jellyStun||0)>0){ state.jellyStun=Math.max(0,state.jellyStun-dt); }
+  if((state.jellyStun||0)>0) state.jellyStun=Math.max(0,state.jellyStun-dt);
   if(state.o2>100+(state.midUpgrades&&state.midUpgrades.o2bonus||0)) state.o2=100;
   if(state.level<1||state.level>CONFIG.maxLevel) state.level=Math.max(1,Math.min(CONFIG.maxLevel,state.level||1));
   if(state.mode==='boss' && state.boss && state.boss.intro){ state.boss.intro=false; return; }   // begin the fight
@@ -3484,6 +3483,7 @@ function updateOrca(dt){
 function update(dt){
   if(state.phase!=='play') return;
   if(state.lootReveal>0) state.lootReveal=Math.max(0,state.lootReveal-dt);
+  if((state.jellyStun||0)>0) state.jellyStun=Math.max(0,state.jellyStun-dt);  // always tick
   if(state.mode==='boss'){ updateBoss(dt); return; }
   if(state.invuln>0) state.invuln=Math.max(0,state.invuln-dt);
   if(state.bannerT>0) state.bannerT=Math.max(0,state.bannerT-dt);
