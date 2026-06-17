@@ -313,7 +313,10 @@
     <div class="picker" id="overlayLB">
   <div class="picker-head">
     <div><div class="picker-title">🏆 Leaderboard</div><div class="picker-sub">Solo Dive · Beta</div></div>
-    <button class="picker-close" id="lbClose">✕</button>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button id="lbRefresh" style="background:rgba(91,200,232,0.15);border:1px solid rgba(91,200,232,0.3);color:#5bc8e8;font-family:'Bebas Neue',sans-serif;font-size:0.85rem;letter-spacing:0.08em;padding:5px 12px;border-radius:6px;cursor:pointer;">🔄 REFRESH</button>
+      <button class="picker-close" id="lbClose">✕</button>
+    </div>
   </div>
   <div id="lbContent" style="padding:12px 16px;overflow-y:auto;max-height:70vh;">
     <p style="text-align:center;color:rgba(160,210,230,0.5);font-size:0.8rem;">Loading…</p>
@@ -4650,6 +4653,7 @@ document.getElementById('guideBtn').addEventListener('click',()=>guide.classList
 document.getElementById('lbBtn').addEventListener('click',openLeaderboard);
 document.getElementById('lbBtnOver').addEventListener('click',openLeaderboard);
 document.getElementById('lbClose').addEventListener('click',()=>document.getElementById('overlayLB').classList.remove('open'));
+document.getElementById('lbRefresh').addEventListener('click',openLeaderboard);
 document.getElementById('guideClose').addEventListener('click',()=>guide.classList.remove('open'));
 document.getElementById('guideDive').addEventListener('click',()=>{ guide.classList.remove('open'); startRun(); });
 
