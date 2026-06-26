@@ -1137,7 +1137,9 @@ function updateMegalodon(dt){
   if(!state.dolphin){ state.dolphinCd-=dt;
     if(state.dolphinCd<=0){
       const dir=Math.random()<0.5?1:-1;
-      state.dolphin={row:3,x:(dir>0?-1.5:CONFIG.COLS+1.5),dir,hit:false};
+      state.dolphinCount=(state.dolphinCount||0)+1;
+      const isGoldDolphin=!!(state.midUpgrades&&state.midUpgrades.dolphinpact&&state.dolphinCount%2===0);
+      state.dolphin={row:3,x:(dir>0?-1.5:CONFIG.COLS+1.5),dir,hit:false,gold:isGoldDolphin};
       state.dolphinCd=6.0*(state.midUpgrades&&state.midUpgrades.dolphinpact?0.5:1); sfxDolphin();
     }
   } else {
@@ -3262,7 +3264,9 @@ function openTreasure(){
   state.chestOpened=true;
   state.o2=Math.min(100, state.o2+CONFIG.chestRefill);
   // roll the chest's loot rarity right here, so it bursts out of the chest you cracked
-  const gem=rollGem(state.level); state.clearGem=gem; state.gems.push(gem);
+  let gem=rollGem(state.level);
+  if(state.midUpgrades&&state.midUpgrades.deepluck){ const g2=rollGem(state.level); if(g2.xp>gem.xp) gem=g2; }
+  state.clearGem=gem; state.gems.push(gem);
   state.score += Math.round(gem.xp*state.xpMult) + 10;
   if(gem.jackpot) sfxJackpot(); else if(gem.rich) sfxGem(true); else sfxGem(false);
   if(gem.bonus || gem.jackpot){
@@ -4057,8 +4061,10 @@ function drawDolphin(d){
   // speed trail
   ctx.strokeStyle='rgba(190,235,252,0.4)'; ctx.lineWidth=2; ctx.lineCap='round';
   for(let i=1;i<=3;i++){ ctx.beginPath(); ctx.moveTo(-sz*0.45-i*sz*0.18,0); ctx.lineTo(-sz*0.6-i*sz*0.18,0); ctx.stroke(); }
-  // body
-  ctx.fillStyle='#7fb4d4'; ctx.strokeStyle='#2f5f7a'; ctx.lineWidth=Math.max(1,sz*0.03);
+  // body — gold if dolphin pact bonus
+  const isGold=!!d.gold;
+  if(isGold){ ctx.shadowColor='rgba(255,215,0,0.8)'; ctx.shadowBlur=16; }
+  ctx.fillStyle=isGold?'#f5c842':'#7fb4d4'; ctx.strokeStyle=isGold?'#b8860b':'#2f5f7a'; ctx.lineWidth=Math.max(1,sz*0.03);
   ctx.beginPath(); ctx.moveTo(sz*0.46,0);
   ctx.quadraticCurveTo(sz*0.05,-sz*0.20,-sz*0.34,-sz*0.05);
   ctx.quadraticCurveTo(-sz*0.48,0,-sz*0.34,sz*0.06);
