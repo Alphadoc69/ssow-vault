@@ -1159,7 +1159,7 @@ function updateMegalodon(dt){
   const megBubMax=8;   // meg fight allows more bubbles than other bosses
   if(state.bubbleCd<=0&&liveB<megBubMax){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn*0.4; }
   for(let i=state.bubbles.length-1;i>=0;i--){ const bub=state.bubbles[i];
-    if(!bub.taken&&(state.midUpgrades&&state.midUpgrades.pearlpull?Math.abs(bub.row-state.whale.row)<=2&&Math.abs(bub.col-state.whale.col)<=2:bub.row===state.whale.row&&bub.col===state.whale.col)){
+    if(!bub.taken&&bub.row===state.whale.row&&bub.col===state.whale.col){
       const o2max=100+(state.midUpgrades&&state.midUpgrades.o2bonus||0);
       state.o2=Math.min(o2max,state.o2+CONFIG.bubbleO2*(state.midUpgrades&&state.midUpgrades.o2cache?1:1)); sfxBubble(); state.bubbles.splice(i,1); } }
 
@@ -1788,7 +1788,7 @@ function updateStampede(dt){
   const liveB=state.bubbles.filter(bub=>!bub.taken).length;
   if(state.bubbleCd<=0&&liveB<6){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn*0.4; }
   for(let i=state.bubbles.length-1;i>=0;i--){ const bub=state.bubbles[i];
-    if(!bub.taken&&(state.midUpgrades&&state.midUpgrades.pearlpull?Math.abs(bub.row-state.whale.row)<=2&&Math.abs(bub.col-state.whale.col)<=2:bub.row===state.whale.row&&bub.col===state.whale.col)){
+    if(!bub.taken&&bub.row===state.whale.row&&bub.col===state.whale.col){
       const o2max=100+(state.midUpgrades&&state.midUpgrades.o2bonus||0);
       state.o2=Math.min(o2max,state.o2+CONFIG.bubbleO2*(state.midUpgrades&&state.midUpgrades.o2cache?1:1)); sfxBubble(); state.bubbles.splice(i,1); } }
 
@@ -2381,7 +2381,7 @@ function updatePhio(dt){
   const liveB=state.bubbles.filter(bub=>!bub.taken).length;
   if(state.bubbleCd<=0&&liveB<12){ spawnBossBubble(); state.bubbleCd=CONFIG.bossBubbleSpawn*0.18; }
   for(let i=state.bubbles.length-1;i>=0;i--){ const bub=state.bubbles[i];
-    if(!bub.taken&&(state.midUpgrades&&state.midUpgrades.pearlpull?Math.abs(bub.row-state.whale.row)<=2&&Math.abs(bub.col-state.whale.col)<=2:bub.row===state.whale.row&&bub.col===state.whale.col)){
+    if(!bub.taken&&bub.row===state.whale.row&&bub.col===state.whale.col){
       const o2max=100+(state.midUpgrades&&state.midUpgrades.o2bonus||0);
       state.o2=Math.min(o2max,state.o2+CONFIG.bubbleO2*(state.midUpgrades&&state.midUpgrades.o2cache?1:1)); sfxBubble(); state.bubbles.splice(i,1); } }
 
