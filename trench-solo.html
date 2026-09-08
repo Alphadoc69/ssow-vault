@@ -130,6 +130,7 @@
   .wallet-row button:disabled{opacity:0.4; cursor:default;}
   .wallet-status{font-size:0.55rem; letter-spacing:0.08em; color:var(--dim); min-height:1.2em; margin-top:7px;}
   .wallet-status.err{color:#e08080;}
+  .wallet-security{font-size:0.5rem; line-height:1.5; letter-spacing:0.04em; color:rgba(120,210,240,0.65); margin-top:7px;}
   .chosen{display:flex; align-items:center; gap:10px; margin-top:10px; padding:8px; border:1px solid rgba(91,200,232,0.2);
     border-radius:7px; background:rgba(91,200,232,0.04); text-align:left;}
   .chosen img{width:46px; height:46px; border-radius:7px; object-fit:cover; flex:0 0 auto;}
@@ -207,6 +208,8 @@
   .hint{font-size:0.5rem; letter-spacing:0.14em; color:var(--dim); text-transform:uppercase; text-align:center; margin:0.25rem 0 0.6rem;}
 
   footer{font-size:0.5rem; letter-spacing:0.18em; color:rgba(255,255,255,0.18); text-transform:uppercase; padding:0.5rem 0 2rem; text-align:center;}
+  footer a{color:rgba(144,224,245,0.7); text-decoration:none;}
+  footer a:hover{color:var(--cyan-lt);}
 
   @media (max-width:560px){
     header{padding:0.9rem 0 0.3rem;}
@@ -268,6 +271,7 @@
           <input id="walletInput" type="text" placeholder="0x… your wallet" autocomplete="off" spellcheck="false" />
           <button id="loadBtn">Load</button>
         </div>
+        <p class="wallet-security">🔒 SSoW Vault will never ask for your seed phrase, private key, recovery phrase, or wallet password.</p>
         <p class="wallet-status" id="walletStatus"></p>
         <div class="chosen" id="chosen" style="display:none">
           <img id="chosenImg" alt="" />
@@ -361,7 +365,7 @@
   </div>
   <p class="hint">Swipe the board · arrow keys / WASD · or tap the pad</p>
 
-  <footer>Solo Dive · #TogetherWeWhale</footer>
+  <footer>Solo Dive · <a href="/privacy.html">Privacy Policy</a> · #TogetherWeWhale</footer>
 </div>
 
 <!-- FULL-SCREEN GUIDE / LEGEND -->
@@ -4934,7 +4938,7 @@ async function checkOrca(wallet){
 }
 async function loadWallet(){
   const wallet=wInput.value.trim();
-  if(!wallet.startsWith('0x')||wallet.length<10){ setW('Enter a valid 0x wallet address.',true); return; }
+  if(!/^0x[a-fA-F0-9]{40}$/.test(wallet)){ setW('Enter a valid Ethereum wallet address.',true); return; }
   wBtn.disabled=true; setW('Diving into the blockchain…');
   try{
     loadedNfts=await fetchAllNFTs(wallet);
