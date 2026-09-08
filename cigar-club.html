@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CIGAR CLUB — Secret Society of Whales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --abyss:#04121f; --glow:#37e6c9; --ink:#eaf7ff; --ink-dim:#9fc4d6;
+    --panel:rgba(6,22,34,.86); --panel-line:rgba(55,230,201,.28);
+    --map:"Silkscreen",monospace; --body:"Space Grotesk",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--abyss);color:var(--ink);font-family:var(--body)}
+  #stage{position:fixed;inset:0}
+  canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+  canvas:active{cursor:grabbing}
+
+  .brand{position:fixed;top:14px;left:16px;z-index:5;pointer-events:none;max-width:60vw}
+  .brand h1{font-family:var(--map);font-size:22px;letter-spacing:1px;margin:0;text-shadow:0 0 14px rgba(55,230,201,.55)}
+  .brand p{margin:6px 0 0;font-size:12px;color:var(--ink-dim);line-height:1.4}
+
+  .top-right{position:fixed;top:14px;right:14px;z-index:6;display:flex;gap:8px;align-items:center}
+  .btn{font-family:var(--map);font-size:12px;color:var(--ink);background:var(--panel);
+    border:1px solid var(--panel-line);border-radius:12px;padding:10px 12px;cursor:pointer;
+    display:flex;align-items:center;gap:8px;backdrop-filter:blur(6px)}
+  .btn:hover{border-color:var(--glow)}
+  .btn .dot{width:8px;height:8px;border-radius:50%;background:var(--glow);box-shadow:0 0 8px var(--glow)}
+
+  .finder{position:fixed;top:64px;right:14px;z-index:6;display:flex;gap:6px;
+    background:var(--panel);border:1px solid var(--panel-line);border-radius:12px;padding:8px;backdrop-filter:blur(6px)}
+  .finder input{width:190px;background:rgba(0,0,0,.35);border:1px solid var(--panel-line);border-radius:8px;
+    color:var(--ink);font-family:var(--body);font-size:14px;padding:8px 10px;outline:none}
+  .finder input::placeholder{color:var(--ink-dim)}
+  .finder button{font-family:var(--map);font-size:11px;color:var(--abyss);background:var(--glow);
+    border:0;border-radius:8px;padding:0 12px;cursor:pointer;font-weight:700}
+  .finder button:disabled{opacity:.5;cursor:default}
+
+  .status{position:fixed;top:112px;right:14px;z-index:6;max-width:250px;background:var(--panel);
+    border:1px solid var(--panel-line);border-radius:10px;padding:8px 11px;font-size:12px;color:var(--ink-dim);
+    backdrop-filter:blur(6px);display:none;line-height:1.4}
+  .status.show{display:block}
+
+  .legend{position:fixed;top:64px;right:14px;z-index:7;width:258px;max-height:72vh;overflow:auto;
+    background:var(--panel);border:1px solid var(--panel-line);border-radius:14px;padding:10px;backdrop-filter:blur(8px);display:none}
+  .legend.open{display:block}
+  .legend h2{font-family:var(--map);font-size:11px;margin:2px 4px 10px;color:var(--ink-dim);line-height:1.5}
+  .legrow{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;cursor:pointer}
+  .legrow:hover{background:rgba(55,230,201,.10)}
+  .legrow .chip{width:12px;height:12px;border-radius:3px;flex:none;box-shadow:0 0 8px currentColor}
+  .legrow .nm{font-family:var(--map);font-size:11px;flex:1;line-height:1.35}
+  .legrow .lots{font-size:12px;color:var(--ink-dim)}
+
+  .readout{position:fixed;bottom:14px;left:16px;z-index:5;font-size:12px;color:var(--ink-dim);pointer-events:none}
+  .readout b{color:var(--ink);font-family:var(--map);font-size:13px}
+
+  .card{position:fixed;left:50%;bottom:14px;transform:translateX(-50%) translateY(160%);z-index:8;
+    width:min(560px,calc(100vw - 28px));background:var(--panel);border:1px solid var(--panel-line);
+    border-radius:16px;padding:16px 18px;backdrop-filter:blur(10px);transition:transform .32s cubic-bezier(.22,1,.36,1)}
+  .card.show{transform:translateX(-50%) translateY(0)}
+  .card .x{position:absolute;top:12px;right:14px;color:var(--ink-dim);cursor:pointer;font-size:20px;line-height:1}
+  .card .eyebrow{display:flex;align-items:center;gap:8px;font-family:var(--map);font-size:11px;color:var(--ink-dim)}
+  .card .eyebrow .chip{width:11px;height:11px;border-radius:3px;box-shadow:0 0 8px currentColor}
+  .card h3{font-family:var(--map);font-size:20px;margin:8px 0 2px;text-shadow:0 0 12px rgba(55,230,201,.4)}
+  .card .tag{font-size:13px;color:var(--glow);margin:0 0 10px}
+  .card p{font-size:14px;line-height:1.5;margin:0 0 12px}
+  .card .stats{display:flex;gap:22px;margin-bottom:14px;flex-wrap:wrap}
+  .card .stat .k{font-size:11px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.5px}
+  .card .stat .v{font-family:var(--map);font-size:16px}
+  .card .whale{display:none;gap:12px;margin:2px 0 14px;align-items:flex-start}
+  .card .whale.show{display:flex}
+  .card .whale img{width:88px;height:88px;border-radius:12px;flex:none;background:rgba(0,0,0,.4);border:1px solid var(--panel-line);object-fit:cover}
+  .card .wInfo{flex:1;min-width:0}
+  .card .wTop{display:flex;align-items:center;gap:8px;justify-content:space-between}
+  .card .wTop #wName{font-family:var(--map);font-size:13px}
+  .card .tier{font-family:var(--map);font-size:10px;padding:4px 9px;border-radius:999px;color:var(--abyss);box-shadow:0 0 12px currentColor}
+  .card .wRank{font-size:12px;color:var(--ink-dim);margin:5px 0 9px}
+  .card .traits{display:flex;flex-wrap:wrap;gap:6px}
+  .card .traits span{font-size:11px;color:var(--ink);background:rgba(55,230,201,.10);border:1px solid var(--panel-line);border-radius:8px;padding:4px 8px}
+  .card .cta{font-family:var(--map);font-size:12px;color:var(--abyss);background:var(--glow);border:0;border-radius:10px;padding:11px 16px;cursor:pointer;font-weight:700}
+  .card .cta:hover{filter:brightness(1.08)}
+
+  .hint{position:fixed;bottom:14px;right:16px;z-index:5;font-size:11px;color:var(--ink-dim);pointer-events:none}
+  @media (max-width:560px){ .brand p{display:none} .hint{display:none} .finder input{width:140px} .legend{width:224px} }
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="map"></canvas></div>
+
+<div class="brand">
+  <h1>CIGAR CLUB</h1>
+  <p>Whales are zoned by skin — common in the shallows, rarest in the deep. Paste a wallet to surface your pod, or a whale # to find one.</p>
+</div>
+
+<div class="top-right">
+  <div class="finder">
+    <input id="whaleNum" type="text" placeholder="0x wallet  ·  or whale #" autocapitalize="off" autocomplete="off" spellcheck="false">
+    <button id="findBtn">DIVE</button>
+  </div>
+  <button class="btn" id="legendBtn"><span class="dot"></span>ZONES</button>
+</div>
+
+<div class="status" id="status"></div>
+<div class="legend" id="legend"><h2 id="legTitle">SKIN ZONES</h2><div id="legrows"></div></div>
+
+<div class="readout">SECRET SOCIETY OF WHALES · <b id="ro">10,000</b> whales · zoned by skin + rarity</div>
+<div class="hint">source: rarity-data.js</div>
+
+<div class="card" id="card">
+  <span class="x" id="cardX">×</span>
+  <div class="eyebrow"><span class="chip" id="cEyeChip"></span><span id="cEye">ZONE</span></div>
+  <h3 id="cName">—</h3>
+  <div class="tag" id="cTag">—</div>
+  <p id="cDesc">—</p>
+  <div class="stats">
+    <div class="stat"><div class="k" id="kLots">Whales</div><div class="v" id="cLots">—</div></div>
+    <div class="stat"><div class="k" id="kShare">Share</div><div class="v" id="cShare">—</div></div>
+    <div class="stat"><div class="k" id="kBg">Skin</div><div class="v" id="cBg">—</div></div>
+  </div>
+  <div class="whale" id="whalePanel">
+    <img id="wImg" alt="whale" />
+    <div class="wInfo">
+      <div class="wTop"><span id="wName">Whale</span><span class="tier" id="wTier">—</span></div>
+      <div class="wRank" id="wRank">—</div>
+      <div class="traits" id="wTraits"></div>
+    </div>
+  </div>
+  <button class="cta" id="cEnter">VIEW ON OPENSEA →</button>
+</div>
+
+<!-- your real data. 404s harmlessly in preview; loads on thewhaleclub.xyz -->
+<script src="rarity-data.js"></script>
+
+<script>
+/* =========================================================================
+   CIGAR CLUB — Secret Society of Whales.
+   Zones ARE the SKIN trait, laid out by RARITY: the common skins sit up in
+   the shallows (big zones), the rarest skins sit deep (small prestige zones).
+   Paste an ETH wallet -> reads owned whales via /api/whales (same endpoint
+   cards.html uses) and pins each whale's NFT artwork into its skin zone.
+   Rank + traits come from window.WHALE_TRAITS (rarity-data.js).
+   ========================================================================= */
+const cv=document.getElementById('map'), ctx=cv.getContext('2d');
+let DPR=Math.min(window.devicePixelRatio||1,2.5);
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const GLOW='#37e6c9';
+const CONTRACT='0x42d2b41c5bb1f73f06d5adaa85e23b44f75c4cd2';   // matches cards.html
+const COLLECTION='https://opensea.io/collection/secretsocietyofwhales';
+
+/* one zone per SKIN value. Rows are ordered common (top) -> rare (bottom).
+   `count` is a static default (real distribution); overwritten from live data.*/
+const REGIONS=[
+  // row 1 — most common
+  {key:'bigblue', name:'THE BIG BLUE',   skin:'Light Blue', color:'#9fd4ef', count:1611, tag:'Where most of the pod swims', mark:'arrow',  poly:[[240,150],[860,150],[860,520],[240,520]]},
+  {key:'fog',     name:'THE FOG BANK',   skin:'Light Gray', color:'#c9d3d9', count:1441, tag:'Grey and endless',           mark:'spout',  poly:[[900,150],[1520,150],[1520,520],[900,520]]},
+  {key:'sandbar', name:'SANDBAR SOCIAL', skin:'Tan',        color:'#d8b98a', count:1400, tag:"The members' beach",         mark:'kelp',   poly:[[1560,150],[2160,150],[2160,520],[1560,520]]},
+  // row 2
+  {key:'slate',   name:'SLATE HARBOR',   skin:'Dark Gray',  color:'#8a99a3', count:1217, tag:'Cool, sharp, understated',   mark:'city',   poly:[[240,560],[860,560],[860,930],[240,930]]},
+  {key:'pearl',   name:'PEARL BAY',      skin:'White',      color:'#eef4f8', count:1138, tag:'Old money waters',           mark:'spout',  poly:[[900,560],[1520,560],[1520,930],[900,930]]},
+  {key:'flamingo',name:'FLAMINGO FLATS', skin:'Pink',       color:'#ff8fc4', count:887,  tag:'Loud and proud',             mark:'coral',  poly:[[1560,560],[2160,560],[2160,930],[1560,930]]},
+  // row 3
+  {key:'abyss',   name:'THE BLACK ABYSS',skin:'Black',      color:'#6b7a8a', count:784,  tag:'For the shadow whales',      mark:'beacon', poly:[[240,970],[860,970],[860,1340],[240,1340]]},
+  {key:'sapphire',name:'SAPPHIRE SOUND', skin:'Blue',       color:'#4f8cff', count:558,  tag:'Deep blue blood',            mark:'fin',    poly:[[900,970],[1520,970],[1520,1340],[900,1340]]},
+  {key:'crimson', name:'CRIMSON CURRENT',skin:'Red',        color:'#ff5a5a', count:461,  tag:'They run hot',               mark:'beacon', poly:[[1560,970],[2160,970],[2160,1340],[1560,1340]]},
+  // row 4 — rare prestige, small deep vaults
+  {key:'thunder', name:'THUNDER TRENCH', skin:'Lightning',  color:'#ffe14d', count:169,  tag:'169 electric souls',         mark:'arrow',  poly:[[240,1380],[600,1380],[600,1620],[240,1620]]},
+  {key:'kaleido', name:'TRIPPY COVE',   skin:'Trippy',     color:'#c96bff', count:107,  tag:'Sees colours nobody else can',mark:'coral', poly:[[628,1380],[988,1380],[988,1620],[628,1620]]},
+  {key:'machine', name:'THE MACHINE ROOM',skin:'Mega Bot',  color:'#8affc1', count:92,   tag:'Half whale, half circuit',   mark:'city',   poly:[[1016,1380],[1376,1380],[1376,1620],[1016,1620]]},
+  {key:'glacier', name:'GLACIER DEEP',   skin:'Ice',        color:'#bfe9ff', count:86,   tag:'The frozen elite',           mark:'beacon', poly:[[1404,1380],[1764,1380],[1764,1620],[1404,1620]]},
+  {key:'gold',    name:'THE GOLD VAULT', skin:'Gold',       color:'#f5c451', count:49,   tag:'49 whales. Rarest skin in the sea.', mark:'vault', poly:[[1792,1380],[2160,1380],[2160,1620],[1792,1620]]},
+];
+REGIONS.forEach(r=>{r.centroid=polyCentroid(r.poly);r.label=r.centroid;r.mine=0;});
+const byKey=Object.fromEntries(REGIONS.map(r=>[r.key,r]));
+const skinToRegion={}; REGIONS.forEach(r=>skinToRegion[r.skin]=r);
+
+function normSkin(s){s=(s||'').trim();const map={'Lightnig':'Lightning','Ligthning':'Lightning','Ligh Blue':'Light Blue'};return map[s]||s;}
+function computeCounts(){const T=window.WHALE_TRAITS;if(!T)return;REGIONS.forEach(r=>r.count=0);
+  for(const id in T){const r=skinToRegion[normSkin(T[id].skin)];if(r)r.count++;}}
+
+const CURRENTS=[
+  ['fog','bigblue'],['fog','sandbar'],['fog','pearl','Main Current'],
+  ['pearl','slate'],['pearl','flamingo'],['slate','abyss'],['pearl','sapphire'],['flamingo','crimson'],
+  ['abyss','thunder'],['sapphire','kaleido'],['sapphire','machine'],['crimson','glacier'],['crimson','gold','The Deep Run'],
+];
+
+const WORLD={minX:200,minY:110,maxX:2200,maxY:1660};
+const cam={x:(WORLD.minX+WORLD.maxX)/2,y:(WORLD.minY+WORLD.maxY)/2,scale:0.4,minScale:0.24,maxScale:3.0};
+let selected=null,hovered=null;
+
+/* owned whales (from wallet) */
+let owned=[]; const imgCache=new Map(); const CAP=40;
+
+/* ---------- geometry ---------- */
+function polyCentroid(p){let x=0,y=0,a=0;for(let i=0;i<p.length;i++){const [x0,y0]=p[i],[x1,y1]=p[(i+1)%p.length];const f=x0*y1-x1*y0;a+=f;x+=(x0+x1)*f;y+=(y0+y1)*f;}a*=0.5;return a?[x/(6*a),y/(6*a)]:[p[0][0],p[0][1]];}
+function pointInPoly(px,py,poly){let inside=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const xi=poly[i][0],yi=poly[i][1],xj=poly[j][0],yj=poly[j][1];if(((yi>py)!=(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi))inside=!inside;}return inside;}
+function polyBounds(p){let a={minX:1e9,minY:1e9,maxX:-1e9,maxY:-1e9};p.forEach(([x,y])=>{a.minX=Math.min(a.minX,x);a.minY=Math.min(a.minY,y);a.maxX=Math.max(a.maxX,x);a.maxY=Math.max(a.maxY,y);});return a;}
+function w2s(wx,wy){return [(wx-cam.x)*cam.scale+cv.clientWidth/2,(wy-cam.y)*cam.scale+cv.clientHeight/2];}
+function s2w(sx,sy){return [(sx-cv.clientWidth/2)/cam.scale+cam.x,(sy-cv.clientHeight/2)/cam.scale+cam.y];}
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function hexA(hex,a){const n=parseInt(hex.slice(1),16);return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;}
+function fitScale(){return Math.min(cv.clientWidth/(WORLD.maxX-WORLD.minX),cv.clientHeight/(WORLD.maxY-WORLD.minY))*0.92;}
+function shortAddr(a){return a.slice(0,6)+'…'+a.slice(-4);}
+
+function resize(){DPR=Math.min(window.devicePixelRatio||1,2.5);cv.width=cv.clientWidth*DPR;cv.height=cv.clientHeight*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);}
+window.addEventListener('resize',resize);
+
+/* ---------- sprites ---------- */
+function pix(x,y,s,rows,fill){ctx.fillStyle=fill;for(let r=0;r<rows.length;r++)for(let c=0;c<rows[r].length;c++)if(rows[r][c]!=='.')ctx.fillRect(x+c*s,y+r*s,s,s);}
+const SPRITES={spout:['..#..','.###.','..#..','.....','#.#.#','#####'],fin:['..#..','.###.','#####','.....','#####'],
+  beacon:['..#..','.#.#.','.#.#.','#####','.###.'],vault:['#####','#...#','#.#.#','#...#','#####'],
+  city:['#.#.#','#####','#.#.#','#####','#.#.#'],coral:['#.#.#','.###.','..#..','..#..'],
+  kelp:['#..#.','#.##.','##.#.','.#.#.','.#.#.'],arrow:['..#..','.###.','#####','..#..','..#..']};
+function drawMark(r){const [wx,wy]=r.centroid,[sx,sy]=w2s(wx,wy);const rows=SPRITES[r.mark]||SPRITES.city;
+  const s=Math.max(2,3*cam.scale),w=rows[0].length*s,h=rows.length*s;
+  ctx.save();ctx.shadowColor=r.color;ctx.shadowBlur=14*cam.scale;pix(sx-w/2,sy-h/2-48*cam.scale,s,rows,r.color);ctx.restore();}
+
+/* ---------- draw ---------- */
+let t0=performance.now();
+function draw(now){
+  const t=(now-t0)/1000,W=cv.clientWidth,H=cv.clientHeight,podActive=owned.length>0;
+  const topY=w2s(0,WORLD.minY)[1],botY=w2s(0,WORLD.maxY)[1];
+  const g=ctx.createLinearGradient(0,Math.min(topY,0),0,Math.max(botY,H));
+  g.addColorStop(0,'#0f4b57');g.addColorStop(.38,'#0a3242');g.addColorStop(.72,'#072235');g.addColorStop(1,'#04121f');
+  ctx.fillStyle='#04121f';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=g;ctx.fillRect(0,Math.min(topY,0),W,Math.max(botY,H)-Math.min(topY,0));
+
+  if(!reduceMotion){ctx.save();ctx.globalAlpha=.05;ctx.strokeStyle=GLOW;ctx.lineWidth=2;
+    for(let i=0;i<6;i++){const yy=(i*140+(t*22)%140);ctx.beginPath();
+      for(let xx=0;xx<=W;xx+=24)ctx.lineTo(xx,yy+Math.sin(xx*0.02+t*0.9+i)*10);ctx.stroke();}ctx.restore();}
+
+  ctx.save();ctx.lineCap='round';
+  CURRENTS.forEach(([a,b,label])=>{const A=byKey[a].centroid,B=byKey[b].centroid;
+    const [ax,ay]=w2s(A[0],A[1]),[bx,by]=w2s(B[0],B[1]);
+    ctx.lineWidth=Math.max(2,6*cam.scale);ctx.strokeStyle='rgba(55,230,201,.18)';ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
+    ctx.strokeStyle='rgba(120,255,235,.65)';ctx.lineWidth=Math.max(1,2*cam.scale);
+    ctx.setLineDash([6*cam.scale,10*cam.scale]);ctx.lineDashOffset=reduceMotion?0:-(t*40)%160;
+    ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();ctx.setLineDash([]);
+    if(label&&cam.scale>0.5){ctx.fillStyle='rgba(159,196,214,.85)';ctx.font=`${Math.max(9,11*cam.scale)}px "Space Grotesk",sans-serif`;
+      ctx.textAlign='center';ctx.fillText(label,(ax+bx)/2,(ay+by)/2-6);}});
+  ctx.restore();
+
+  REGIONS.forEach(r=>{ctx.beginPath();r.poly.forEach((p,i)=>{const [x,y]=w2s(p[0],p[1]);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.closePath();
+    const isSel=selected===r,isHov=hovered===r;
+    ctx.save();ctx.fillStyle=hexA('#0c3040',.72);ctx.fill();
+    ctx.globalCompositeOperation='lighter';ctx.fillStyle=hexA(r.color,isSel?.20:isHov?.13:.08);ctx.fill();ctx.restore();
+    ctx.save();ctx.clip();drawLots(r);ctx.restore();
+    ctx.save();ctx.lineJoin='round';ctx.strokeStyle=hexA(r.color,isSel?1:.72);
+    ctx.lineWidth=isSel?3:2;ctx.shadowColor=r.color;ctx.shadowBlur=isSel?24:isHov?16:9;ctx.stroke();ctx.restore();});
+
+  if(!podActive)REGIONS.forEach(drawMark);
+
+  // labels
+  REGIONS.forEach(r=>{const [lx,ly]=w2s(r.label[0],r.label[1]);const pad=Math.max(6,8*cam.scale),fs=Math.max(9,13*cam.scale);
+    ctx.globalAlpha=podActive?0.4:1;
+    ctx.font=`700 ${fs}px "Silkscreen",monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
+    const sub=(podActive&&r.mine)?(r.mine+' YOURS'):(r.count.toLocaleString()+' WHALES');
+    const tw=Math.max(ctx.measureText(r.name).width,ctx.measureText(sub).width);
+    const boxW=tw+pad*2,boxH=fs+pad*1.4+fs*0.9+8;
+    ctx.save();roundRect(lx-boxW/2,ly-boxH/2,boxW,boxH,8);ctx.fillStyle=hexA('#04141f',.82);ctx.fill();
+    ctx.lineWidth=selected===r?2:1;ctx.strokeStyle=hexA(r.color,.85);ctx.shadowColor=r.color;ctx.shadowBlur=selected===r?18:8;ctx.stroke();ctx.restore();
+    ctx.fillStyle='#eaf7ff';ctx.fillText(r.name,lx,ly-fs*0.35);
+    ctx.font=`700 ${fs*0.9}px "Silkscreen",monospace`;ctx.fillStyle=(podActive&&r.mine)?GLOW:r.color;ctx.fillText(sub,lx,ly+fs*0.75);
+    ctx.globalAlpha=1;});
+
+  if(podActive)drawOwned();
+  requestAnimationFrame(draw);
+}
+function drawLots(r){if(cam.scale<0.55)return;const step=18;
+  ctx.strokeStyle=hexA(r.color,cam.scale>1.2?.16:.09);ctx.lineWidth=1;const b=polyBounds(r.poly);ctx.beginPath();
+  for(let x=Math.ceil(b.minX/step)*step;x<=b.maxX;x+=step){const [sx,sy0]=w2s(x,b.minY),[,sy1]=w2s(x,b.maxY);ctx.moveTo(sx,sy0);ctx.lineTo(sx,sy1);}
+  for(let y=Math.ceil(b.minY/step)*step;y<=b.maxY;y+=step){const [sx0,sy]=w2s(b.minX,y),[sx1]=w2s(b.maxX,y);ctx.moveTo(sx0,sy);ctx.lineTo(sx1,sy);}
+  ctx.stroke();}
+
+/* ---------- owned whale pins ---------- */
+function layoutOwned(perZone){
+  REGIONS.forEach(r=>{const list=(perZone[r.key]||[]).slice(0,CAP);if(!list.length)return;
+    const b=polyBounds(r.poly),padX=34,padY=58;const iw=b.maxX-b.minX-padX*2,ih=b.maxY-b.minY-padY*2;
+    const n=list.length,cols=Math.max(1,Math.round(Math.sqrt(n*iw/ih))),rowsN=Math.ceil(n/cols);
+    const cw=iw/cols,ch=ih/rowsN,cell=Math.min(cw,ch);
+    list.forEach((o,i)=>{const cx=i%cols,cy=Math.floor(i/cols);o.x=b.minX+padX+cw*(cx+0.5);o.y=b.minY+padY+ch*(cy+0.5);o.cell=cell*0.84;});});
+}
+function loadImages(){owned.forEach(o=>{if(!o.image||imgCache.has(o.id))return;imgCache.set(o.id,'loading');
+  const im=new Image();im.crossOrigin='anonymous';im.onload=()=>imgCache.set(o.id,im);im.onerror=()=>imgCache.set(o.id,'x');im.src=o.image;});}
+function drawOwned(){owned.forEach(o=>{if(o.x==null)return;const [sx,sy]=w2s(o.x,o.y);const sz=Math.max(12,(o.cell||40)*cam.scale),half=sz/2,tier=rarityTier(o.rank);
+  ctx.save();roundRect(sx-half-2,sy-half-2,sz+4,sz+4,Math.min(9,sz*0.2));ctx.fillStyle='rgba(4,18,31,.92)';ctx.fill();
+  ctx.lineWidth=2;ctx.strokeStyle=tier.color;ctx.shadowColor=tier.color;ctx.shadowBlur=9;ctx.stroke();ctx.restore();
+  ctx.save();roundRect(sx-half,sy-half,sz,sz,Math.min(7,sz*0.18));ctx.clip();
+  const im=imgCache.get(o.id);
+  if(im&&im!=='loading'&&im!=='x'){ctx.drawImage(im,sx-half,sy-half,sz,sz);}
+  else{ctx.fillStyle='#0c3040';ctx.fillRect(sx-half,sy-half,sz,sz);ctx.fillStyle=tier.color;ctx.font=`${sz*0.5}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🐋',sx,sy+sz*0.04);}
+  ctx.restore();});}
+function hitOwned(sx,sy){let best=null,bd=1e9;owned.forEach(o=>{if(o.x==null)return;const [ox,oy]=w2s(o.x,o.y);const sz=Math.max(12,(o.cell||40)*cam.scale);const d=Math.hypot(sx-ox,sy-oy);if(d<sz/2&&d<bd){bd=d;best=o;}});return best;}
+
+/* ---------- pan / pinch / wheel / tap ---------- */
+const pointers=new Map();let panStart=null,pinchStart=null,moved=0;
+function clampCam(){cam.scale=Math.max(cam.minScale,Math.min(cam.maxScale,cam.scale));
+  const m=440/cam.scale;cam.x=Math.max(WORLD.minX-m,Math.min(WORLD.maxX+m,cam.x));cam.y=Math.max(WORLD.minY-m,Math.min(WORLD.maxY+m,cam.y));}
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;
+  if(pointers.size===1)panStart={sx:e.clientX,sy:e.clientY,cx:cam.x,cy:cam.y};
+  else if(pointers.size===2){const p=[...pointers.values()];pinchStart={d:dist(p[0],p[1]),scale:cam.scale,world:s2w(...mid(p[0],p[1]))};panStart=null;}});
+cv.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId)){const [wx,wy]=s2w(e.clientX,e.clientY);
+    const h=REGIONS.find(r=>pointInPoly(wx,wy,r.poly))||null;if(h!==hovered){hovered=h;cv.style.cursor=h?'pointer':'grab';}return;}
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinchStart&&pointers.size>=2){const p=[...pointers.values()],d=dist(p[0],p[1]);cam.scale=pinchStart.scale*(d/pinchStart.d);clampCam();
+    const m=mid(p[0],p[1]);cam.x=pinchStart.world[0]-(m[0]-cv.clientWidth/2)/cam.scale;cam.y=pinchStart.world[1]-(m[1]-cv.clientHeight/2)/cam.scale;clampCam();moved+=8;}
+  else if(panStart){const dx=(e.clientX-panStart.sx)/cam.scale,dy=(e.clientY-panStart.sy)/cam.scale;cam.x=panStart.cx-dx;cam.y=panStart.cy-dy;clampCam();moved+=Math.abs(dx)+Math.abs(dy);}});
+function endPtr(e){pointers.delete(e.pointerId);if(pointers.size<2)pinchStart=null;
+  if(pointers.size===1){const p=[...pointers.values()][0];panStart={sx:p.x,sy:p.y,cx:cam.x,cy:cam.y};}
+  if(pointers.size===0){panStart=null;if(moved<6){
+    const ow=hitOwned(e.clientX,e.clientY);if(ow){openWhale(ow.id,ow.image);return;}
+    const [wx,wy]=s2w(e.clientX,e.clientY);const hit=REGIONS.find(r=>pointInPoly(wx,wy,r.poly));if(hit)selectRegion(hit,true);else closeCard();}}}
+cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endPtr);
+cv.addEventListener('wheel',e=>{e.preventDefault();const [wx,wy]=s2w(e.clientX,e.clientY);cam.scale*=Math.exp(-e.deltaY*0.0016);clampCam();
+  cam.x=wx-(e.clientX-cv.clientWidth/2)/cam.scale;cam.y=wy-(e.clientY-cv.clientHeight/2)/cam.scale;clampCam();},{passive:false});
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}function mid(a,b){return [(a.x+b.x)/2,(a.y+b.y)/2];}
+
+let anim=null;
+function flyTo(wx,wy,scale){const s0={x:cam.x,y:cam.y,sc:cam.scale},start=performance.now(),dur=650;if(anim)cancelAnimationFrame(anim);
+  (function step(now){let k=Math.min(1,(now-start)/dur);k=1-Math.pow(1-k,3);
+    cam.x=s0.x+(wx-s0.x)*k;cam.y=s0.y+(wy-s0.y)*k;cam.scale=s0.sc+(scale-s0.sc)*k;clampCam();
+    if(k<1)anim=requestAnimationFrame(step);})(start);}
+
+/* ---------- rarity / data ---------- */
+function rarityTier(rank){const p=rank/10000;
+  if(p<=0.01)return{name:'MYTHIC',color:'#ff5ea8'};if(p<=0.05)return{name:'LEGENDARY',color:'#f5c451'};
+  if(p<=0.15)return{name:'EPIC',color:'#b98cff'};if(p<=0.40)return{name:'RARE',color:'#5bb0ff'};return{name:'COMMON',color:'#7fdd6a'};}
+const IMG_FALLBACK='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="88" height="88"><rect width="88" height="88" rx="12" fill="#0c3040"/><text x="44" y="56" font-size="34" text-anchor="middle">🐋</text></svg>');
+function getWhale(id){const T=window.WHALE_TRAITS;
+  if(T&&T[String(id)]){const e=T[String(id)];return {id,rank:e.rank,skin:normSkin(e.skin),live:true,
+    traits:[['Skin',e.skin],['Background',e.background],['Outfit',e.outfit],['Hat',e.hat],['Eyes',e.eyes],['Mouth',e.mouth],['Fins',e.fins],['Ring',e.blowholeRing]].filter(t=>t[1]&&String(t[1]).trim())};}
+  const region=REGIONS[id%REGIONS.length];let h=(id*2654435761)>>>0;const pick=a=>a[h%a.length];
+  return {id,rank:1+((id*7919)%10000),skin:region.skin,live:false,
+    traits:[['Skin',region.skin],['Background',pick(['Coral','Purple','Blue','Wood'])],['Outfit',pick(['Sailor','Doctor','Astronaut','Barista'])],['Hat',pick(['Beanie','Top Hat','Pirate Hat','None'])]]};}
+async function fetchImage(id){try{const r=await fetch(`/api/whale?id=${id}`,{headers:{accept:'application/json'}});if(!r.ok)throw 0;const d=await r.json();return d.image||null;}catch(e){return null;}}
+
+/* ---------- card ---------- */
+function setK(a,b,c){document.getElementById('kLots').textContent=a;document.getElementById('kShare').textContent=b;document.getElementById('kBg').textContent=c;}
+function selectRegion(r,fly){selected=r;
+  document.getElementById('whalePanel').classList.remove('show');
+  document.getElementById('cEye').textContent='ZONE · '+r.skin.toUpperCase();
+  const chip=document.getElementById('cEyeChip');chip.style.color=r.color;chip.style.background=r.color;
+  document.getElementById('cName').textContent=r.name;
+  document.getElementById('cTag').textContent=r.tag;
+  document.getElementById('cDesc').textContent=`Home to every whale with a ${r.skin} skin — ${r.count.toLocaleString()} of the 10,000.`;
+  setK('Whales','Share','Skin');
+  document.getElementById('cLots').textContent=r.count.toLocaleString();
+  document.getElementById('cShare').textContent=(r.count/100).toFixed(1)+'%';
+  document.getElementById('cBg').textContent=r.skin;
+  document.getElementById('cEnter').textContent='VIEW ON OPENSEA →';
+  document.getElementById('cEnter').onclick=()=>window.open(COLLECTION,'_blank');
+  document.getElementById('card').classList.add('show');
+  if(fly)flyTo(r.centroid[0],r.centroid[1],Math.max(0.7,cam.scale));}
+function closeCard(){selected=null;document.getElementById('card').classList.remove('show');}
+document.getElementById('cardX').onclick=closeCard;
+
+async function openWhale(id,knownImage){const w=getWhale(id),r=skinToRegion[w.skin]||REGIONS[0];
+  selectRegion(r,true);
+  document.getElementById('cEye').textContent='WHALE #'+id.toLocaleString()+' · '+r.name;
+  document.getElementById('cDesc').textContent=`Whale #${id.toLocaleString()} has a ${w.skin} skin, so it lives in ${r.name}.`+(w.live?'':' (preview estimate)');
+  document.getElementById('whalePanel').classList.add('show');
+  const tier=rarityTier(w.rank),tEl=document.getElementById('wTier'),img=document.getElementById('wImg');
+  img.onerror=function(){this.onerror=null;this.src=IMG_FALLBACK;};img.src=knownImage||IMG_FALLBACK;
+  document.getElementById('wName').textContent='Whale #'+id.toLocaleString();
+  tEl.textContent=tier.name;tEl.style.background=tier.color;tEl.style.color='#04121f';tEl.style.display='';
+  document.getElementById('wRank').textContent='Rank #'+w.rank.toLocaleString()+' / 10,000';
+  document.getElementById('wTraits').innerHTML=w.traits.slice(0,6).map(([k,v])=>`<span>${k}: ${v}</span>`).join('');
+  document.getElementById('cEnter').textContent='WHALE #'+id+' ON OPENSEA →';
+  document.getElementById('cEnter').onclick=()=>window.open(`https://opensea.io/assets/ethereum/${CONTRACT}/${id}`,'_blank');
+  if(!knownImage){const im=await fetchImage(id);if(im&&selected===r)img.src=im;}}
+
+/* ---------- wallet reader ---------- */
+function setStatus(msg){const el=document.getElementById('status');el.textContent=msg||'';el.classList.toggle('show',!!msg);}
+async function fetchPod(wallet){let all=[],next=null,guard=0;
+  do{const p=new URLSearchParams({wallet});if(next)p.set('next',next);
+    const res=await fetch(`/api/whales?${p}`);const data=await res.json();
+    if(!res.ok)throw new Error(data.error||('Error '+res.status));
+    all.push(...(data.nfts||[]));next=data.next||null;guard++;setStatus('Surfacing… '+all.length+' whales');
+  }while(next&&guard<50);
+  return all;}
+function processPod(nfts){owned=[];const perZone={};
+  nfts.forEach(nft=>{const id=parseInt(nft.identifier||nft.token_id,10);if(!id)return;
+    const w=getWhale(id),r=skinToRegion[w.skin]||REGIONS[0];
+    const o={id,image:nft.display_image_url||nft.image_url||'',rank:w.rank,skin:w.skin,region:r};
+    owned.push(o);(perZone[r.key]=perZone[r.key]||[]).push(o);});
+  REGIONS.forEach(r=>r.mine=(perZone[r.key]||[]).length);
+  layoutOwned(perZone);loadImages();}
+function demoPod(){const ids=[6494,9695,7955,5121,9195,42,777,1234,3030,8888,5,120];const perZone={};owned=[];
+  ids.forEach(id=>{const w=getWhale(id),r=skinToRegion[w.skin]||REGIONS[0];const o={id,image:'',rank:w.rank,skin:w.skin,region:r};owned.push(o);(perZone[r.key]=perZone[r.key]||[]).push(o);});
+  REGIONS.forEach(r=>r.mine=(perZone[r.key]||[]).length);layoutOwned(perZone);}
+function showPodSummary(wallet){if(!owned.length){setStatus('No SSoW whales in that wallet.');return;}
+  owned.sort((a,b)=>a.rank-b.rank);const zones=new Set(owned.map(o=>o.region.key)).size;
+  selected=null;document.getElementById('whalePanel').classList.remove('show');
+  const chip=document.getElementById('cEyeChip');chip.style.color=GLOW;chip.style.background=GLOW;
+  document.getElementById('cEye').textContent='YOUR POD · '+shortAddr(wallet);
+  document.getElementById('cName').textContent=owned.length+' WHALE'+(owned.length>1?'S':'');
+  document.getElementById('cTag').textContent='Across '+zones+' zone'+(zones>1?'s':'');
+  document.getElementById('cDesc').textContent='Rarest is Whale #'+owned[0].id+' (rank #'+owned[0].rank.toLocaleString()+'). Tap any whale on the map to inspect it.';
+  setK('Whales','Zones','Top rank');
+  document.getElementById('cLots').textContent=owned.length;
+  document.getElementById('cShare').textContent=zones;
+  document.getElementById('cBg').textContent='#'+owned[0].rank.toLocaleString();
+  document.getElementById('cEnter').textContent='CLEAR POD';
+  document.getElementById('cEnter').onclick=clearPod;
+  document.getElementById('card').classList.add('show');
+  flyTo((WORLD.minX+WORLD.maxX)/2,(WORLD.minY+WORLD.maxY)/2,fitScale());}
+function clearPod(){owned=[];REGIONS.forEach(r=>r.mine=0);setStatus('');closeCard();}
+
+async function loadWallet(wallet){const btn=document.getElementById('findBtn');btn.disabled=true;setStatus('Surfacing your pod…');
+  try{const nfts=await fetchPod(wallet);processPod(nfts);
+    if(!owned.length){setStatus('No SSoW whales in that wallet.');}else{setStatus(owned.length+' whales surfaced — tap one');showPodSummary(wallet);}
+  }catch(e){demoPod();showPodSummary(wallet);setStatus("Can't reach /api/whales in preview — showing a demo pod. Works live on the site.");}
+  finally{btn.disabled=false;}}
+
+/* ---------- dispatch ---------- */
+function onDive(){const v=document.getElementById('whaleNum').value.trim();
+  if(/^0x[0-9a-fA-F]{6,}$/.test(v))return loadWallet(v);
+  const n=parseInt(v,10);if(n>=1&&n<=10000)return openWhale(n);
+  setStatus('Enter a whale # (1–10000) or a 0x wallet.');}
+document.getElementById('findBtn').onclick=onDive;
+document.getElementById('whaleNum').addEventListener('keydown',e=>{if(e.key==='Enter')onDive();});
+
+/* ---------- legend + boot ---------- */
+function buildChrome(){document.getElementById('legTitle').textContent=REGIONS.length+' SKIN ZONES · COMMON → RARE';
+  const rows=document.getElementById('legrows');rows.innerHTML='';
+  REGIONS.forEach(r=>{const d=document.createElement('div');d.className='legrow';
+    d.innerHTML=`<span class="chip" style="color:${r.color};background:${r.color}"></span><span class="nm">${r.name}</span><span class="lots">${r.count.toLocaleString()}</span>`;
+    d.onclick=()=>{selectRegion(r,true);document.getElementById('legend').classList.remove('open');};rows.appendChild(d);});}
+document.getElementById('legendBtn').onclick=()=>document.getElementById('legend').classList.toggle('open');
+
+computeCounts();buildChrome();
+document.querySelector('.hint').textContent=window.WHALE_TRAITS?('live · '+Object.keys(window.WHALE_TRAITS).length.toLocaleString()+' whales'):'preview · connect rarity-data.js';
+resize();requestAnimationFrame(draw);
+flyTo((WORLD.minX+WORLD.maxX)/2,(WORLD.minY+WORLD.maxY)/2,fitScale());
+</script>
+</body>
+</html>
