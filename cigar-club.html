@@ -57,10 +57,10 @@
   .readout{position:fixed;bottom:14px;left:16px;z-index:5;font-size:12px;color:var(--ink-dim);pointer-events:none}
   .readout b{color:var(--ink);font-family:var(--map);font-size:13px}
 
-  .card{position:fixed;left:50%;bottom:14px;transform:translateX(-50%) translateY(160%);z-index:8;
-    width:min(560px,calc(100vw - 28px));background:var(--panel);border:1px solid var(--panel-line);
+  .card{position:fixed;right:14px;bottom:14px;transform:translateY(180%);z-index:8;
+    width:min(400px,calc(100vw - 28px));background:var(--panel);border:1px solid var(--panel-line);
     border-radius:16px;padding:16px 18px;backdrop-filter:blur(10px);transition:transform .32s cubic-bezier(.22,1,.36,1)}
-  .card.show{transform:translateX(-50%) translateY(0)}
+  .card.show{transform:translateY(0)}
   .card .x{position:absolute;top:12px;right:14px;color:var(--ink-dim);cursor:pointer;font-size:20px;line-height:1}
   .card .eyebrow{display:flex;align-items:center;gap:8px;font-family:var(--map);font-size:11px;color:var(--ink-dim)}
   .card .eyebrow .chip{width:11px;height:11px;border-radius:3px;box-shadow:0 0 8px currentColor}
@@ -147,7 +147,7 @@ const cv=document.getElementById('map'), ctx=cv.getContext('2d');
 let DPR=Math.min(window.devicePixelRatio||1,2.5);
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const GLOW='#37e6c9';
-const CONTRACT='0x42d2b41c5bb1f73f06d5adaa85e23b44f75c4cd2';   // matches cards.html
+const CONTRACT='0x88091012eedf8dba59d08e27ed7b22008f5d6fe5';   // SSoW mainnet contract
 const COLLECTION='https://opensea.io/collection/secretsocietyofwhales';
 
 /* one zone per SKIN value. Rows are ordered common (top) -> rare (bottom).
@@ -172,7 +172,7 @@ const REGIONS=[
   {key:'glacier', name:'GLACIER DEEP',   skin:'Ice',        color:'#bfe9ff', count:86,   tag:'The frozen elite',           mark:'beacon', poly:[[1404,1380],[1764,1380],[1764,1620],[1404,1620]]},
   {key:'gold',    name:'THE GOLD VAULT', skin:'Gold',       color:'#f5c451', count:49,   tag:'49 whales. Rarest skin in the sea.', mark:'vault', poly:[[1792,1380],[2160,1380],[2160,1620],[1792,1620]]},
 ];
-REGIONS.forEach(r=>{r.centroid=polyCentroid(r.poly);r.label=r.centroid;r.mine=0;});
+REGIONS.forEach(r=>{r.centroid=polyCentroid(r.poly);const b=polyBounds(r.poly);r.label=[r.centroid[0],b.minY+48];r.mine=0;});
 const byKey=Object.fromEntries(REGIONS.map(r=>[r.key,r]));
 const skinToRegion={}; REGIONS.forEach(r=>skinToRegion[r.skin]=r);
 
@@ -247,26 +247,24 @@ function draw(now){
     const isSel=selected===r,isHov=hovered===r;
     ctx.save();ctx.fillStyle=hexA('#0c3040',.72);ctx.fill();
     ctx.globalCompositeOperation='lighter';ctx.fillStyle=hexA(r.color,isSel?.20:isHov?.13:.08);ctx.fill();ctx.restore();
-    ctx.save();ctx.clip();drawLots(r);ctx.restore();
+    ctx.save();ctx.clip();if(!podActive)drawLots(r);ctx.restore();
     ctx.save();ctx.lineJoin='round';ctx.strokeStyle=hexA(r.color,isSel?1:.72);
     ctx.lineWidth=isSel?3:2;ctx.shadowColor=r.color;ctx.shadowBlur=isSel?24:isHov?16:9;ctx.stroke();ctx.restore();});
 
   if(!podActive)REGIONS.forEach(drawMark);
+  if(podActive)drawOwned();
 
-  // labels
+  // zone labels — header at the top of each zone, always on top and fully opaque
   REGIONS.forEach(r=>{const [lx,ly]=w2s(r.label[0],r.label[1]);const pad=Math.max(6,8*cam.scale),fs=Math.max(9,13*cam.scale);
-    ctx.globalAlpha=podActive?0.4:1;
     ctx.font=`700 ${fs}px "Silkscreen",monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
     const sub=(podActive&&r.mine)?(r.mine+' YOURS'):(r.count.toLocaleString()+' WHALES');
     const tw=Math.max(ctx.measureText(r.name).width,ctx.measureText(sub).width);
     const boxW=tw+pad*2,boxH=fs+pad*1.4+fs*0.9+8;
-    ctx.save();roundRect(lx-boxW/2,ly-boxH/2,boxW,boxH,8);ctx.fillStyle=hexA('#04141f',.82);ctx.fill();
-    ctx.lineWidth=selected===r?2:1;ctx.strokeStyle=hexA(r.color,.85);ctx.shadowColor=r.color;ctx.shadowBlur=selected===r?18:8;ctx.stroke();ctx.restore();
+    ctx.save();roundRect(lx-boxW/2,ly-boxH/2,boxW,boxH,8);ctx.fillStyle=hexA('#04141f',.92);ctx.fill();
+    ctx.lineWidth=selected===r?2:1;ctx.strokeStyle=hexA(r.color,.9);ctx.shadowColor=r.color;ctx.shadowBlur=selected===r?18:10;ctx.stroke();ctx.restore();
     ctx.fillStyle='#eaf7ff';ctx.fillText(r.name,lx,ly-fs*0.35);
-    ctx.font=`700 ${fs*0.9}px "Silkscreen",monospace`;ctx.fillStyle=(podActive&&r.mine)?GLOW:r.color;ctx.fillText(sub,lx,ly+fs*0.75);
-    ctx.globalAlpha=1;});
+    ctx.font=`700 ${fs*0.9}px "Silkscreen",monospace`;ctx.fillStyle=(podActive&&r.mine)?GLOW:r.color;ctx.fillText(sub,lx,ly+fs*0.75);});
 
-  if(podActive)drawOwned();
   requestAnimationFrame(draw);
 }
 function drawLots(r){if(cam.scale<0.55)return;const step=18;
@@ -281,7 +279,7 @@ function layoutOwned(perZone){
     const b=polyBounds(r.poly),padX=34,padY=58;const iw=b.maxX-b.minX-padX*2,ih=b.maxY-b.minY-padY*2;
     const n=list.length,cols=Math.max(1,Math.round(Math.sqrt(n*iw/ih))),rowsN=Math.ceil(n/cols);
     const cw=iw/cols,ch=ih/rowsN,cell=Math.min(cw,ch);
-    list.forEach((o,i)=>{const cx=i%cols,cy=Math.floor(i/cols);o.x=b.minX+padX+cw*(cx+0.5);o.y=b.minY+padY+ch*(cy+0.5);o.cell=cell*0.84;});});
+    list.forEach((o,i)=>{const cx=i%cols,cy=Math.floor(i/cols);o.x=b.minX+padX+cw*(cx+0.5);o.y=b.minY+padY+ch*(cy+0.5);o.cell=cell*0.94;});});
 }
 function loadImages(){owned.forEach(o=>{if(!o.image||imgCache.has(o.id))return;imgCache.set(o.id,'loading');
   const im=new Image();im.crossOrigin='anonymous';im.onload=()=>imgCache.set(o.id,im);im.onerror=()=>imgCache.set(o.id,'x');im.src=o.image;});}
@@ -311,7 +309,7 @@ cv.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId)){const [wx,w
 function endPtr(e){pointers.delete(e.pointerId);if(pointers.size<2)pinchStart=null;
   if(pointers.size===1){const p=[...pointers.values()][0];panStart={sx:p.x,sy:p.y,cx:cam.x,cy:cam.y};}
   if(pointers.size===0){panStart=null;if(moved<6){
-    const ow=hitOwned(e.clientX,e.clientY);if(ow){openWhale(ow.id,ow.image);return;}
+    const ow=hitOwned(e.clientX,e.clientY);if(ow){openWhale(ow.id,ow.image,ow.contract);return;}
     const [wx,wy]=s2w(e.clientX,e.clientY);const hit=REGIONS.find(r=>pointInPoly(wx,wy,r.poly));if(hit)selectRegion(hit,true);else closeCard();}}}
 cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endPtr);
 cv.addEventListener('wheel',e=>{e.preventDefault();const [wx,wy]=s2w(e.clientX,e.clientY);cam.scale*=Math.exp(-e.deltaY*0.0016);clampCam();
@@ -357,7 +355,7 @@ function selectRegion(r,fly){selected=r;
 function closeCard(){selected=null;document.getElementById('card').classList.remove('show');}
 document.getElementById('cardX').onclick=closeCard;
 
-async function openWhale(id,knownImage){const w=getWhale(id),r=skinToRegion[w.skin]||REGIONS[0];
+async function openWhale(id,knownImage,knownContract){const w=getWhale(id),r=skinToRegion[w.skin]||REGIONS[0];const contract=knownContract||CONTRACT;
   selectRegion(r,true);
   document.getElementById('cEye').textContent='WHALE #'+id.toLocaleString()+' · '+r.name;
   document.getElementById('cDesc').textContent=`Whale #${id.toLocaleString()} has a ${w.skin} skin, so it lives in ${r.name}.`+(w.live?'':' (preview estimate)');
@@ -369,7 +367,7 @@ async function openWhale(id,knownImage){const w=getWhale(id),r=skinToRegion[w.sk
   document.getElementById('wRank').textContent='Rank #'+w.rank.toLocaleString()+' / 10,000';
   document.getElementById('wTraits').innerHTML=w.traits.slice(0,6).map(([k,v])=>`<span>${k}: ${v}</span>`).join('');
   document.getElementById('cEnter').textContent='WHALE #'+id+' ON OPENSEA →';
-  document.getElementById('cEnter').onclick=()=>window.open(`https://opensea.io/assets/ethereum/${CONTRACT}/${id}`,'_blank');
+  document.getElementById('cEnter').onclick=()=>window.open(`https://opensea.io/assets/ethereum/${contract}/${id}`,'_blank');
   if(!knownImage){const im=await fetchImage(id);if(im&&selected===r)img.src=im;}}
 
 /* ---------- wallet reader ---------- */
@@ -384,7 +382,7 @@ async function fetchPod(wallet){let all=[],next=null,guard=0;
 function processPod(nfts){owned=[];const perZone={};
   nfts.forEach(nft=>{const id=parseInt(nft.identifier||nft.token_id,10);if(!id)return;
     const w=getWhale(id),r=skinToRegion[w.skin]||REGIONS[0];
-    const o={id,image:nft.display_image_url||nft.image_url||'',rank:w.rank,skin:w.skin,region:r};
+    const o={id,image:nft.display_image_url||nft.image_url||'',rank:w.rank,skin:w.skin,region:r,contract:nft.contract||CONTRACT};
     owned.push(o);(perZone[r.key]=perZone[r.key]||[]).push(o);});
   REGIONS.forEach(r=>r.mine=(perZone[r.key]||[]).length);
   layoutOwned(perZone);loadImages();}
