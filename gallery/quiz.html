@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Into The Pod | Secret Society of Whales</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="An interactive Web3 adventure. Discover your true whale nature through the choices you make.">
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Into The Pod - Which Whale Are You?">
+    <meta property="og:description" content="An interactive Web3 adventure. Your choices reveal your true whale nature. 🐋">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐋</text></svg>">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --deep-ocean: #020817;
+            --ocean-mid: #0a1628;
+            --ocean-surface: #0f2847;
+            --bioluminescent: #00f5d4;
+            --whale-blue: #3b82f6;
+            --coral-pink: #ff6b9d;
+            --golden: #fbbf24;
+            --purple: #a855f7;
+            --danger: #ef4444;
+            --pearl: #e0f2fe;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--deep-ocean);
+            color: var(--pearl);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated ocean background */
+        .ocean-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 20% 80%, rgba(0, 245, 212, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+                linear-gradient(180deg, #000 0%, var(--deep-ocean) 30%, var(--ocean-mid) 100%);
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Typing effect */
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 3px;
+            height: 1.2em;
+            background: var(--bioluminescent);
+            margin-left: 4px;
+            animation: blink 1s infinite;
+            vertical-align: text-bottom;
+        }
+
+        /* Scene styling */
+        .scene {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .scene.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Title screen */
+        .title-screen {
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        .title-logo {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .title-main {
+            font-size: 4rem;
+            font-weight: 800;
+            letter-spacing: -2px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(180deg, var(--pearl) 0%, var(--bioluminescent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .title-sub {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 3rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+
+        .start-btn {
+            padding: 1.25rem 3rem;
+            font-size: 1.2rem;
+            font-weight: 700;
+            font-family: inherit;
+            background: transparent;
+            border: 2px solid var(--bioluminescent);
+            color: var(--bioluminescent);
+            border-radius: 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .start-btn:hover {
+            background: var(--bioluminescent);
+            color: var(--deep-ocean);
+            box-shadow: 0 0 40px rgba(0, 245, 212, 0.4);
+        }
+
+        /* Story content */
+        .story-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .scene-number {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--bioluminescent);
+            opacity: 0.7;
+            margin-bottom: 0.5rem;
+        }
+
+        .scene-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--pearl);
+        }
+
+        .story-text {
+            font-size: 1.2rem;
+            line-height: 1.9;
+            color: rgba(255, 255, 255, 0.85);
+            margin-bottom: 2rem;
+        }
+
+        .story-text p {
+            margin-bottom: 1.25rem;
+        }
+
+        .story-text .highlight {
+            color: var(--bioluminescent);
+            font-weight: 500;
+        }
+
+        .story-text .danger {
+            color: var(--danger);
+        }
+
+        .story-text .golden {
+            color: var(--golden);
+        }
+
+        .story-text em {
+            color: rgba(255, 255, 255, 0.5);
+            font-style: italic;
+        }
+
+        /* Notification style */
+        .notification {
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 3px solid var(--whale-blue);
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        .notification.discord {
+            border-color: #5865F2;
+        }
+
+        .notification.twitter {
+            border-color: #1DA1F2;
+        }
+
+        .notification.alert {
+            border-color: var(--danger);
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .notification.success {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        /* Choices */
+        .choices {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: auto;
+            padding-top: 1rem;
+        }
+
+        .choice-btn {
+            padding: 1.25rem 1.5rem;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--pearl);
+            font-family: inherit;
+            font-size: 1.05rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .choice-btn:hover {
+            background: rgba(0, 245, 212, 0.08);
+            border-color: rgba(0, 245, 212, 0.3);
+            padding-left: 2rem;
+        }
+
+        .choice-btn:active {
+            transform: scale(0.98);
+        }
+
+        .choice-btn::before {
+            content: '›';
+            position: absolute;
+            left: 0.75rem;
+            opacity: 0;
+            transition: all 0.2s ease;
+            color: var(--bioluminescent);
+        }
+
+        .choice-btn:hover::before {
+            opacity: 1;
+        }
+
+        /* Consequence flash */
+        .consequence {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 2rem 3rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 1.1rem;
+            text-align: center;
+            z-index: 100;
+            animation: consequencePop 0.3s ease;
+            display: none;
+        }
+
+        .consequence.show {
+            display: block;
+        }
+
+        @keyframes consequencePop {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .consequence-text {
+            margin-bottom: 0.5rem;
+        }
+
+        .consequence-stat {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--bioluminescent);
+        }
+
+        /* Stats bar */
+        .stats-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 0.75rem 1.5rem;
+            display: none;
+            justify-content: center;
+            gap: 2rem;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.75rem;
+            z-index: 50;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stats-bar.show {
+            display: flex;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .stat-value {
+            color: var(--bioluminescent);
+            min-width: 20px;
+        }
+
+        /* Progress dots */
+        .progress-dots {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem 0;
+            margin-top: auto;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .dot.completed {
+            background: var(--bioluminescent);
+        }
+
+        .dot.current {
+            background: var(--bioluminescent);
+            box-shadow: 0 0 10px var(--bioluminescent);
+        }
+
+        /* Results screen */
+        .results-container {
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        .result-reveal {
+            margin-bottom: 2rem;
+        }
+
+        .result-label {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .result-type {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--golden), var(--coral-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .result-rarity {
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 2rem;
+        }
+
+        .rarity-legendary { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; }
+        .rarity-epic { background: linear-gradient(135deg, #a855f7, #7c3aed); color: #fff; }
+        .rarity-rare { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; }
+        .rarity-uncommon { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+
+        .whale-image-container {
+            width: 280px;
+            height: 280px;
+            margin: 0 auto 2rem;
+            position: relative;
+            background: transparent;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .whale-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: transparent;
+            border: none;
+            display: block;
+        }
+
+        .whale-glow {
+            position: absolute;
+            top: -30%;
+            left: -30%;
+            right: -30%;
+            bottom: -30%;
+            background: radial-gradient(circle, rgba(0, 245, 212, 0.2) 0%, transparent 70%);
+            animation: pulse 3s infinite ease-in-out;
+            pointer-events: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .result-description {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.75);
+            max-width: 550px;
+            margin: 0 auto 2rem;
+        }
+
+        .result-traits {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .match-percentages {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .match-tag {
+            padding: 0.3rem 0.8rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 0.75rem;
+            font-family: 'Space Mono', monospace;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .match-tag.primary {
+            background: rgba(0, 245, 212, 0.1);
+            border-color: rgba(0, 245, 212, 0.3);
+            color: var(--bioluminescent);
+        }
+
+        .trait-tag {
+            padding: 0.4rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85rem;
+        }
+
+        .trait-tag-with-desc {
+            display: flex;
+            flex-direction: column;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: center;
+            min-width: 140px;
+        }
+
+        .trait-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--bioluminescent);
+            margin-bottom: 0.25rem;
+        }
+
+        .trait-desc {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            line-height: 1.3;
+        }
+
+        .final-stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .final-stat {
+            text-align: center;
+        }
+
+        .final-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--bioluminescent);
+            font-family: 'Space Mono', monospace;
+        }
+
+        .final-stat-pct {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            font-family: 'Space Mono', monospace;
+            margin-top: 0.2rem;
+        }
+
+        .final-stat-label {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 0.3rem;
+        }
+
+        .result-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .action-btn {
+            padding: 1rem 2rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-decoration: none;
+        }
+
+        .action-btn.primary {
+            background: var(--bioluminescent);
+            border: none;
+            color: var(--deep-ocean);
+        }
+
+        .action-btn.primary:hover {
+            box-shadow: 0 0 30px rgba(0, 245, 212, 0.4);
+        }
+
+        .action-btn.secondary {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--pearl);
+        }
+
+        .action-btn.secondary:hover {
+            border-color: var(--bioluminescent);
+            color: var(--bioluminescent);
+        }
+
+        .share-tip {
+            margin-top: 1.5rem;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9rem;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.8rem;
+        }
+
+        .footer a {
+            color: var(--bioluminescent);
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .title-main {
+                font-size: 2.5rem;
+            }
+
+            .story-text {
+                font-size: 1.05rem;
+            }
+
+            .stats-bar {
+                gap: 1rem;
+                font-size: 0.7rem;
+                padding: 0.5rem 1rem;
+            }
+
+            .result-type {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="ocean-bg"></div>
+
+    <div class="stats-bar" id="statsBar">
+        <div class="stat-item">
+            <span>🎭</span>
+            <span>REP</span>
+            <span class="stat-value" id="statRep">0</span>
+        </div>
+        <div class="stat-item">
+            <span>💎</span>
+            <span>BAGS</span>
+            <span class="stat-value" id="statBags">0</span>
+        </div>
+        <div class="stat-item">
+            <span>🤝</span>
+            <span>CREW</span>
+            <span class="stat-value" id="statCrew">0</span>
+        </div>
+        <div class="stat-item">
+            <span>🎲</span>
+            <span>RISK</span>
+            <span class="stat-value" id="statRisk">0</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Title Screen -->
+        <div class="scene active" id="titleScreen">
+            <div class="title-screen">
+                <a href="/gallery/" style="display:inline-block;margin-bottom:1rem;color:rgba(255,255,255,.45);text-decoration:none;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase">← Whale Gallery</a>
+                <div class="title-logo">🐋</div>
+                <h1 class="title-main">INTO THE POD</h1>
+                <p class="title-sub">A Web3 Adventure</p>
+                <button class="start-btn" onclick="startAdventure()">Begin</button>
+                <p style="margin-top: 2rem; color: rgba(255,255,255,0.4); font-size: 0.9rem;">
+                    Your choices reveal your true whale nature
+                </p>
+            </div>
+        </div>
+
+        <!-- Story Scenes -->
+        <div class="scene" id="storyScene">
+            <div class="story-header">
+                <div class="scene-number" id="sceneNumber">SCENE 1 OF 10</div>
+                <div class="scene-title" id="sceneTitle">The Awakening</div>
+            </div>
+            <div class="story-text" id="storyText">
+                <!-- Story content loads here -->
+            </div>
+            <div class="choices" id="choices">
+                <!-- Choices load here -->
+            </div>
+            <div class="progress-dots" id="progressDots"></div>
+        </div>
+
+        <!-- Results Screen -->
+        <div class="scene" id="resultsScreen">
+            <div class="results-container">
+                <div class="result-reveal">
+                    <div class="result-label">Your True Nature</div>
+                    <div class="result-type" id="resultType">The Visionary</div>
+                    <div class="result-rarity rarity-legendary" id="resultRarity">Legendary</div>
+                </div>
+                
+                <div class="whale-image-container">
+                    <div class="whale-glow"></div>
+                    <img class="whale-image" id="whaleImage" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Your Spirit Whale" style="opacity:0;transition:opacity 0.5s">
+                </div>
+
+                <div class="final-stats" id="finalStats">
+                    <!-- Stats will be injected here -->
+                </div>
+
+                <p class="result-description" id="resultDescription">
+                    Description loads here...
+                </p>
+
+                <div class="result-traits" id="resultTraits"></div>
+
+                <div class="result-actions">
+                    <button class="action-btn secondary" onclick="copyResults()">📋 Copy Results</button>
+                    <button class="action-btn secondary" onclick="restartAdventure()">Play Again</button>
+                    <a href="/gallery/" class="action-btn primary">View Gallery</a>
+                </div>
+                <p class="share-tip">📸 Screenshot your result and share it with the pod!</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p><a href="/">SSoW Vault</a> · <a href="/gallery/">Whale Gallery</a> · <a href="/privacy.html">Privacy Policy</a> · #TogetherWeWhale</p>
+        </div>
+    </div>
+
+    <div class="consequence" id="consequence">
+        <div class="consequence-text" id="consequenceText"></div>
+        <div class="consequence-stat" id="consequenceStat"></div>
+    </div>
+
+    <script>
+        // =====================================================
+        // GAME STATE
+        // =====================================================
+        
+        let currentScene = 0;
+        let stats = {
+            rep: 0,      // Reputation - community standing
+            bags: 0,     // Wealth/holdings
+            crew: 0,     // Connections/relationships
+            risk: 0      // Risk tolerance
+        };
+        
+        let traits = {
+            visionary: 0,
+            guardian: 0,
+            analyst: 0,
+            diplomat: 0,
+            builder: 0,
+            artist: 0,
+            degen: 0
+        };
+
+        // =====================================================
+        // STORY SCENES - 10 Immersive Scenarios
+        // =====================================================
+
+        const scenes = [
+            // SCENE 1: The Awakening
+            {
+                title: "The Awakening",
+                text: `
+                    <p><em>Sunday, 3:47 AM</em></p>
+                    <p>Your phone won't stop buzzing. You grab it, squinting at the blinding light.</p>
+                    <div class="notification alert">
+                        <strong>47 Discord notifications</strong><br>
+                        12 Twitter DMs · 3 Missed Calls
+                    </div>
+                    <p>You check the charts. <span class="danger">ETH is down 40%</span>. Your timeline is chaos — some crying, some laughing, some suspiciously quiet.</p>
+                    <p>Your move?</p>
+                `,
+                choices: [
+                    {
+                        text: "Check out the Alpha Bay in the SSoW Discord — see what the pod is saying",
+                        consequence: "The pod comes first.",
+                        stats: { crew: 2, rep: 1 },
+                        traits: { guardian: 3, diplomat: 2 }
+                    },
+                    {
+                        text: "Open your portfolio and calculate the damage",
+                        consequence: "Knowledge is power.",
+                        stats: { bags: 1 },
+                        traits: { analyst: 3, guardian: 1 }
+                    },
+                    {
+                        text: "This is the dip you've been waiting for — time to buy",
+                        consequence: "Fortune favors the bold.",
+                        stats: { bags: 2, risk: 2 },
+                        traits: { degen: 3, visionary: 2 }
+                    },
+                    {
+                        text: "Craft the perfect meme — the timeline needs this",
+                        consequence: "Humor heals.",
+                        stats: { rep: 2, crew: 1 },
+                        traits: { artist: 3, diplomat: 1 }
+                    }
+                ]
+            },
+
+            // SCENE 2: The Alpha
+            {
+                title: "The Alpha",
+                text: `
+                    <p><em>Monday, 11:23 PM</em></p>
+                    <p>A DM slides in from someone you half-trust. The message is cryptic:</p>
+                    <div class="notification discord">
+                        "Don't share this. Contract drops in 20 min. Team is anon but the tech is real. I'm going heavy. Up to you."
+                    </div>
+                    <p>You check the contract — it's unverified. The website looks rushed. But the wallet activity is... interesting. Early movers are already positioning.</p>
+                    <p>19 minutes left.</p>
+                `,
+                choices: [
+                    {
+                        text: "Ape in with a small bag — worst case, it's a story",
+                        consequence: "A calculated gamble.",
+                        stats: { risk: 2, bags: -1 },
+                        traits: { degen: 3, visionary: 1 }
+                    },
+                    {
+                        text: "Dig deeper — check the deployer wallet, find the connections",
+                        consequence: "Trust but verify.",
+                        stats: { rep: 1 },
+                        traits: { analyst: 3, guardian: 2 }
+                    },
+                    {
+                        text: "Share with your trusted circle — if it's real, everyone eats",
+                        consequence: "Rising tide lifts all boats.",
+                        stats: { crew: 3, rep: 1 },
+                        traits: { diplomat: 3, guardian: 1 }
+                    },
+                    {
+                        text: "Pass — too many red flags, not worth the risk",
+                        consequence: "Patience is a position.",
+                        stats: { bags: 1 },
+                        traits: { guardian: 3, analyst: 1 }
+                    }
+                ]
+            },
+
+            // SCENE 3: The Auction
+            {
+                title: "The Auction",
+                text: `
+                    <p><em>Wednesday, 4:15 PM</em></p>
+                    <p>A grail just listed. Whale #5121 — the #3 ranked whale in the entire collection. You've been hunting this one for months. The price is steep but fair.</p>
+                    <div style="text-align: center; margin: 1.5rem 0;">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' fill='%230a1628'%3E%3Crect width='150' height='150'/%3E%3Ctext x='50%25' y='50%25' fill='%2300f5d4' font-size='14' text-anchor='middle' dy='.3em'%3ELoading...%3C/text%3E%3C/svg%3E" 
+                             id="grailWhaleImage"
+                             style="width: 150px; height: 150px; border-radius: 12px; border: 2px solid var(--golden);"
+                             alt="Whale #5121">
+                    </div>
+                    <div class="notification alert">
+                        <span class="golden">Whale #5121 — Rank #3</span><br>
+                        Listed: 2.5 ETH · One of the rarest in existence
+                    </div>
+                    <p>Your wallet has exactly 2.7 ETH. You'd be almost dry after this. But opportunities like this don't come often.</p>
+                `,
+                choices: [
+                    {
+                        text: "Buy it immediately — grails don't wait",
+                        consequence: "No regrets.",
+                        stats: { bags: -2, risk: 2, rep: 1 },
+                        traits: { degen: 3, visionary: 2 }
+                    },
+                    {
+                        text: "Send an offer below asking — worst they can say is no",
+                        consequence: "Negotiation is an art.",
+                        stats: { bags: 1 },
+                        traits: { analyst: 3, builder: 1 }
+                    },
+                    {
+                        text: "Pass — stacking ETH for the next opportunity is smarter",
+                        consequence: "Patience is a position.",
+                        stats: { bags: 2 },
+                        traits: { analyst: 2, guardian: 2 }
+                    },
+                    {
+                        text: "Screenshot it and post in the group chat — let the homies see this beauty",
+                        consequence: "Sharing is caring.",
+                        stats: { crew: 2, rep: 1 },
+                        traits: { diplomat: 3, artist: 1 }
+                    }
+                ],
+                onLoad: function() {
+                    // Load whale #5121 image
+                    fetch('/api/gallery-whale-image?tokenId=5121')
+                    .then(res => res.json())
+                    .then(data => {
+                        const img = document.getElementById('grailWhaleImage');
+                        if (img && data.imageUrl) {
+                            img.src = data.imageUrl;
+                        }
+                    })
+                    .catch(() => {});
+                }
+            },
+
+            // SCENE 4: The Opportunity
+            {
+                title: "The Opportunity",
+                text: `
+                    <p><em>Friday, 2:30 PM</em></p>
+                    <p>A promising new project reaches out. They want to partner with SSoW — free WL spots for the community, a collab announcement, mutual promotion.</p>
+                    <div class="notification success">
+                        "We love the #TogetherWeWhale ethos. 50 WL spots for your community. We just need a decision by EOD."
+                    </div>
+                    <p>You check them out. The art is mid, but the team seems solid. They have some momentum. Some whales are skeptical. Others are already hyping it.</p>
+                    <p>The community is split.</p>
+                `,
+                choices: [
+                    {
+                        text: "Push for the collab — free value for the community, no brainer",
+                        consequence: "Opportunities don't wait.",
+                        stats: { rep: 1, crew: 2 },
+                        traits: { visionary: 2, diplomat: 2 }
+                    },
+                    {
+                        text: "Propose a DAO vote — let the community decide together",
+                        consequence: "Democracy in action.",
+                        stats: { rep: 2, crew: 1 },
+                        traits: { diplomat: 3, guardian: 1 }
+                    },
+                    {
+                        text: "Decline politely — we should be more selective about partnerships",
+                        consequence: "Quality over quantity.",
+                        stats: { rep: 1 },
+                        traits: { guardian: 3, analyst: 1 }
+                    },
+                    {
+                        text: "Counter-offer — ask for more spots and better terms",
+                        consequence: "Know your worth.",
+                        stats: { bags: 1, rep: 1 },
+                        traits: { builder: 3, analyst: 1 }
+                    }
+                ]
+            },
+
+            // SCENE 5: The Gift
+            {
+                title: "The Gift",
+                text: `
+                    <p><em>Saturday, 9:00 AM</em></p>
+                    <p>You wake up to a surprise. That random altcoin you forgot about? It 10x'd overnight. Your portfolio just hit a new ATH.</p>
+                    <div class="notification success">
+                        <span class="golden">+$47,000 unrealized gains</span><br>
+                        Your wallet is up 340% this month
+                    </div>
+                    <p>The rational move is to take profits. But the chart looks like it's just getting started. Your DMs are blowing up — people asking for alpha, others sharing their own wins.</p>
+                    <p>Your finger hovers over the sell button.</p>
+                `,
+                choices: [
+                    {
+                        text: "Take profits — secure the bag, pay yourself first",
+                        consequence: "Realized gains > Paper gains",
+                        stats: { bags: 3 },
+                        traits: { analyst: 3, guardian: 1 }
+                    },
+                    {
+                        text: "Let it ride — you've been patient, now let it play out",
+                        consequence: "Diamond hands activated.",
+                        stats: { risk: 2, bags: 1 },
+                        traits: { visionary: 3, degen: 2 }
+                    },
+                    {
+                        text: "Take half, let half ride — best of both worlds",
+                        consequence: "Balanced approach.",
+                        stats: { bags: 2 },
+                        traits: { analyst: 2, guardian: 2 }
+                    },
+                    {
+                        text: "Share the alpha with your inner circle — they'd do the same for you",
+                        consequence: "We eat together.",
+                        stats: { crew: 3, rep: 1 },
+                        traits: { diplomat: 3, guardian: 1 }
+                    }
+                ]
+            },
+
+            // SCENE 6: The Spaces
+            {
+                title: "The Spaces",
+                text: `
+                    <p><em>Tuesday, 7:45 PM</em></p>
+                    <p>A whale from the community is hosting a Twitter Space tonight. It's their first time hosting and they're nervous — they asked you to come support.</p>
+                    <p>At the same time, a bigger account with 50k followers is doing an AMA that could have some alpha. The timing overlaps perfectly.</p>
+                    <div class="notification twitter">
+                        🎙️ <strong>SSoW Community Space</strong> — Starting in 15 min<br>
+                        "First time hosting, would mean a lot to see familiar faces"
+                    </div>
+                `,
+                choices: [
+                    {
+                        text: "Join the community Space — you said you'd be there",
+                        consequence: "Your word is your bond.",
+                        stats: { crew: 3, rep: 1 },
+                        traits: { guardian: 3, diplomat: 2 }
+                    },
+                    {
+                        text: "Join the bigger AMA — gotta chase the alpha",
+                        consequence: "Opportunities don't wait.",
+                        stats: { bags: 1, risk: 1 },
+                        traits: { degen: 2, analyst: 2 }
+                    },
+                    {
+                        text: "Hop between both — show face in community Space, then switch",
+                        consequence: "Multitasking master.",
+                        stats: { crew: 1, bags: 1 },
+                        traits: { diplomat: 2, degen: 1 }
+                    },
+                    {
+                        text: "Co-host the community Space — help them feel more confident",
+                        consequence: "Leaders lift others.",
+                        stats: { crew: 3, rep: 2 },
+                        traits: { diplomat: 3, guardian: 2 }
+                    }
+                ]
+            },
+
+            // SCENE 7: The Newcomer
+            {
+                title: "The Newcomer",
+                text: `
+                    <p><em>Thursday, 3:20 PM</em></p>
+                    <p>A new whale joins the Discord. First message: "Hey I'm new here, just bought my first whale! What should I know?"</p>
+                    <p>The message sits there for a few minutes. No one's responded yet. You remember your first day — the confusion, the excitement, the fear of looking stupid.</p>
+                    <div class="notification discord">
+                        <strong>Whaley67</strong> just joined<br>
+                        "Hey I'm new here, just bought my first whale! What should I know?"
+                    </div>
+                `,
+                choices: [
+                    {
+                        text: "Write a detailed welcome message — share all the essentials",
+                        consequence: "First impressions matter.",
+                        stats: { rep: 2, crew: 2 },
+                        traits: { guardian: 3, diplomat: 2 }
+                    },
+                    {
+                        text: "Drop a quick 'Gm' — simple but warm",
+                        consequence: "Gm is a vibe.",
+                        stats: { crew: 1 },
+                        traits: { diplomat: 2 }
+                    },
+                    {
+                        text: "DM them directly — easier to help 1-on-1",
+                        consequence: "Personal touch.",
+                        stats: { crew: 2 },
+                        traits: { guardian: 2, diplomat: 2 }
+                    },
+                    {
+                        text: "Link them to the resources channel — everything they need is there",
+                        consequence: "Efficient onboarding.",
+                        stats: { rep: 1 },
+                        traits: { analyst: 2, builder: 1 }
+                    }
+                ]
+            },
+
+            // SCENE 8: Game Night
+            {
+                title: "Game Night",
+                text: `
+                    <p><em>Saturday, 8:45 PM</em></p>
+                    <p>It's community night and the Discord is buzzing. Multiple events are happening at once:</p>
+                    <div class="notification discord">
+                        🎮 <strong>Pixels Online</strong> — Whale Raid starting in 15 min<br>
+                        🏝️ <strong>Nifty Island</strong> — Tournament finals, need 1 more<br>
+                        🃏 <strong>Poker Night</strong> — High stakes table just opened
+                    </div>
+                    <p>You can only pick one. The Pixels crew has been grinding all week. The Nifty team is counting on you. And the poker table has some whales you've been wanting to connect with.</p>
+                `,
+                choices: [
+                    {
+                        text: "Pixels Raid — the crew has been grinding, can't let them down",
+                        consequence: "Loyalty to the grind.",
+                        stats: { crew: 3 },
+                        traits: { guardian: 3, diplomat: 1 }
+                    },
+                    {
+                        text: "Nifty Tournament — they need one more and winning feels good",
+                        consequence: "Clutch player.",
+                        stats: { crew: 2, rep: 1 },
+                        traits: { builder: 2, diplomat: 2 }
+                    },
+                    {
+                        text: "Poker Night — networking with whales while having fun",
+                        consequence: "Playing the long game.",
+                        stats: { crew: 1, risk: 2, rep: 1 },
+                        traits: { degen: 2, diplomat: 2 }
+                    },
+                    {
+                        text: "Try to hop between all three — FOMO is real",
+                        consequence: "Everywhere at once.",
+                        stats: { risk: 1, crew: 1 },
+                        traits: { degen: 3, diplomat: 1 }
+                    }
+                ]
+            },
+
+            // SCENE 9: The Offer
+            {
+                title: "The Offer",
+                text: `
+                    <p><em>One month later</em></p>
+                    <p>You wake up to an OpenSea notification. Someone made a 25 ETH offer on your favorite whale — the one you've held since the beginning. The one with the story.</p>
+                    <div class="notification success">
+                        <span class="golden">Offer Received: 25 ETH</span><br>
+                        On your whale — expires in 24 hours
+                    </div>
+                    <p>25 ETH is life-changing money. But this whale... it's been with you through everything. The bear market. The wins. The late night group chats.</p>
+                    <p>The offer expires tomorrow.</p>
+                `,
+                choices: [
+                    {
+                        text: "Accept — 25 ETH is 25 ETH, the memories stay with you",
+                        consequence: "Profits realized.",
+                        stats: { bags: 3, risk: -1 },
+                        traits: { analyst: 3, degen: 1 }
+                    },
+                    {
+                        text: "Decline — some things aren't for sale",
+                        consequence: "Diamond hands forever.",
+                        stats: { rep: 2, crew: 1 },
+                        traits: { guardian: 3, visionary: 2 }
+                    },
+                    {
+                        text: "Counter with 40 ETH — if they really want it, they'll pay",
+                        consequence: "Know your worth.",
+                        stats: { bags: 1, risk: 1 },
+                        traits: { analyst: 2, degen: 2 }
+                    },
+                    {
+                        text: "Ask the group chat what they'd do — need some perspective",
+                        consequence: "Community wisdom.",
+                        stats: { crew: 2 },
+                        traits: { diplomat: 3, guardian: 1 }
+                    }
+                ]
+            },
+
+            // SCENE 10: The Anime Drop
+            {
+                title: "The Anime Drop",
+                text: `
+                    <p><em>Friday, 11:58 PM</em></p>
+                    <p>The announcement just dropped. SSoW is releasing Anime Whales — a brand new derivative collection. The art is absolutely fire. The Discord is going crazy.</p>
+                    <div class="notification discord">
+                        🎨 <strong>ANIME WHALES INCOMING</strong><br>
+                        "OG whale holders get first dibs. Mint opens in 48 hours."
+                    </div>
+                    <p>Your timeline is buzzing. Everyone's hyped. The art style is fresh — a whole new vibe for the pod. People are already making it their PFP before it even drops.</p>
+                    <p>You're staring at the preview images. They're so sick.</p>
+                `,
+                choices: [
+                    {
+                        text: "Day one mint — I'm not missing this",
+                        consequence: "Early believer.",
+                        stats: { risk: 2, rep: 1 },
+                        traits: { visionary: 3, degen: 2 }
+                    },
+                    {
+                        text: "Mint and immediately set it as my PFP — anime arc begins",
+                        consequence: "Main character energy.",
+                        stats: { rep: 2, risk: 1 },
+                        traits: { artist: 3, degen: 1 }
+                    },
+                    {
+                        text: "Hype it up in the group chat — the pod needs to see this",
+                        consequence: "Vibes curator.",
+                        stats: { crew: 2, rep: 1 },
+                        traits: { diplomat: 3, artist: 2 }
+                    },
+                    {
+                        text: "Mint multiple — gotta collect the whole set",
+                        consequence: "Full send energy.",
+                        stats: { risk: 3, bags: -1 },
+                        traits: { degen: 3, visionary: 1 }
+                    }
+                ]
+            },
+
+            // SCENE 11: The AI Question
+            {
+                title: "The AI Question",
+                text: `
+                    <p><em>The next morning</em></p>
+                    <p>Your timeline is buzzing about <span class="highlight">OpenClaw</span> — that open-source AI assistant everyone's calling "JARVIS for real life." It connects to WhatsApp, Discord, runs on your own machine, and apparently never sleeps.</p>
+                    <div class="notification twitter">
+                        🦞 <strong>Trending in Web3</strong><br>
+                        "Just set up OpenClaw and it organized my entire week while I was sleeping"
+                    </div>
+                    <p>Half your friends are already running it. The other half are skeptical about giving an AI that much access. Someone in the pod asks what you think.</p>
+                    <p>What's your take?</p>
+                `,
+                choices: [
+                    {
+                        text: "I'm setting it up tonight — this is the future",
+                        consequence: "Early adopter energy.",
+                        stats: { risk: 2, rep: 1 },
+                        traits: { degen: 3, visionary: 2 }
+                    },
+                    {
+                        text: "Write a thread about it — the pod needs to know about this",
+                        consequence: "Sharing is caring.",
+                        stats: { rep: 2, crew: 1 },
+                        traits: { artist: 3, diplomat: 1 }
+                    },
+                    {
+                        text: "Wait for others to test it first — let them find the bugs",
+                        consequence: "Smart patience.",
+                        stats: { bags: 1 },
+                        traits: { analyst: 3, guardian: 1 }
+                    },
+                    {
+                        text: "Start a group chat thread about it — need to discuss this with the crew",
+                        consequence: "Collective wisdom.",
+                        stats: { crew: 3 },
+                        traits: { diplomat: 3, guardian: 1 }
+                    }
+                ]
+            },
+
+            // SCENE 12: The Reflection
+            {
+                title: "The Reflection",
+                text: `
+                    <p><em>Late at night, alone with your thoughts</em></p>
+                    <p>You scroll through your wallet. Each NFT tells a story. The whale you scooped during the chaos of 2021. The collabs, the memes, the friends made along the way.</p>
+                    <p>Lily the whale is somewhere off the coast of Mexico. The GIPHYs hit 2 million views. The pod is still here, still building, still holding.</p>
+                    <p><span class="highlight">#TogetherWeWhale</span> — but what does that really mean to you?</p>
+                `,
+                choices: [
+                    {
+                        text: "Riding with the same crew through every cycle",
+                        consequence: "Loyalty runs deep.",
+                        stats: { crew: 3 },
+                        traits: { guardian: 3, diplomat: 1 }
+                    },
+                    {
+                        text: "Mass minting Pixel whales with the pod",
+                        consequence: "Gaming together.",
+                        stats: { crew: 2, rep: 1 },
+                        traits: { gamer: 3, diplomat: 1 }
+                    },
+                    {
+                        text: "Discussing memecoins at 1AM in Alpha Bay",
+                        consequence: "Night shift vibes.",
+                        stats: { crew: 3, risk: 1 },
+                        traits: { nightowl: 3, degen: 1 }
+                    },
+                    {
+                        text: "Being at NFT NYC back in 2021 and still being here",
+                        consequence: "OG status confirmed.",
+                        stats: { rep: 2, crew: 1 },
+                        traits: { og: 3, guardian: 1 }
+                    }
+                ]
+            }
+        ];
+
+        // =====================================================
+        // WHALE RESULTS
+        // =====================================================
+
+        const whaleResults = {
+            visionary: {
+                name: "The Visionary",
+                rarity: "legendary",
+                description: "You see beyond the noise and into the future. While others chase trends, you're building conviction in what matters. Your clarity of vision inspires those around you. You don't just hold — you believe.",
+                traits: [
+                    { name: "Future-Focused", desc: "Always thinking three steps ahead" },
+                    { name: "Conviction", desc: "Unwavering belief in what you hold" },
+                    { name: "Trend Setter", desc: "Others follow where you lead" },
+                    { name: "Diamond Hands", desc: "Volatility doesn't shake you" }
+                ],
+                whaleId: "6494"
+            },
+            guardian: {
+                name: "The Guardian",
+                rarity: "epic",
+                description: "You're the protector of the pod. Whether it's helping newcomers, standing up for what's right, or simply being a reliable presence — your integrity is unwavering. The community is stronger because of you.",
+                traits: [
+                    { name: "Protector", desc: "First to defend the pod" },
+                    { name: "Trustworthy", desc: "Your word is your bond" },
+                    { name: "Community First", desc: "The pod before personal gain" },
+                    { name: "Reliable", desc: "Always there when it counts" }
+                ],
+                whaleId: "4903"
+            },
+            analyst: {
+                name: "The Analyst",
+                rarity: "rare",
+                description: "Data is your superpower. While others react emotionally, you're three steps ahead with research and calculated strategies. Your methodical approach makes you an invaluable voice of reason in the pod.",
+                traits: [
+                    { name: "Data-Driven", desc: "Numbers don't lie" },
+                    { name: "Strategic", desc: "Every move is calculated" },
+                    { name: "Calculated", desc: "Risk management is your thing" },
+                    { name: "Level-Headed", desc: "Calm when others panic" }
+                ],
+                whaleId: "8591"
+            },
+            diplomat: {
+                name: "The Diplomat",
+                rarity: "rare",
+                description: "Connection is your currency. You bring people together, keep the vibes right, and build bridges across the community. Where there's chaos, you find harmony. The pod stays together because of whales like you.",
+                traits: [
+                    { name: "Connector", desc: "You know everyone worth knowing" },
+                    { name: "Peacemaker", desc: "Diffusing drama since day one" },
+                    { name: "Vibes Curator", desc: "You set the tone for the room" },
+                    { name: "Empathetic", desc: "You feel what others feel" }
+                ],
+                whaleId: "3699"
+            },
+            builder: {
+                name: "The Builder",
+                rarity: "epic",
+                description: "While others talk, you ship. Your hands-on approach means you're always creating, contributing, pushing forward. The future of web3 isn't given — it's built by whales like you.",
+                traits: [
+                    { name: "Maker", desc: "Ideas become reality in your hands" },
+                    { name: "Contributor", desc: "Always adding value" },
+                    { name: "Problem Solver", desc: "Obstacles are just puzzles" },
+                    { name: "Action-Oriented", desc: "Less talk, more shipping" }
+                ],
+                whaleId: "9695"
+            },
+            artist: {
+                name: "The Artist",
+                rarity: "epic",
+                description: "You see the world differently, and you help others see it too. Through memes, content, or storytelling — you bring color and meaning to the space. The pod's culture exists because of creative whales like you.",
+                traits: [
+                    { name: "Creative", desc: "Your mind works in colors" },
+                    { name: "Culture Shaper", desc: "You define the aesthetic" },
+                    { name: "Meme Lord", desc: "Your memes hit different" },
+                    { name: "Vibe Curator", desc: "You bring the energy" }
+                ],
+                whaleId: "7269"
+            },
+            degen: {
+                name: "The Degen",
+                rarity: "uncommon",
+                description: "Fortune favors the bold, and you're the boldest in the pod. Your appetite for risk has led to spectacular wins and legendary losses. But that's the point — you're here for the thrill and the stories.",
+                traits: [
+                    { name: "Risk Taker", desc: "High risk, high reward lifestyle" },
+                    { name: "YOLO Energy", desc: "Life's too short to play it safe" },
+                    { name: "Early Adopter", desc: "First in, first to know" },
+                    { name: "Fearless", desc: "Red candles don't scare you" }
+                ],
+                whaleId: "2104"
+            },
+            og: {
+                name: "The OG",
+                rarity: "legendary",
+                description: "You were here before it was cool. Through every cycle, every crash, every comeback — you held the line. Your diamond hands aren't just an investment strategy, they're a lifestyle. The pod looks up to you.",
+                traits: [
+                    { name: "Diamond Hands", desc: "Never sold, never will" },
+                    { name: "Battle-Tested", desc: "Survived every bear market" },
+                    { name: "Respected", desc: "Your opinion carries weight" },
+                    { name: "Unshakeable", desc: "FUD bounces right off" }
+                ],
+                whaleId: "3482"
+            },
+            socialite: {
+                name: "The Socialite",
+                rarity: "epic",
+                description: "Your notifications never stop and you love it. Spaces, game nights, group chats — if there's a community event, you're there. Your energy is contagious and the pod is more fun because of you.",
+                traits: [
+                    { name: "Always Online", desc: "First to react, last to leave" },
+                    { name: "Event Regular", desc: "Never miss a community moment" },
+                    { name: "Hype Machine", desc: "Your excitement spreads" },
+                    { name: "Social Butterfly", desc: "Friends in every corner" }
+                ],
+                whaleId: "4901"
+            },
+            collector: {
+                name: "The Collector",
+                rarity: "rare",
+                description: "Your wallet tells a story. Every piece has meaning, every acquisition is intentional. You understand that NFTs are more than JPEGs — they're culture, history, and community all in one.",
+                traits: [
+                    { name: "Curator", desc: "Your wallet is a gallery" },
+                    { name: "Tasteful", desc: "Quality over quantity always" },
+                    { name: "Patient Hunter", desc: "You wait for the right piece" },
+                    { name: "Gallery Goals", desc: "Others aspire to your collection" }
+                ],
+                whaleId: "5608"
+            },
+            sensei: {
+                name: "The Sensei",
+                rarity: "legendary",
+                description: "You've seen it all and you're here to share the wisdom. New whales seek your guidance, and you give it freely. Teaching others isn't a burden — it's an honor. The pod learns from you.",
+                traits: [
+                    { name: "Wise", desc: "Experience speaks through you" },
+                    { name: "Patient Teacher", desc: "No question is too basic" },
+                    { name: "Community Elder", desc: "Respected by all generations" },
+                    { name: "Respected Voice", desc: "When you speak, people listen" }
+                ],
+                whaleId: "7590"
+            },
+            nightowl: {
+                name: "The Night Owl",
+                rarity: "uncommon",
+                description: "The best conversations happen after midnight. While the world sleeps, you're in the group chat discussing alpha, sharing memes, and building bonds. The late night crew knows your name.",
+                traits: [
+                    { name: "3AM Regular", desc: "Sleep is for the weak" },
+                    { name: "Chat Legend", desc: "Keeping convos alive after hours" },
+                    { name: "Insomniac", desc: "Who needs sleep anyway" },
+                    { name: "Night Shift", desc: "Your best hours are after dark" }
+                ],
+                whaleId: "6874"
+            },
+            gamer: {
+                name: "The Gamer",
+                rarity: "rare",
+                description: "Pixels, Nifty Island, poker nights — you're grinding while others are sleeping. Web3 gaming isn't just a hobby, it's your arena. The leaderboards know your name.",
+                traits: [
+                    { name: "Competitive", desc: "Second place isn't an option" },
+                    { name: "Grinder", desc: "Putting in the hours" },
+                    { name: "Raid Ready", desc: "Always down for team play" },
+                    { name: "High Score Hunter", desc: "Chasing that top spot" }
+                ],
+                whaleId: "5271"
+            },
+            hypebeast: {
+                name: "The Hypebeast",
+                rarity: "uncommon",
+                description: "When something's about to pop, you smell it first. New drops, collabs, announcements — your feed is always one step ahead. The timeline follows your lead.",
+                traits: [
+                    { name: "Trend Spotter", desc: "You see it before it trends" },
+                    { name: "Early Mover", desc: "First to mint, first to know" },
+                    { name: "FOMO Immune", desc: "You cause FOMO, not feel it" },
+                    { name: "Alpha Hunter", desc: "Always chasing the next play" }
+                ],
+                whaleId: "2227"
+            },
+            zen: {
+                name: "The Zen Whale",
+                rarity: "epic",
+                description: "Markets crash, you meditate. FUD spreads, you smile. Your calmness in chaos is legendary. While others panic sell, you're sipping tea and vibing. Nothing shakes you.",
+                traits: [
+                    { name: "Unshakeable", desc: "Inner peace is your superpower" },
+                    { name: "Calm", desc: "Stress doesn't know your name" },
+                    { name: "Long-Term Thinker", desc: "Playing the infinite game" },
+                    { name: "Unbothered King", desc: "Drama? What drama?" }
+                ],
+                whaleId: "7127"
+            }
+        };
+
+        // =====================================================
+        // GAME FUNCTIONS
+        // =====================================================
+
+        function startAdventure() {
+            document.getElementById('titleScreen').classList.remove('active');
+            document.getElementById('storyScene').classList.add('active');
+            document.getElementById('statsBar').classList.add('show');
+            currentScene = 0;
+            renderScene();
+        }
+
+        function renderScene() {
+            const scene = scenes[currentScene];
+            
+            document.getElementById('sceneNumber').textContent = `SCENE ${currentScene + 1} OF 12`;
+            document.getElementById('sceneTitle').textContent = scene.title;
+            document.getElementById('storyText').innerHTML = scene.text;
+            
+            const choicesEl = document.getElementById('choices');
+            choicesEl.innerHTML = scene.choices.map((choice, i) => `
+                <button class="choice-btn" onclick="selectChoice(${i})">${choice.text}</button>
+            `).join('');
+
+            // Update progress dots
+            const dotsEl = document.getElementById('progressDots');
+            dotsEl.innerHTML = scenes.map((_, i) => `
+                <div class="dot ${i < currentScene ? 'completed' : ''} ${i === currentScene ? 'current' : ''}"></div>
+            `).join('');
+
+            updateStats();
+
+            // Call onLoad if scene has it (for loading images etc)
+            if (scene.onLoad) {
+                setTimeout(() => scene.onLoad(), 100);
+            }
+        }
+
+        function selectChoice(index) {
+            const scene = scenes[currentScene];
+            const choice = scene.choices[index];
+
+            // Apply stats
+            Object.keys(choice.stats).forEach(stat => {
+                stats[stat] = (stats[stat] || 0) + choice.stats[stat];
+            });
+
+            // Apply traits
+            Object.keys(choice.traits).forEach(trait => {
+                traits[trait] = (traits[trait] || 0) + choice.traits[trait];
+            });
+
+            // Show consequence
+            showConsequence(choice.consequence, choice.stats);
+
+            // Next scene after delay
+            setTimeout(() => {
+                hideConsequence();
+                currentScene++;
+                if (currentScene < scenes.length) {
+                    // Fade transition
+                    document.getElementById('storyScene').style.opacity = '0';
+                    setTimeout(() => {
+                        renderScene();
+                        document.getElementById('storyScene').style.opacity = '1';
+                    }, 300);
+                } else {
+                    showResults();
+                }
+            }, 1500);
+        }
+
+        function showConsequence(text, statChanges) {
+            const el = document.getElementById('consequence');
+            document.getElementById('consequenceText').textContent = text;
+            
+            // Show stat changes
+            const statText = Object.entries(statChanges)
+                .filter(([_, v]) => v !== 0)
+                .map(([k, v]) => `${k.toUpperCase()} ${v > 0 ? '+' : ''}${v}`)
+                .join(' · ');
+            document.getElementById('consequenceStat').textContent = statText;
+            
+            el.classList.add('show');
+        }
+
+        function hideConsequence() {
+            document.getElementById('consequence').classList.remove('show');
+        }
+
+        function updateStats() {
+            document.getElementById('statRep').textContent = stats.rep;
+            document.getElementById('statBags').textContent = stats.bags;
+            document.getElementById('statCrew').textContent = stats.crew;
+            document.getElementById('statRisk').textContent = stats.risk;
+        }
+
+        function showResults() {
+            document.getElementById('storyScene').classList.remove('active');
+            document.getElementById('statsBar').classList.remove('show');
+            document.getElementById('resultsScreen').classList.add('active');
+
+            // STATS INFLUENCE THE RESULT!
+            // Convert stats to trait bonuses - now with more whale types
+            const statBonuses = {
+                visionary: (stats.rep * 0.5) + (stats.risk * 0.3),
+                guardian: (stats.crew * 0.5) + (stats.rep * 0.2),
+                analyst: (stats.bags * 0.4) + (stats.rep * 0.2),
+                diplomat: (stats.crew * 0.6) + (stats.rep * 0.2),
+                builder: (stats.rep * 0.5) + (stats.bags * 0.2),
+                artist: (stats.rep * 0.3) + (stats.crew * 0.3),
+                degen: (stats.risk * 0.5) + (stats.bags * 0.3),
+                // New whale type bonuses
+                og: (stats.rep * 0.4) + (stats.bags * 0.3) + (stats.crew * 0.2),
+                socialite: (stats.crew * 0.7) + (stats.rep * 0.2),
+                collector: (stats.bags * 0.5) + (stats.rep * 0.3),
+                sensei: (stats.crew * 0.4) + (stats.rep * 0.5),
+                nightowl: (stats.crew * 0.5) + (stats.risk * 0.2),
+                gamer: (stats.crew * 0.4) + (stats.risk * 0.3) + (stats.rep * 0.1),
+                hypebeast: (stats.risk * 0.4) + (stats.bags * 0.3) + (stats.rep * 0.2),
+                zen: (stats.rep * 0.3) + (stats.bags * 0.2) - (stats.risk * 0.2)
+            };
+
+            // Combine trait scores with stat bonuses
+            const finalScores = {};
+            Object.keys(whaleResults).forEach(trait => {
+                finalScores[trait] = (traits[trait] || 0) + (statBonuses[trait] || 0);
+            });
+
+            // Calculate total for percentages
+            const totalScore = Object.values(finalScores).reduce((a, b) => a + Math.max(0, b), 0) || 1;
+
+            // Calculate percentages
+            const percentages = {};
+            Object.keys(finalScores).forEach(trait => {
+                percentages[trait] = Math.round((Math.max(0, finalScores[trait]) / totalScore) * 100);
+            });
+
+            // Find dominant trait
+            const winner = Object.keys(finalScores).reduce((a, b) => finalScores[a] > finalScores[b] ? a : b);
+            const result = whaleResults[winner];
+
+            // Get top 3 matches for display
+            const sortedMatches = Object.entries(percentages)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 4);
+
+            // Display final stats with percentages
+            const totalStats = Math.abs(stats.rep) + Math.abs(stats.bags) + Math.abs(stats.crew) + Math.abs(stats.risk) || 1;
+            const repPct = Math.round((Math.max(0, stats.rep) / totalStats) * 100);
+            const bagsPct = Math.round((Math.max(0, stats.bags) / totalStats) * 100);
+            const crewPct = Math.round((Math.max(0, stats.crew) / totalStats) * 100);
+            const riskPct = Math.round((Math.max(0, stats.risk) / totalStats) * 100);
+
+            document.getElementById('finalStats').innerHTML = `
+                <div class="final-stat">
+                    <div class="final-stat-value">${stats.rep}</div>
+                    <div class="final-stat-pct">${repPct}%</div>
+                    <div class="final-stat-label">🎭 Rep</div>
+                </div>
+                <div class="final-stat">
+                    <div class="final-stat-value">${stats.bags}</div>
+                    <div class="final-stat-pct">${bagsPct}%</div>
+                    <div class="final-stat-label">💎 Bags</div>
+                </div>
+                <div class="final-stat">
+                    <div class="final-stat-value">${stats.crew}</div>
+                    <div class="final-stat-pct">${crewPct}%</div>
+                    <div class="final-stat-label">🤝 Crew</div>
+                </div>
+                <div class="final-stat">
+                    <div class="final-stat-value">${stats.risk}</div>
+                    <div class="final-stat-pct">${riskPct}%</div>
+                    <div class="final-stat-label">🎲 Risk</div>
+                </div>
+            `;
+
+            // Add stat-based flavor to description
+            let statFlavor = "";
+            if (stats.crew >= 10) statFlavor = " The pod knows they can count on you.";
+            else if (stats.bags >= 8) statFlavor = " Your bags speak for themselves.";
+            else if (stats.risk >= 8) statFlavor = " You've never met a risk you didn't like.";
+            else if (stats.rep >= 10) statFlavor = " Your reputation precedes you.";
+
+            document.getElementById('resultType').textContent = result.name;
+            document.getElementById('resultRarity').textContent = result.rarity.toUpperCase();
+            document.getElementById('resultRarity').className = `result-rarity rarity-${result.rarity}`;
+            document.getElementById('resultDescription').textContent = result.description + statFlavor;
+            
+            document.getElementById('resultTraits').innerHTML = result.traits
+                .map(t => `<div class="trait-tag-with-desc">
+                    <span class="trait-name">${t.name}</span>
+                    <span class="trait-desc">${t.desc}</span>
+                </div>`)
+                .join('');
+
+            // Set whale image
+            const img = document.getElementById('whaleImage');
+            img.src = 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27280%27 height=%27280%27 fill=%27%230a1628%27%3E%3Crect width=%27280%27 height=%27280%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 fill=%27%2300f5d4%27 font-size=%2716%27 text-anchor=%27middle%27 dy=%27.3em%27%3ELoading...%3C/text%3E%3C/svg%3E';
+            
+            // Fetch from your API that has OpenSea key
+            fetch(`/api/gallery-whale-image?tokenId=${result.whaleId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.imageUrl) {
+                    img.onload = () => { img.style.opacity = '1'; };
+                    img.src = data.imageUrl;
+                } else {
+                    img.src = 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27280%27 height=%27280%27 fill=%27%230a1628%27%3E%3Crect width=%27280%27 height=%27280%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 fill=%27%2300f5d4%27 font-size=%2740%27 text-anchor=%27middle%27 dy=%27.3em%27%3E🐋%3C/text%3E%3C/svg%3E';
+                }
+            })
+            .catch(() => {
+                // Fallback to placeholder
+                img.src = 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27280%27 height=%27280%27 fill=%27%230a1628%27%3E%3Crect width=%27280%27 height=%27280%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 fill=%27%2300f5d4%27 font-size=%2740%27 text-anchor=%27middle%27 dy=%27.3em%27%3E🐋%3C/text%3E%3C/svg%3E';
+            });
+
+            window.quizResult = result;
+            window.finalStats = stats;
+            window.matchPercentages = percentages;
+        }
+
+        function copyResults() {
+            const result = window.quizResult;
+            const text = `I journeyed Into The Pod and discovered I'm ${result.name} 🐋
+
+${result.rarity.toUpperCase()} whale energy ✨
+
+What whale are you?
+https://vault.thewhaleclub.xyz/gallery/quiz.html
+
+#SSoW #TogetherWeWhale`;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.querySelector('.result-actions .action-btn.secondary');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✓ Copied!';
+                btn.style.borderColor = '#10b981';
+                btn.style.color = '#10b981';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.borderColor = '';
+                    btn.style.color = '';
+                }, 2000);
+            }).catch(() => {
+                alert('Copy failed - here\'s your result:\n\n' + text);
+            });
+        }
+
+        function restartAdventure() {
+            currentScene = 0;
+            stats = { rep: 0, bags: 0, crew: 0, risk: 0 };
+            traits = { visionary: 0, guardian: 0, analyst: 0, diplomat: 0, builder: 0, artist: 0, degen: 0 };
+            
+            document.getElementById('resultsScreen').classList.remove('active');
+            document.getElementById('titleScreen').classList.add('active');
+        }
+    </script>
+</body>
+</html>
