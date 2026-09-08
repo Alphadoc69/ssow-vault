@@ -1,0 +1,3304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>SSoW Whale Gallery | Secret Society of Whales</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="View your Secret Society of Whales NFT collection. See all your OG Whales, Security Orcas, Wealthy Whales, and SSoW Collabs with rarity rankings.">
+    <meta name="keywords" content="SSoW, Secret Society of Whales, NFT, Ethereum, Whale Gallery, NFT Gallery">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://whale-gallery.vercel.app/">
+    <meta property="og:title" content="SSoW Whale Gallery">
+    <meta property="og:description" content="View your Secret Society of Whales NFT collection. #TogetherWeWhale 🐋">
+    <meta property="og:image" content="https://whale-gallery.vercel.app/preview.png">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://whale-gallery.vercel.app/">
+    <meta name="twitter:title" content="SSoW Whale Gallery">
+    <meta name="twitter:description" content="View your Secret Society of Whales NFT collection. #TogetherWeWhale 🐋">
+    <meta name="twitter:image" content="https://whale-gallery.vercel.app/preview.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐋</text></svg>">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --deep-ocean: #020817;
+            --ocean-mid: #0a1628;
+            --ocean-surface: #0f2847;
+            --bioluminescent: #00f5d4;
+            --whale-blue: #3b82f6;
+            --coral-pink: #ff6b9d;
+            --pearl: #e0f2fe;
+            --foam: rgba(255, 255, 255, 0.9);
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--deep-ocean);
+            color: var(--pearl);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated ocean background */
+        .ocean-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: 
+                radial-gradient(ellipse at 20% 80%, rgba(0, 245, 212, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(255, 107, 157, 0.05) 0%, transparent 70%),
+                linear-gradient(180deg, var(--deep-ocean) 0%, var(--ocean-mid) 50%, var(--ocean-surface) 100%);
+        }
+
+        /* Floating particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--bioluminescent);
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(100vh) translateX(0); opacity: 0; }
+            10% { opacity: 0.3; }
+            90% { opacity: 0.3; }
+            100% { transform: translateY(-100px) translateX(50px); opacity: 0; }
+        }
+
+        /* Header */
+        .header {
+            padding: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .logo:hover {
+            transform: scale(1.02);
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--bioluminescent), var(--whale-blue));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--bioluminescent), var(--whale-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-sub {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: var(--pearl);
+            text-decoration: none;
+            font-size: 0.9rem;
+            opacity: 0.7;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            opacity: 1;
+            color: var(--bioluminescent);
+        }
+
+        /* Main content */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Hero section */
+        .hero {
+            text-align: center;
+            padding: 4rem 2rem;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, var(--foam), var(--bioluminescent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.6);
+            max-width: 600px;
+            margin: 0 auto 3rem;
+        }
+
+        /* Search box */
+        .search-container {
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 1rem;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 0.5rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus-within {
+            border-color: var(--bioluminescent);
+            box-shadow: 0 0 30px rgba(0, 245, 212, 0.2);
+        }
+
+        .search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 1rem;
+            color: var(--pearl);
+            font-size: 1rem;
+            font-family: 'Space Mono', monospace;
+            outline: none;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .search-btn {
+            background: linear-gradient(135deg, var(--bioluminescent), var(--whale-blue));
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            color: var(--deep-ocean);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 245, 212, 0.3);
+        }
+
+        .search-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Loading state */
+        .loading-section {
+            display: none;
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .loading-section.show {
+            display: block;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 2rem;
+            border: 4px solid var(--glass-border);
+            border-top-color: var(--bioluminescent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error message */
+        .error-message {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+            margin: 2rem auto;
+            max-width: 500px;
+            background: rgba(255, 107, 157, 0.1);
+            border: 1px solid var(--coral-pink);
+            border-radius: 16px;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .error-message h3 {
+            color: var(--coral-pink);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Results section */
+        .results-section {
+            display: none;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            color: var(--pearl);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--bioluminescent);
+        }
+
+        .share-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .icon-btn {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--pearl);
+            font-size: 1.2rem;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--bioluminescent);
+            transform: translateY(-2px);
+        }
+
+        /* Stats cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--bioluminescent);
+            transform: translateY(-2px);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--bioluminescent), var(--whale-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-sub {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 0.25rem;
+            font-family: 'Space Mono', monospace;
+        }
+
+        /* Filter and Sort Controls */
+        .controls-section {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .controls-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .controls-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--bioluminescent);
+        }
+
+        .clear-filters-btn {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            color: var(--pearl);
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+
+        .clear-filters-btn:hover {
+            border-color: var(--coral-pink);
+            color: var(--coral-pink);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .control-label {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            padding: 0.75rem;
+            border-radius: 8px;
+            color: var(--pearl);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-select:hover {
+            border-color: var(--bioluminescent);
+        }
+
+        .control-select:focus {
+            outline: none;
+            border-color: var(--bioluminescent);
+            box-shadow: 0 0 10px rgba(0, 245, 212, 0.2);
+        }
+
+        .control-select option {
+            background: var(--ocean-mid);
+            color: var(--pearl);
+        }
+
+        /* Active filters display */
+        .active-filters {
+            display: none;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .active-filters.show {
+            display: block;
+        }
+
+        .filter-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .filter-tag {
+            background: rgba(0, 245, 212, 0.1);
+            border: 1px solid var(--bioluminescent);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-tag .remove-filter {
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .filter-tag .remove-filter:hover {
+            opacity: 1;
+        }
+
+        /* NFT Grid */
+        .nft-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .nft-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nft-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--bioluminescent);
+            box-shadow: 0 10px 40px rgba(0, 245, 212, 0.2);
+        }
+
+        .nft-image-container {
+            position: relative;
+            width: 100%;
+            padding-top: 100%;
+            background: var(--ocean-mid);
+            overflow: hidden;
+        }
+
+        .nft-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .nft-card:hover .nft-image {
+            transform: scale(1.05);
+        }
+
+        .nft-rank-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: linear-gradient(135deg, var(--bioluminescent), var(--whale-blue));
+            color: var(--deep-ocean);
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            z-index: 1;
+        }
+
+        .nft-info {
+            padding: 1rem;
+        }
+
+        .nft-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .nft-id {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
+            font-family: 'Space Mono', monospace;
+        }
+
+        .nft-traits-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            margin-top: 0.75rem;
+        }
+
+        .trait-badge {
+            background: rgba(0, 245, 212, 0.1);
+            border: 1px solid rgba(0, 245, 212, 0.3);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            color: var(--bioluminescent);
+        }
+
+        .trait-badge.rare {
+            background: rgba(255, 107, 157, 0.2);
+            border: 1px solid var(--coral-pink);
+            color: var(--coral-pink);
+            font-weight: 600;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--ocean-mid);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            max-width: 900px;
+            width: 100%;
+            overflow: hidden;
+            animation: modalSlideIn 0.3s ease;
+            position: relative;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
+            color: var(--pearl);
+            font-size: 1.5rem;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: rotate(90deg);
+        }
+
+        .modal-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+        }
+
+        .modal-image-side {
+            background: var(--ocean-surface);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-image {
+            width: 100%;
+            border-radius: 16px;
+            margin-bottom: 1rem;
+        }
+
+        .modal-rank-large {
+            background: linear-gradient(135deg, var(--bioluminescent), var(--whale-blue));
+            color: var(--deep-ocean);
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .modal-info-side {
+            padding: 2rem;
+            overflow-y: auto;
+            max-height: 600px;
+        }
+
+        .modal-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-token-id {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 2rem;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .traits-section {
+            margin-bottom: 2rem;
+        }
+
+        .traits-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--bioluminescent);
+        }
+
+        .traits-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .trait-row {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .trait-type {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .trait-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--pearl);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.25rem;
+        }
+
+        .trait-value.none {
+            color: rgba(255, 255, 255, 0.3);
+            font-style: italic;
+        }
+
+        .trait-rarity {
+            font-size: 0.75rem;
+            color: var(--bioluminescent);
+            font-weight: 400;
+            opacity: 0.8;
+        }
+
+        .trait-rarity.rare {
+            color: var(--coral-pink);
+            font-weight: 600;
+        }
+
+        .trait-rarity.common {
+            opacity: 0.6;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 1rem;
+            border-radius: 12px;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn-primary {
+            background: linear-gradient(135deg, var(--bioluminescent), var(--whale-blue));
+            color: var(--deep-ocean);
+        }
+
+        .modal-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 245, 212, 0.3);
+        }
+
+        .modal-btn-secondary {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            color: var(--pearl);
+        }
+
+        .modal-btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Add wallet section */
+        .add-wallet-section {
+            display: none;
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: var(--glass);
+            border: 1px solid var(--bioluminescent);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+
+        .add-wallet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .add-wallet-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--bioluminescent);
+        }
+
+        .close-add-wallet {
+            background: transparent;
+            border: none;
+            color: var(--pearl);
+            font-size: 1.5rem;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .close-add-wallet:hover {
+            opacity: 1;
+        }
+
+        /* Badge System Styles */
+        .badge-header {
+            background: var(--glass);
+            border: 2px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .badge-header:hover {
+            border-color: var(--bioluminescent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 245, 212, 0.2);
+        }
+
+        .badge-header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .badge-header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .badge-header-icon {
+            font-size: 2rem;
+            filter: drop-shadow(0 4px 8px rgba(0, 245, 212, 0.3));
+        }
+
+        .badge-header-info h3 {
+            font-size: 1.3rem;
+            background: linear-gradient(90deg, var(--bioluminescent), var(--whale-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.25rem;
+        }
+
+        .badge-header-stats {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .badge-tier {
+            padding: 0.5rem 1rem;
+            background: rgba(0, 245, 212, 0.1);
+            border: 1px solid var(--bioluminescent);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--bioluminescent);
+            white-space: nowrap;
+        }
+
+        .badge-progress-bar {
+            margin-top: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+        }
+
+        .badge-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--bioluminescent), var(--whale-blue));
+            border-radius: 10px;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 10px rgba(0, 245, 212, 0.6);
+        }
+
+        .badge-panel {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+
+        .badge-panel.show {
+            display: block;
+            animation: slideDown 0.4s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .badge-panel-header {
+            margin-bottom: 2rem;
+        }
+
+        .badge-panel-title {
+            font-size: 1.5rem;
+            background: linear-gradient(90deg, var(--foam), var(--bioluminescent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .badge-panel-subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+        }
+
+        .badge-categories {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .badge-category-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            color: var(--pearl);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+        }
+
+        .badge-category-btn:hover,
+        .badge-category-btn.active {
+            border-color: var(--bioluminescent);
+            background: rgba(0, 245, 212, 0.1);
+            color: var(--bioluminescent);
+        }
+
+        .badge-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .badge-card {
+            background: var(--glass);
+            border: 2px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .badge-card.locked {
+            opacity: 0.4;
+            filter: grayscale(60%);
+        }
+
+        .badge-card.unlocked {
+            border-color: var(--bioluminescent);
+            background: radial-gradient(
+                ellipse at center, 
+                rgba(0, 245, 212, 0.15), 
+                var(--glass)
+            );
+            box-shadow: 
+                0 0 20px rgba(0, 245, 212, 0.3),
+                inset 0 0 30px rgba(0, 245, 212, 0.1);
+            animation: badgePulse 3s ease-in-out infinite;
+        }
+
+        @keyframes badgePulse {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(0, 245, 212, 0.3),
+                            inset 0 0 30px rgba(0, 245, 212, 0.1);
+            }
+            50% { 
+                box-shadow: 0 0 40px rgba(0, 245, 212, 0.5),
+                            inset 0 0 50px rgba(0, 245, 212, 0.2);
+            }
+        }
+
+        .badge-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .badge-rarity {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 0.65rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-rarity.common {
+            background: rgba(100, 100, 100, 0.3);
+            color: #999;
+        }
+
+        .badge-rarity.rare {
+            background: rgba(59, 130, 246, 0.3);
+            color: var(--whale-blue);
+        }
+
+        .badge-rarity.epic {
+            background: rgba(168, 85, 247, 0.3);
+            color: #a855f7;
+        }
+
+        .badge-rarity.legendary {
+            background: rgba(251, 191, 36, 0.3);
+            color: #fbbf24;
+        }
+
+        .badge-icon {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            filter: drop-shadow(0 4px 8px rgba(0, 245, 212, 0.3));
+        }
+
+        .badge-card.unlocked .badge-icon {
+            animation: iconFloat 2s ease-in-out infinite;
+        }
+
+        @keyframes iconFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .badge-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--pearl);
+            margin-bottom: 0.5rem;
+        }
+
+        .badge-card.unlocked .badge-title {
+            background: linear-gradient(90deg, var(--bioluminescent), var(--whale-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .badge-description {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            line-height: 1.4;
+            margin-bottom: 0.75rem;
+        }
+
+        .badge-progress {
+            margin-top: 0.75rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            height: 6px;
+            overflow: hidden;
+        }
+
+        .badge-progress-bar-small {
+            height: 100%;
+            background: linear-gradient(90deg, var(--bioluminescent), var(--whale-blue));
+            border-radius: 10px;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 10px rgba(0, 245, 212, 0.6);
+        }
+
+        .badge-status {
+            margin-top: 0.5rem;
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .badge-card.unlocked .badge-status {
+            color: var(--bioluminescent);
+            font-weight: 600;
+        }
+
+        /* Badge Unlock Notification */
+        .badge-notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: var(--ocean-mid);
+            border: 2px solid var(--bioluminescent);
+            border-radius: 24px;
+            padding: 3rem;
+            text-align: center;
+            z-index: 10000;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+                        0 0 40px rgba(0, 245, 212, 0.4);
+            backdrop-filter: blur(20px);
+            max-width: 400px;
+            width: 90%;
+            display: none;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .badge-notification.show {
+            display: block;
+            pointer-events: auto;
+            animation: badgeUnlock 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes badgeUnlock {
+            0% { 
+                transform: translate(-50%, -50%) scale(0) rotate(-10deg);
+                opacity: 0;
+            }
+            100% { 
+                transform: translate(-50%, -50%) scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+
+        .badge-notification-title {
+            font-size: 1.2rem;
+            color: var(--bioluminescent);
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .badge-notification-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: iconPop 0.8s ease-in-out;
+        }
+
+        @keyframes iconPop {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .badge-notification-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--bioluminescent), var(--whale-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .badge-notification-desc {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 1.5rem;
+        }
+
+        .badge-notification-stats {
+            padding: 1rem;
+            background: rgba(0, 245, 212, 0.1);
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .badge-notification-stats p {
+            margin: 0.25rem 0;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .badge-notification-btn {
+            background: linear-gradient(135deg, var(--bioluminescent), var(--whale-blue));
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 12px;
+            color: var(--deep-ocean);
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .badge-notification-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 245, 212, 0.4);
+        }
+
+        /* Confetti */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: var(--bioluminescent);
+            position: absolute;
+            animation: confettiFall 3s linear forwards;
+            z-index: 9999;
+        }
+
+        @keyframes confettiFall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .modal {
+                padding: 1rem;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            }
+            
+            .modal-content {
+                margin: auto;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+            
+            .modal-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-info-side {
+                max-height: none;
+                overflow-y: visible;
+            }
+
+            .nft-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 1rem;
+            }
+
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+
+            /* ===== MOBILE BADGE SYSTEM ===== */
+            .badge-header {
+                padding: 1rem;
+            }
+            
+            .badge-header-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .badge-header-left {
+                width: 100%;
+            }
+            
+            .badge-header-icon {
+                font-size: 1.5rem;
+            }
+            
+            .badge-header-info h3 {
+                font-size: 1.1rem;
+            }
+            
+            .badge-header-stats {
+                font-size: 0.8rem;
+            }
+            
+            .badge-tier {
+                font-size: 0.8rem;
+                padding: 0.4rem 0.8rem;
+                align-self: flex-start;
+                white-space: normal;
+                text-align: center;
+            }
+            
+            .badge-progress-bar {
+                margin-top: 0.75rem;
+            }
+            
+            .badge-panel {
+                padding: 1rem;
+                margin-bottom: 1.5rem;
+            }
+            
+            .badge-panel-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
+            
+            .badge-panel-title {
+                font-size: 1.3rem;
+            }
+            
+            .badge-panel-subtitle {
+                font-size: 0.8rem;
+            }
+            
+            .badge-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: 1rem;
+            }
+            
+            .badge-card {
+                padding: 1rem;
+            }
+            
+            .badge-icon {
+                font-size: 2rem;
+                margin-bottom: 0.75rem;
+            }
+            
+            .badge-title {
+                font-size: 0.9rem;
+                margin-bottom: 0.5rem;
+            }
+            
+            .badge-description {
+                font-size: 0.75rem;
+                line-height: 1.3;
+            }
+            
+            .badge-status {
+                font-size: 0.7rem;
+                margin-top: 0.75rem;
+            }
+            
+            .badge-rarity {
+                font-size: 0.6rem;
+                padding: 0.2rem 0.4rem;
+                top: 8px;
+                right: 8px;
+            }
+            
+            .badge-categories {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                justify-content: flex-start;
+            }
+            
+            .category-btn {
+                font-size: 0.75rem;
+                padding: 0.5rem 0.8rem;
+                flex: 0 1 auto;
+                min-height: 36px;
+                white-space: nowrap;
+            }
+            
+            .badge-notification {
+                width: 90%;
+                max-width: 350px;
+                padding: 1rem;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+            
+            .notification-icon {
+                font-size: 2.5rem;
+                margin-bottom: 0.75rem;
+            }
+            
+            .notification-name {
+                font-size: 1.1rem;
+                margin-bottom: 0.5rem;
+            }
+            
+            .notification-desc {
+                font-size: 0.8rem;
+                margin-bottom: 0.75rem;
+            }
+            
+            .notification-footer {
+                font-size: 0.7rem;
+            }
+            
+            .notification-close {
+                top: 0.5rem;
+                right: 0.5rem;
+                width: 30px;
+                height: 30px;
+                font-size: 1.2rem;
+            }
+            
+            .reset-progress-btn {
+                font-size: 0.75rem;
+                padding: 0.4rem 0.8rem;
+                min-height: 36px;
+            }
+        }
+
+        /* Extra small devices */
+        @media (max-width: 480px) {
+            .badge-header {
+                padding: 0.75rem;
+            }
+            
+            .badge-header-icon {
+                font-size: 1.3rem;
+            }
+            
+            .badge-header-info h3 {
+                font-size: 1rem;
+            }
+            
+            .badge-header-stats {
+                font-size: 0.75rem;
+            }
+            
+            .badge-tier {
+                font-size: 0.75rem;
+                padding: 0.3rem 0.6rem;
+            }
+            
+            .badge-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 0.75rem;
+            }
+            
+            .badge-card {
+                padding: 0.75rem;
+            }
+            
+            .badge-icon {
+                font-size: 1.8rem;
+                margin-bottom: 0.5rem;
+            }
+            
+            .badge-title {
+                font-size: 0.8rem;
+                margin-bottom: 0.4rem;
+            }
+            
+            .badge-description {
+                font-size: 0.7rem;
+                line-height: 1.2;
+            }
+            
+            .badge-status {
+                font-size: 0.65rem;
+                margin-top: 0.5rem;
+            }
+            
+            .badge-rarity {
+                font-size: 0.55rem;
+                padding: 0.15rem 0.3rem;
+            }
+            
+            .badge-panel {
+                padding: 0.75rem;
+            }
+            
+            .badge-panel-title {
+                font-size: 1.1rem;
+            }
+            
+            .category-btn {
+                font-size: 0.7rem;
+                padding: 0.4rem 0.6rem;
+                min-height: 32px;
+            }
+            
+            .badge-notification {
+                width: 95%;
+                padding: 0.75rem;
+            }
+            
+            .notification-icon {
+                font-size: 2rem;
+            }
+            
+            .notification-name {
+                font-size: 1rem;
+            }
+            
+            .notification-desc {
+                font-size: 0.75rem;
+            }
+        }
+
+        /* Touch device improvements */
+        @media (hover: none) and (pointer: coarse) {
+            .badge-card {
+                min-height: 120px;
+            }
+            
+            .category-btn {
+                min-height: 44px;
+                min-width: 44px;
+            }
+            
+            .notification-close {
+                min-width: 44px;
+                min-height: 44px;
+            }
+            
+            .reset-progress-btn {
+                min-height: 44px;
+            }
+        }
+
+        .wallet-security {
+            margin-top: 0.65rem;
+            font-size: 0.68rem;
+            line-height: 1.55;
+            color: rgba(144,224,245,0.72);
+            letter-spacing: 0.02em;
+        }
+        .gallery-footer {
+            max-width: 1100px;
+            margin: 3rem auto 0;
+            padding: 1.5rem 1rem 2.5rem;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            text-align: center;
+            font-size: 0.68rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: rgba(180,220,235,0.5);
+        }
+        .gallery-footer a { color: var(--bioluminescent); text-decoration: none; }
+        .gallery-footer a:hover { color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="ocean-bg"></div>
+    <div class="particles" id="particles"></div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="logo" onclick="goHome()">
+            <div class="logo-icon">🐋</div>
+            <div>
+                <div class="logo-text">Whale Gallery</div>
+                <div class="logo-sub">Secret Society of Whales</div>
+            </div>
+        </div>
+        <div class="nav-links">
+            <a href="/">← SSoW Vault</a>
+            <a href="https://www.secretsocietyofwhales.com/" target="_blank" rel="noopener">Website</a>
+            <a href="https://opensea.io/collection/secretsocietyofwhales" target="_blank" rel="noopener">OpenSea</a>
+            <a href="https://x.com/SSofWhales" target="_blank" rel="noopener">Twitter</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <div id="heroSection" class="hero">
+            <h1>Explore Your Pod 🐋</h1>
+            <p>Enter your wallet address to view your Secret Society of Whales collection with rarity rankings and traits.</p>
+            
+            <!-- Loading indicator for rarity data -->
+            <div id="dataLoadingIndicator" style="margin-bottom: 2rem; padding: 1rem; background: rgba(255, 107, 157, 0.1); border: 1px solid var(--coral-pink); border-radius: 12px; display: none;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 1rem;">
+                    <div class="spinner" style="width: 20px; height: 20px; margin: 0;"></div>
+                    <span>Loading rarity data... <span id="dataLoadingProgress">0</span>%</span>
+                </div>
+            </div>
+            
+            <div class="search-container">
+                <div class="search-box">
+                    <input 
+                        type="text" 
+                        class="search-input" 
+                        id="walletInput"
+                        placeholder="0x... or ENS name"
+                    >
+                    <button class="search-btn" onclick="searchWallet()" id="searchButton">
+                        🔍 Search
+                    </button>
+                </div>
+                <p class="wallet-security">🔒 SSoW Vault will never ask for your seed phrase, private key, recovery phrase, or wallet password.</p>
+            </div>
+        </div>
+
+        <!-- Loading Section -->
+        <div id="loadingSection" class="loading-section">
+            <div class="spinner"></div>
+            <h2>Diving deep into the blockchain...</h2>
+            <p>Fetching your whales 🐋</p>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="error-message">
+            <h3>Oops! Something went wrong</h3>
+            <p id="errorText"></p>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="results-section">
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <button class="back-btn" onclick="goHome()">
+                    ← Back to Search
+                </button>
+                <div class="share-buttons">
+                    <button class="icon-btn" onclick="shareGallery()" title="Share Gallery">
+                        🔗
+                    </button>
+                    <button class="icon-btn" onclick="shareOnX()" title="Share on X">
+                        🐦
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Wallet</div>
+                    <div class="stat-value" style="font-size: 1.2rem;" id="walletDisplay">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total NFTs</div>
+                    <div class="stat-value" id="totalNfts">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Best Rank</div>
+                    <div class="stat-value" id="bestRank">-</div>
+                    <div class="stat-sub" style="margin-top: 0.5rem; font-size: 0.7rem;">OG Whales only</div>
+                </div>
+                <div class="stat-card collector-rank" style="cursor: pointer;" onclick="showRankingInfo()" title="Click to see ranking details">
+                    <div class="stat-label">Badge Tier</div>
+                    <div class="stat-value" style="font-size: 1.3rem;">🐋 Calculating...</div>
+                    <div class="stat-sub" style="margin-top: 0.5rem; font-size: 0.7rem; color: var(--bioluminescent);">Click for details</div>
+                </div>
+            </div>
+
+            <!-- Badge System -->
+            <div id="badgeSystemContainer" style="display: none;">
+                <!-- Badge Header (Collapsible) -->
+                <div class="badge-header" onclick="toggleBadgePanel()">
+                    <div class="badge-header-content">
+                        <div class="badge-header-left">
+                            <div class="badge-header-icon">🏆</div>
+                            <div class="badge-header-info">
+                                <h3>ACHIEVEMENTS</h3>
+                                <div class="badge-header-stats">
+                                    <span id="badgeCount">0/55</span> badges unlocked
+                                </div>
+                            </div>
+                        </div>
+                        <div class="badge-tier" id="badgeTier">🐳 Whale Friend</div>
+                    </div>
+                    <div class="badge-progress-bar">
+                        <div class="badge-progress-fill" id="badgeProgressBar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Badge Panel (Expandable) -->
+                <div class="badge-panel" id="badgePanel">
+                    <div class="badge-panel-header">
+                        <div>
+                            <div class="badge-panel-title" id="badgePanelTitle">Your Achievements (0/56)</div>
+                            <div class="badge-panel-subtitle">Unlock badges by collecting whales and exploring traits!</div>
+                        </div>
+                    </div>
+
+                    <!-- Category Filters -->
+                    <div class="badge-categories">
+                        <button class="badge-category-btn active" data-category="all">All Badges</button>
+                        <button class="badge-category-btn" data-category="unlocked">Unlocked</button>
+                        <button class="badge-category-btn" data-category="locked">Locked</button>
+                        <button class="badge-category-btn" data-category="collection">Collection Size</button>
+                        <button class="badge-category-btn" data-category="rarity">Rarity Hunters</button>
+                        <button class="badge-category-btn" data-category="traits">Trait Variety</button>
+                        <button class="badge-category-btn" data-category="themed">Themed Sets</button>
+                        <button class="badge-category-btn" data-category="tokenid">Token ID Fun</button>
+                        <button class="badge-category-btn" data-category="secret">Secret/Combo</button>
+                        <button class="badge-category-btn" data-category="elite">Elite Collector</button>
+                    </div>
+
+                    <!-- Badge Grid -->
+                    <div class="badge-grid" id="badgeGrid">
+                        <!-- Badges will be inserted here by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Wallet Section -->
+            <div class="add-wallet-section" style="display: block;">
+                <div class="add-wallet-header">
+                    <div class="add-wallet-title">➕ Add Another Wallet</div>
+                </div>
+                <div class="search-box">
+                    <input 
+                        type="text" 
+                        class="search-input" 
+                        id="addWalletInput"
+                        placeholder="0x... your wallet"
+                    >
+                    <button class="search-btn" onclick="addWallet()">
+                        Add Wallet
+                    </button>
+                </div>
+                <p class="wallet-security">Public wallet addresses only — never enter a seed phrase, private key, recovery phrase, or wallet password.</p>
+            </div>
+
+            <!-- Filter and Sort Controls -->
+            <div class="controls-section">
+                <div class="controls-header">
+                    <div class="controls-title">🎨 Filter & Sort</div>
+                    <button class="clear-filters-btn" onclick="clearAllFilters()">Clear Filters</button>
+                </div>
+                
+                <!-- Collections Filter -->
+                <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(0,245,212,0.05); border: 1px solid rgba(0,245,212,0.2); border-radius: 12px;">
+                    <div style="font-size: 0.9rem; color: var(--bioluminescent); margin-bottom: 0.75rem; font-weight: 600;">📚 Collections to Show:</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" class="collection-checkbox" value="og" checked onchange="applyFiltersAndSort()" style="cursor: pointer; width: 18px; height: 18px; accent-color: var(--bioluminescent);">
+                            <span style="color: var(--pearl); font-size: 0.9rem;">OG Whales</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" class="collection-checkbox" value="orcas" checked onchange="applyFiltersAndSort()" style="cursor: pointer; width: 18px; height: 18px; accent-color: var(--bioluminescent);">
+                            <span style="color: var(--pearl); font-size: 0.9rem;">Security Orcas</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" class="collection-checkbox" value="wealthy1" checked onchange="applyFiltersAndSort()" style="cursor: pointer; width: 18px; height: 18px; accent-color: var(--bioluminescent);">
+                            <span style="color: var(--pearl); font-size: 0.9rem;">Wealthy Whales Gen 1</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" class="collection-checkbox" value="wealthy2" checked onchange="applyFiltersAndSort()" style="cursor: pointer; width: 18px; height: 18px; accent-color: var(--bioluminescent);">
+                            <span style="color: var(--pearl); font-size: 0.9rem;">Wealthy Whales Gen 2</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" class="collection-checkbox" value="collabs" checked onchange="applyFiltersAndSort()" style="cursor: pointer; width: 18px; height: 18px; accent-color: var(--bioluminescent);">
+                            <span style="color: var(--pearl); font-size: 0.9rem;">SSoW Collabs</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <label class="control-label">Sort By</label>
+                        <select class="control-select" id="sortSelect" onchange="applyFiltersAndSort()">
+                            <option value="rank">Rarity Rank (Best First)</option>
+                            <option value="tokenId">Token ID (Low to High)</option>
+                            <option value="tokenIdDesc">Token ID (High to Low)</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Background</label>
+                        <select class="control-select" id="filterBackground" onchange="applyFiltersAndSort()">
+                            <option value="">All Backgrounds</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Eyes</label>
+                        <select class="control-select" id="filterEyes" onchange="applyFiltersAndSort()">
+                            <option value="">All Eyes</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Skin</label>
+                        <select class="control-select" id="filterSkin" onchange="applyFiltersAndSort()">
+                            <option value="">All Skins</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Hat</label>
+                        <select class="control-select" id="filterHat" onchange="applyFiltersAndSort()">
+                            <option value="">All Hats</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Outfit</label>
+                        <select class="control-select" id="filterOutfit" onchange="applyFiltersAndSort()">
+                            <option value="">All Outfits</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Mouth</label>
+                        <select class="control-select" id="filterMouth" onchange="applyFiltersAndSort()">
+                            <option value="">All Mouths</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Fins</label>
+                        <select class="control-select" id="filterFins" onchange="applyFiltersAndSort()">
+                            <option value="">All Fins</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Blowhole Ring</label>
+                        <select class="control-select" id="filterBlowholeRing" onchange="applyFiltersAndSort()">
+                            <option value="">All Rings</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Active Filters Display -->
+                <div class="active-filters" id="activeFilters">
+                    <div class="control-label" style="margin-bottom: 0.5rem;">Active Filters:</div>
+                    <div class="filter-tags" id="filterTags"></div>
+                </div>
+            </div>
+
+            <!-- NFT Grid -->
+            <div id="nftGrid" class="nft-grid"></div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal" class="modal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-close" onclick="closeModal()">×</div>
+            <div class="modal-grid">
+                <div class="modal-image-side">
+                    <img id="modalImage" class="modal-image" src="" alt="">
+                    <div class="modal-rank-large" id="modalRank">Rank #1</div>
+                </div>
+                <div class="modal-info-side">
+                    <h2 class="modal-title" id="modalTitle">Whale Name</h2>
+                    <div class="modal-token-id" id="modalTokenId">#1234</div>
+                    
+                    <div class="traits-section">
+                        <div class="traits-title">Traits</div>
+                        <div class="traits-grid" id="modalTraits">
+                            <!-- Traits will be inserted here -->
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button class="modal-btn modal-btn-primary" id="modalOpenSea">
+                            View on OpenSea
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        window.currentWallet = null;
+        window.currentWallets = null;
+        window.currentNFTs = null;
+        window.filteredNFTs = null;
+        window.currentRanking = null; // Store current collector ranking
+
+        // Initialize floating particles
+        function initParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        // Fetch NFTs from API (with pagination support)
+        async function fetchNFTs(wallet) {
+            try {
+                const allNfts = [];
+                let pageKey = null;
+                let pageCount = 0;
+                
+                // Loop through all pages
+                do {
+                    pageCount++;
+                    console.log(`Fetching page ${pageCount}${pageKey ? ' with pageKey: ' + pageKey : ''}...`);
+                    
+                    let url = `/api/gallery-nfts?wallet=${wallet}`;
+                    if (pageKey) {
+                        url += `&pageKey=${encodeURIComponent(pageKey)}`;
+                    }
+                    
+                    const response = await fetch(url);
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        const errorMessage = errorData.error || `API returned status ${response.status}`;
+                        throw new Error(errorMessage);
+                    }
+
+                    const data = await response.json();
+                    
+                    if (!data.ownedNfts || !Array.isArray(data.ownedNfts)) {
+                        throw new Error('Invalid response format from API');
+                    }
+                    
+                    // Add this page's NFTs to the collection
+                    allNfts.push(...data.ownedNfts);
+                    
+                    // Get the next page key (if any)
+                    pageKey = data.pageKey || null;
+                    
+                    console.log(`Page ${pageCount}: Received ${data.ownedNfts.length} NFTs. Total so far: ${allNfts.length}`);
+                    
+                } while (pageKey); // Continue while there are more pages
+                
+                console.log(`✅ Fetched all pages. Total NFTs: ${allNfts.length}`);
+                console.log('WHALE_TRAITS loaded:', !!window.WHALE_TRAITS);
+                
+                const nfts = [];
+
+                // Process NFTs and add rarity data (all collections)
+                for (const nft of allNfts) {
+                    const isOGWhale = nft.contract.address.toLowerCase().endsWith('5d6fe5');
+                    
+                    // Include all SSoW collections
+
+                    // Parse token ID - remove leading zeros and handle hex format
+                    let tokenId = nft.tokenId;
+                    if (tokenId.startsWith('0x')) {
+                        tokenId = parseInt(tokenId, 16).toString();
+                    } else {
+                        tokenId = tokenId.replace(/^0+/, '') || '0';
+                    }
+
+                    // Look up traits (only for OG Whales)
+                    const traits = isOGWhale && window.WHALE_TRAITS ? window.WHALE_TRAITS[tokenId] : null;
+                    
+                    if (isOGWhale && !traits) {
+                        console.warn('No traits found for OG Whale #', tokenId);
+                    }
+
+                    // Get image URL
+                    let imageUrl = nft.image?.cachedUrl || 
+                                  nft.image?.thumbnailUrl || 
+                                  nft.image?.pngUrl ||
+                                  nft.image?.originalUrl ||
+                                  nft.raw?.metadata?.image ||
+                                  nft.openSeaImage;
+
+                    // If still no image, try to fetch from our API (OG only)
+                    if (!imageUrl && isOGWhale) {
+                        try {
+                            const imgResponse = await fetch(`/api/gallery-whale-image?tokenId=${tokenId}`);
+                            if (imgResponse.ok) {
+                                const imgData = await imgResponse.json();
+                                imageUrl = imgData.imageUrl;
+                            }
+                        } catch (e) {
+                            console.error('Failed to fetch image for', tokenId);
+                        }
+                    }
+
+                    // Handle IPFS URLs
+                    if (imageUrl && imageUrl.startsWith('ipfs://')) {
+                        imageUrl = imageUrl.replace('ipfs://', 'https://ipfs.io/ipfs/');
+                    }
+
+                    // Determine collection name
+                    let collectionName = 'Unknown';
+                    const addr = nft.contract.address.toLowerCase();
+                    if (addr.endsWith('5d6fe5')) collectionName = 'OG Whales';
+                    else if (addr.endsWith('bfc6f38')) collectionName = 'Security Orcas';
+                    else if (addr.endsWith('cacdb2')) collectionName = 'Wealthy Whales Gen 1';
+                    else if (addr.endsWith('411f80')) collectionName = 'Wealthy Whales Gen 2';
+                    else if (addr.endsWith('9561a')) collectionName = 'SSoW Collabs';
+
+                    nfts.push({
+                        tokenId: tokenId,
+                        name: nft.name || `${collectionName} #${tokenId}`,
+                        contract: nft.contract.address,
+                        imageUrl: imageUrl,
+                        rank: traits ? traits.rank : null,
+                        traits: traits || null,
+                        collection: collectionName,
+                        isOG: isOGWhale
+                    });
+                }
+
+                console.log('Processed NFTs:', nfts.length);
+                return nfts;
+            } catch (error) {
+                console.error('Error in fetchNFTs:', error);
+                throw error; // Re-throw to be handled by caller
+            }
+        }
+
+        // Search wallet
+        async function searchWallet() {
+            const input = document.getElementById('walletInput').value.trim();
+            
+            if (!input) {
+                alert('Please enter a wallet address or ENS name');
+                return;
+            }
+            const isAddress = /^0x[a-fA-F0-9]{40}$/.test(input);
+            const isEns = /^[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$/.test(input);
+            if (!isAddress && !isEns) {
+                alert('Please enter a valid Ethereum wallet address or ENS name.');
+                return;
+            }
+
+            // Check if rarity data is loaded - if not, wait for it
+            if (!window.WHALE_TRAITS) {
+                console.log('Waiting for rarity data to load...');
+                const searchBtn = document.getElementById('searchButton');
+                searchBtn.textContent = 'Loading data...';
+                searchBtn.disabled = true;
+                
+                // Wait up to 10 seconds for data to load
+                let attempts = 0;
+                const waitInterval = setInterval(() => {
+                    attempts++;
+                    if (window.WHALE_TRAITS) {
+                        clearInterval(waitInterval);
+                        searchBtn.textContent = '🔍 Search';
+                        searchBtn.disabled = false;
+                        searchWallet(); // Retry the search
+                    } else if (attempts > 100) { // 10 seconds
+                        clearInterval(waitInterval);
+                        searchBtn.textContent = '🔍 Search';
+                        searchBtn.disabled = false;
+                        alert('Rarity data failed to load. Please refresh the page and try again.');
+                    }
+                }, 100);
+                return;
+            }
+
+            // Show loading
+            document.getElementById('heroSection').style.display = 'none';
+            document.getElementById('loadingSection').classList.add('show');
+            document.getElementById('errorMessage').classList.remove('show');
+            document.getElementById('resultsSection').classList.remove('show');
+
+            try {
+                window.currentWallet = input;
+                // Initialize wallets array with the first wallet
+                window.currentWallets = [input.toLowerCase()];
+                
+                const nfts = await fetchNFTs(input);
+
+                if (nfts.length === 0) {
+                    throw new Error('No SSoW NFTs found in this wallet');
+                }
+
+                // Sort by rarity rank by default
+                nfts.sort((a, b) => {
+                    if (a.rank && b.rank) return a.rank - b.rank;
+                    if (a.rank && !b.rank) return -1;
+                    if (!a.rank && b.rank) return 1;
+                    return parseInt(a.tokenId) - parseInt(b.tokenId);
+                });
+
+                window.currentNFTs = nfts;
+                window.filteredNFTs = [...nfts];
+
+                // Update URL
+                window.history.pushState({}, '', `?wallet=${input}`);
+
+                // Populate filter options
+                populateFilterOptions(nfts);
+
+                // Display results
+                displayResults(nfts);
+
+            } catch (error) {
+                console.error(error);
+                document.getElementById('loadingSection').classList.remove('show');
+                document.getElementById('errorMessage').classList.add('show');
+                document.getElementById('errorText').textContent = error.message;
+            }
+        }
+
+        // Populate filter dropdowns with available options
+        function populateFilterOptions(nfts) {
+            const traits = {
+                background: new Set(),
+                eyes: new Set(),
+                skin: new Set(),
+                hat: new Set(),
+                outfit: new Set(),
+                mouth: new Set(),
+                fins: new Set(),
+                blowholeRing: new Set()
+            };
+
+            // Collect all unique trait values - ONLY from OG Whales
+            nfts.forEach(nft => {
+                // Only include traits from OG Whales (those with trait data)
+                if (nft.traits && nft.isOG) {
+                    if (nft.traits.background) traits.background.add(nft.traits.background);
+                    if (nft.traits.eyes) traits.eyes.add(nft.traits.eyes);
+                    if (nft.traits.skin) traits.skin.add(nft.traits.skin);
+                    if (nft.traits.hat) traits.hat.add(nft.traits.hat);
+                    if (nft.traits.outfit) traits.outfit.add(nft.traits.outfit);
+                    if (nft.traits.mouth) traits.mouth.add(nft.traits.mouth);
+                    if (nft.traits.fins) traits.fins.add(nft.traits.fins);
+                    if (nft.traits.blowholeRing) traits.blowholeRing.add(nft.traits.blowholeRing);
+                }
+            });
+
+            // Populate dropdowns
+            const populateSelect = (id, values) => {
+                const select = document.getElementById(id);
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">All</option>';
+                
+                Array.from(values).sort().forEach(value => {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = value;
+                    select.appendChild(option);
+                });
+                
+                select.value = currentValue; // Restore previous selection
+            };
+
+            populateSelect('filterBackground', traits.background);
+            populateSelect('filterEyes', traits.eyes);
+            populateSelect('filterSkin', traits.skin);
+            populateSelect('filterHat', traits.hat);
+            populateSelect('filterOutfit', traits.outfit);
+            populateSelect('filterMouth', traits.mouth);
+            populateSelect('filterFins', traits.fins);
+            populateSelect('filterBlowholeRing', traits.blowholeRing);
+        }
+
+        // Apply filters and sorting
+        // Toggle collection menu
+
+        function applyFiltersAndSort() {
+            let nfts = [...window.currentNFTs];
+
+            // Get selected collections
+            const selectedCollections = Array.from(document.querySelectorAll('.collection-checkbox:checked')).map(cb => cb.value);
+
+            // Get filter values
+            const filters = {
+                background: document.getElementById('filterBackground').value,
+                eyes: document.getElementById('filterEyes').value,
+                skin: document.getElementById('filterSkin').value,
+                hat: document.getElementById('filterHat').value,
+                outfit: document.getElementById('filterOutfit').value,
+                mouth: document.getElementById('filterMouth').value,
+                fins: document.getElementById('filterFins').value,
+                blowholeRing: document.getElementById('filterBlowholeRing').value
+            };
+            
+            // Check if any trait filter is active
+            const hasTraitFilters = Object.values(filters).some(v => v);
+
+            // Apply collection filter and trait filters
+            nfts = nfts.filter(nft => {
+                // Check collection membership
+                let inSelectedCollection = false;
+                if (selectedCollections.includes('og') && nft.collection === 'OG Whales') inSelectedCollection = true;
+                if (selectedCollections.includes('orcas') && nft.collection === 'Security Orcas') inSelectedCollection = true;
+                if (selectedCollections.includes('wealthy1') && nft.collection === 'Wealthy Whales Gen 1') inSelectedCollection = true;
+                if (selectedCollections.includes('wealthy2') && nft.collection === 'Wealthy Whales Gen 2') inSelectedCollection = true;
+                if (selectedCollections.includes('collabs') && nft.collection === 'SSoW Collabs') inSelectedCollection = true;
+                
+                if (!inSelectedCollection) return false;
+                
+                // If trait filters are active, they only apply to OG whales
+                if (hasTraitFilters) {
+                    // Non-OG whales: show them if in selected collections (traits don't apply)
+                    if (!nft.isOG) return true;
+                    
+                    // OG whales without traits: exclude if any filter is active
+                    if (!nft.traits) return false;
+                    
+                    // Apply trait filters to OG whales
+                    if (filters.background && nft.traits.background !== filters.background) return false;
+                    if (filters.eyes && nft.traits.eyes !== filters.eyes) return false;
+                    if (filters.skin && nft.traits.skin !== filters.skin) return false;
+                    if (filters.hat && nft.traits.hat !== filters.hat) return false;
+                    if (filters.outfit && nft.traits.outfit !== filters.outfit) return false;
+                    if (filters.mouth && nft.traits.mouth !== filters.mouth) return false;
+                    if (filters.fins && nft.traits.fins !== filters.fins) return false;
+                    if (filters.blowholeRing && nft.traits.blowholeRing !== filters.blowholeRing) return false;
+                }
+                
+                return true;
+            });
+
+            // Apply sorting
+            const sortBy = document.getElementById('sortSelect').value;
+            
+            if (sortBy === 'rank') {
+                nfts.sort((a, b) => {
+                    if (a.rank && b.rank) return a.rank - b.rank;
+                    if (a.rank && !b.rank) return -1;
+                    if (!a.rank && b.rank) return 1;
+                    return parseInt(a.tokenId) - parseInt(b.tokenId);
+                });
+            } else if (sortBy === 'tokenId') {
+                nfts.sort((a, b) => parseInt(a.tokenId) - parseInt(b.tokenId));
+            } else if (sortBy === 'tokenIdDesc') {
+                nfts.sort((a, b) => parseInt(b.tokenId) - parseInt(a.tokenId));
+            }
+
+            window.filteredNFTs = nfts;
+
+            // Update active filters display
+            updateActiveFilters(filters);
+
+            // Display filtered results
+            displayNFTGrid(nfts);
+        }
+
+        // Update active filters display
+        function updateActiveFilters(filters) {
+            const activeFiltersDiv = document.getElementById('activeFilters');
+            const filterTagsDiv = document.getElementById('filterTags');
+            
+            const activeFilters = [];
+            
+            Object.entries(filters).forEach(([key, value]) => {
+                if (value) {
+                    activeFilters.push({ key, value });
+                }
+            });
+
+            if (activeFilters.length === 0) {
+                activeFiltersDiv.classList.remove('show');
+                return;
+            }
+
+            activeFiltersDiv.classList.add('show');
+            filterTagsDiv.innerHTML = '';
+
+            activeFilters.forEach(({ key, value }) => {
+                const tag = document.createElement('div');
+                tag.className = 'filter-tag';
+                tag.innerHTML = `
+                    <span>${key}: ${value}</span>
+                    <span class="remove-filter" onclick="removeFilter('${key}')">✕</span>
+                `;
+                filterTagsDiv.appendChild(tag);
+            });
+        }
+
+        // Remove individual filter
+        function removeFilter(filterKey) {
+            const filterMap = {
+                background: 'filterBackground',
+                eyes: 'filterEyes',
+                skin: 'filterSkin',
+                hat: 'filterHat',
+                outfit: 'filterOutfit',
+                mouth: 'filterMouth',
+                fins: 'filterFins',
+                blowholeRing: 'filterBlowholeRing'
+            };
+
+            document.getElementById(filterMap[filterKey]).value = '';
+            applyFiltersAndSort();
+        }
+
+        // Clear all filters
+        function clearAllFilters() {
+            document.getElementById('filterBackground').value = '';
+            document.getElementById('filterEyes').value = '';
+            document.getElementById('filterSkin').value = '';
+            document.getElementById('filterHat').value = '';
+            document.getElementById('filterOutfit').value = '';
+            document.getElementById('filterMouth').value = '';
+            document.getElementById('filterFins').value = '';
+            document.getElementById('filterBlowholeRing').value = '';
+            document.getElementById('sortSelect').value = 'rank';
+            applyFiltersAndSort();
+        }
+
+        // Calculate collector ranking
+        function calculateCollectorRank(nfts) {
+            if (!nfts || nfts.length === 0) return null;
+            
+            // Count OG whales
+            const ogWhales = nfts.filter(n => n.isOG);
+            const ogCount = ogWhales.length;
+            
+            // Count whales with ranks (OG only)
+            const rankedWhales = ogWhales.filter(n => n.rank);
+            
+            // Count top tier whales
+            const legendaryCount = rankedWhales.filter(n => n.rank <= 100).length;
+            const epicCount = rankedWhales.filter(n => n.rank <= 500 && n.rank > 100).length;
+            const rareCount = rankedWhales.filter(n => n.rank <= 2000 && n.rank > 500).length;
+            
+            // Calculate score (ordered by points)
+            let score = 0;
+            score += legendaryCount * 1000;  // Top 100: +1,000 points (highest)
+            score += epicCount * 500;         // Top 500: +500 points
+            score += rareCount * 100;         // Top 2000: +100 points
+            score += ogCount * 10;            // Each OG whale: +10 points (lowest)
+            
+            // Determine rank title
+            let rank, emoji, color, description;
+            
+            if (legendaryCount >= 10 || score >= 15000) {
+                rank = 'Whale God';
+                emoji = '👑';
+                color = '#FFD700';
+                description = 'The ultimate collector';
+            } else if (legendaryCount >= 5 || score >= 10000) {
+                rank = 'Legendary Collector';
+                emoji = '⭐';
+                color = '#FF6B9D';
+                description = 'Elite whale connoisseur';
+            } else if (legendaryCount >= 1 || epicCount >= 5 || score >= 5000) {
+                rank = 'Epic Collector';
+                emoji = '💎';
+                color = '#9D4EDD';
+                description = 'Impressive collection';
+            } else if (rareCount >= 5 || ogCount >= 20 || score >= 2000) {
+                rank = 'Rare Collector';
+                emoji = '🌟';
+                color = '#3B82F6';
+                description = 'Growing collection';
+            } else if (ogCount >= 5) {
+                rank = 'Whale Enthusiast';
+                emoji = '🐋';
+                color = '#00F5D4';
+                description = 'Dedicated collector';
+            } else {
+                rank = 'Whale Friend';
+                emoji = '🐳';
+                color = '#60A5FA';
+                description = 'Just getting started';
+            }
+            
+            return {
+                rank,
+                emoji,
+                color,
+                description,
+                stats: {
+                    total: nfts.length,
+                    ogCount,
+                    legendaryCount,
+                    epicCount,
+                    rareCount,
+                    score
+                }
+            };
+        }
+
+        // Display results
+        function displayResults(nfts) {
+            document.getElementById('loadingSection').classList.remove('show');
+            document.getElementById('resultsSection').classList.add('show');
+
+            // Calculate collector ranking
+            const ranking = calculateCollectorRank(nfts);
+            window.currentRanking = ranking; // Store for modal
+
+            // Update stats
+            const shortWallet = window.currentWallet.length > 10 
+                ? window.currentWallet.substring(0, 6) + '...' + window.currentWallet.substring(window.currentWallet.length - 4)
+                : window.currentWallet;
+            document.getElementById('walletDisplay').textContent = shortWallet;
+            document.getElementById('totalNfts').textContent = nfts.length;
+
+            // Find best rank
+            const rankedNfts = nfts.filter(n => n.rank);
+            const bestRank = rankedNfts.length > 0 ? Math.min(...rankedNfts.map(n => n.rank)) : null;
+            document.getElementById('bestRank').textContent = bestRank ? `#${bestRank}` : '-';
+
+            // Update collector rank display in stats
+            if (ranking) {
+                const collectorCard = document.querySelector('.stat-card.collector-rank');
+                if (collectorCard) {
+                    collectorCard.innerHTML = `
+                        <div class="stat-label">Collector Status</div>
+                        <div class="stat-value" style="font-size: 1.3rem; color: ${ranking.color};">
+                            ${ranking.emoji} ${ranking.rank}
+                        </div>
+                        <div class="stat-sub" style="margin-top: 0.5rem; font-size: 0.75rem;">${ranking.description}</div>
+                    `;
+                }
+            }
+
+            // Reset all filters and sort to defaults
+            document.getElementById('sortSelect').value = 'rank';
+            document.getElementById('filterBackground').value = '';
+            document.getElementById('filterEyes').value = '';
+            document.getElementById('filterSkin').value = '';
+            document.getElementById('filterHat').value = '';
+            document.getElementById('filterOutfit').value = '';
+            document.getElementById('filterMouth').value = '';
+            document.getElementById('filterFins').value = '';
+            document.getElementById('filterBlowholeRing').value = '';
+            
+            // Reset collection checkboxes to all checked
+            document.querySelectorAll('.collection-checkbox').forEach(cb => cb.checked = true);
+
+            // Initialize badge system
+            if (window.initBadgeSystem) {
+                initBadgeSystem(nfts);
+            }
+
+            // Display grid
+            displayNFTGrid(nfts);
+        }
+
+        // Display NFT grid
+        function displayNFTGrid(nfts) {
+            const grid = document.getElementById('nftGrid');
+            grid.innerHTML = '';
+
+            nfts.forEach(nft => {
+                const card = document.createElement('div');
+                card.className = 'nft-card';
+                card.onclick = () => openModal(nft);
+
+                // Build traits preview (show top 2 traits) with rarity
+                let traitsPreview = '';
+                if (nft.traits && window.TRAIT_RARITIES) {
+                    const previewTraits = [];
+                    
+                    // Get all traits with rarities
+                    const traitsWithRarity = [];
+                    ['skin', 'eyes', 'hat', 'outfit'].forEach(traitType => {
+                        const value = nft.traits[traitType];
+                        if (value && window.TRAIT_RARITIES[traitType] && window.TRAIT_RARITIES[traitType][value]) {
+                            traitsWithRarity.push({
+                                value: value,
+                                percentage: window.TRAIT_RARITIES[traitType][value].percentage
+                            });
+                        }
+                    });
+                    
+                    // Sort by rarity (lowest percentage first)
+                    traitsWithRarity.sort((a, b) => a.percentage - b.percentage);
+                    
+                    // Show rarest trait first
+                    traitsPreview = traitsWithRarity.slice(0, 2).map(trait => {
+                        const rarityClass = trait.percentage < 1 ? 'rare' : '';
+                        return `<span class="trait-badge ${rarityClass}" title="${trait.percentage}% have this">${trait.value}</span>`;
+                    }).join('');
+                }
+
+                card.innerHTML = `
+                    <div class="nft-image-container">
+                        ${nft.rank ? `<div class="nft-rank-badge">#${nft.rank}</div>` : ''}
+                        ${!nft.isOG ? `<div class="nft-rank-badge" style="background: rgba(255,107,157,0.9); top: auto; bottom: 10px;">${nft.collection}</div>` : ''}
+                        <img class="nft-image" src="${nft.imageUrl || 'data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\'></svg>'}" alt="${nft.name}" loading="lazy">
+                    </div>
+                    <div class="nft-info">
+                        <div class="nft-name">${nft.name}</div>
+                        <div class="nft-id">Token #${nft.tokenId}</div>
+                        ${traitsPreview ? `<div class="nft-traits-preview">${traitsPreview}</div>` : ''}
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        // Open modal with NFT details
+        function openModal(nft) {
+            const modal = document.getElementById('modal');
+            
+            console.log('Opening modal for Whale #', nft.tokenId);
+            console.log('NFT traits:', nft.traits);
+            
+            document.getElementById('modalImage').src = nft.imageUrl || '';
+            document.getElementById('modalTitle').textContent = nft.name;
+            document.getElementById('modalRank').textContent = nft.rank ? `#${nft.rank} / 10,000` : 'Rank: N/A';
+            document.getElementById('modalTokenId').textContent = `Token #${nft.tokenId}`;
+            
+            // Display traits
+            const traitsGrid = document.getElementById('modalTraits');
+            traitsGrid.innerHTML = '';
+
+            if (nft.traits) {
+                const traitOrder = [
+                    { key: 'background', label: 'Background' },
+                    { key: 'skin', label: 'Skin' },
+                    { key: 'eyes', label: 'Eyes' },
+                    { key: 'mouth', label: 'Mouth' },
+                    { key: 'hat', label: 'Hat' },
+                    { key: 'outfit', label: 'Outfit' },
+                    { key: 'fins', label: 'Fins' },
+                    { key: 'blowholeRing', label: 'Blowhole Ring' }
+                ];
+
+                traitOrder.forEach(({ key, label }) => {
+                    const value = nft.traits[key];
+                    const row = document.createElement('div');
+                    row.className = 'trait-row';
+                    
+                    // Get rarity percentage if available
+                    let rarityHTML = '';
+                    if (value && window.TRAIT_RARITIES && window.TRAIT_RARITIES[key] && window.TRAIT_RARITIES[key][value]) {
+                        const rarity = window.TRAIT_RARITIES[key][value];
+                        const percentage = rarity.percentage;
+                        const rarityClass = percentage < 1 ? 'rare' : percentage > 20 ? 'common' : '';
+                        rarityHTML = `<div class="trait-rarity ${rarityClass}">${percentage}% have this</div>`;
+                    }
+                    
+                    row.innerHTML = `
+                        <div class="trait-type">${label}</div>
+                        <div class="trait-value ${!value ? 'none' : ''}">
+                            <span>${value || 'None'}</span>
+                            ${rarityHTML}
+                        </div>
+                    `;
+                    traitsGrid.appendChild(row);
+                });
+            } else {
+                traitsGrid.innerHTML = '<p style="color: rgba(255,255,255,0.5); padding: 1rem;">Trait data not available for this whale. Token ID: ' + nft.tokenId + '</p>';
+                console.error('No traits found for Whale #', nft.tokenId, 'in WHALE_TRAITS');
+            }
+            
+            document.getElementById('modalOpenSea').onclick = () => {
+                window.open(`https://opensea.io/assets/ethereum/${nft.contract}/${nft.tokenId}`, '_blank');
+            };
+            
+            modal.classList.add('show');
+            // Prevent body scrolling on mobile when modal is open
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Close modal
+        function closeModal(e) {
+            if (e && e.target !== e.currentTarget) return;
+            document.getElementById('modal').classList.remove('show');
+            // Restore body scrolling
+            document.body.style.overflow = '';
+        }
+
+        // Go back to home/search
+        function goHome() {
+            // Reset state
+            window.currentWallet = null;
+            window.currentWallets = null;
+            window.currentNFTs = null;
+            window.filteredNFTs = null;
+            
+            // Clear URL params
+            window.history.pushState({}, '', window.location.pathname);
+            
+            // Show hero, hide results
+            document.getElementById('heroSection').style.display = 'block';
+            document.getElementById('resultsSection').classList.remove('show');
+            document.getElementById('loadingSection').classList.remove('show');
+            document.getElementById('errorMessage').classList.remove('show');
+            
+            // Clean up any lingering confetti
+            if (window.cleanupConfetti) {
+                window.cleanupConfetti();
+            }
+            
+            // Hide badge system
+            const badgeContainer = document.getElementById('badgeSystemContainer');
+            if (badgeContainer) {
+                badgeContainer.style.display = 'none';
+            }
+            
+            // Clear input
+            document.getElementById('walletInput').value = '';
+            document.getElementById('walletInput').focus();
+        }
+
+        // Note: Add wallet section is always visible, no need to show/hide
+        // Input is cleared after successful addition
+
+        // Add another wallet
+        async function addWallet() {
+            const input = document.getElementById('addWalletInput').value.trim();
+            
+            if (!input) return;
+            
+            // Validate
+            if (!input.match(/^0x[a-fA-F0-9]{40}$/)) {
+                alert('Please enter a valid Ethereum address (0x...)');
+                return;
+            }
+            
+            // Check if already added (currentWallets is always initialized from first search)
+            if (window.currentWallets.includes(input.toLowerCase())) {
+                alert('This wallet has already been added to your gallery!');
+                return;
+            }
+            
+            // Show loading state
+            const addBtn = document.querySelector('.add-wallet-section .search-btn');
+            const originalText = addBtn.textContent;
+            addBtn.textContent = 'Adding...';
+            addBtn.disabled = true;
+            
+            try {
+                const newNfts = await fetchNFTs(input);
+                
+                if (newNfts.length > 0) {
+                    // Add to current NFTs
+                    window.currentNFTs = [...window.currentNFTs, ...newNfts];
+                    
+                    // Track wallets (array is always initialized from first search)
+                    window.currentWallets.push(input.toLowerCase());
+                    
+                    // Re-sort by rarity
+                    window.currentNFTs.sort((a, b) => {
+                        if (a.rank && b.rank) return a.rank - b.rank;
+                        if (a.rank && !b.rank) return -1;
+                        if (!a.rank && b.rank) return 1;
+                        return parseInt(a.tokenId) - parseInt(b.tokenId);
+                    });
+                    
+                    // Repopulate filters with new NFTs
+                    populateFilterOptions(window.currentNFTs);
+                    
+                    // Update display (now includes collector rank recalculation)
+                    updateStatsAndGrid();
+                    
+                    // Clear the input field (section stays visible)
+                    document.getElementById('addWalletInput').value = '';
+                } else {
+                    alert('No SSoW NFTs found in this wallet.');
+                }
+            } catch (error) {
+                console.error('Error adding wallet:', error);
+                // Show more detailed error message
+                const errorMessage = error.message || 'Unknown error';
+                alert(`Error fetching NFTs: ${errorMessage}\n\nPlease check the console for details and try again.`);
+            }
+            
+            addBtn.textContent = originalText;
+            addBtn.disabled = false;
+        }
+
+        // Update stats and grid after adding wallet
+        function updateStatsAndGrid() {
+            const nfts = window.currentNFTs;
+            
+            // Update stats
+            document.getElementById('totalNfts').textContent = nfts.length;
+            
+            // Update wallet display to show multiple
+            if (window.currentWallets && window.currentWallets.length > 1) {
+                document.getElementById('walletDisplay').textContent = `${window.currentWallets.length} Wallets`;
+            }
+            
+            // Find best rank
+            const rankedNfts = nfts.filter(n => n.rank);
+            const bestRank = rankedNfts.length > 0 ? Math.min(...rankedNfts.map(n => n.rank)) : null;
+            document.getElementById('bestRank').textContent = bestRank ? `#${bestRank}` : '-';
+            
+            // IMPORTANT: Recalculate collector ranking with updated NFT list
+            const ranking = calculateCollectorRank(nfts);
+            window.currentRanking = ranking;
+            
+            // Update collector rank display
+            if (ranking) {
+                const collectorCard = document.querySelector('.stat-card.collector-rank');
+                if (collectorCard) {
+                    collectorCard.innerHTML = `
+                        <div class="stat-label">Collector Status</div>
+                        <div class="stat-value" style="font-size: 1.3rem; color: ${ranking.color};">
+                            ${ranking.emoji} ${ranking.rank}
+                        </div>
+                        <div class="stat-sub" style="margin-top: 0.5rem; font-size: 0.75rem;">${ranking.description}</div>
+                    `;
+                }
+            }
+            
+            // Update badge system with new NFT set
+            if (window.initBadgeSystem) {
+                initBadgeSystem(nfts);
+            }
+            
+            // Apply current filters to new NFT set
+            window.filteredNFTs = [...nfts];
+            applyFiltersAndSort();
+        }
+
+        // Toggle selection mode
+
+        // Share collector status card
+        async function shareCollectorStatus() {
+            const ranking = window.currentRanking;
+            if (!ranking) {
+                alert('No ranking data available');
+                return;
+            }
+
+            // Show loading
+            const loadingModal = document.createElement('div');
+            loadingModal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.95); z-index: 2000;
+                display: flex; align-items: center; justify-content: center;
+            `;
+            loadingModal.innerHTML = `
+                <div style="text-align: center;">
+                    <div class="spinner" style="margin: 0 auto 1rem;"></div>
+                    <div style="color: var(--bioluminescent); font-size: 1.2rem;">Creating your status card...</div>
+                </div>
+            `;
+            document.body.appendChild(loadingModal);
+
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Social media optimal size
+                canvas.width = 1200;
+                canvas.height = 630;
+
+                // Background - More vibrant gradient
+                const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                gradient.addColorStop(0, '#0a1f3d');
+                gradient.addColorStop(0.5, '#1a2f4f');
+                gradient.addColorStop(1, '#0f2847');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Decorative elements - more vibrant
+                ctx.fillStyle = 'rgba(0, 245, 212, 0.12)';
+                ctx.beginPath();
+                ctx.arc(200, 150, 250, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(1000, 480, 200, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Add some sparkle effects
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.1)';
+                ctx.beginPath();
+                ctx.arc(900, 150, 100, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(300, 500, 80, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Border accent
+                ctx.strokeStyle = 'rgba(0, 245, 212, 0.2)';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+
+                // Title
+                ctx.fillStyle = '#00f5d4';
+                ctx.font = 'bold 44px Arial, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('Secret Society of Whales', canvas.width / 2, 80);
+
+                // Subtitle
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.font = '24px Arial, sans-serif';
+                ctx.fillText('Collector Ranking', canvas.width / 2, 115);
+
+                // Main rank section
+                const centerY = 280;
+
+                // Rank badge background
+                ctx.fillStyle = 'rgba(0, 245, 212, 0.1)';
+                ctx.beginPath();
+                ctx.roundRect(canvas.width / 2 - 250, centerY - 100, 500, 200, 20);
+                ctx.fill();
+
+                // Rank border
+                ctx.strokeStyle = ranking.color;
+                ctx.lineWidth = 4;
+                ctx.stroke();
+
+                // Emoji as text (larger, centered)
+                ctx.font = '80px Arial, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = ranking.color;
+                ctx.fillText(ranking.emoji, canvas.width / 2, centerY - 40);
+
+                // Rank title
+                ctx.font = 'bold 52px Arial, sans-serif';
+                ctx.fillStyle = ranking.color;
+                ctx.fillText(ranking.rank, canvas.width / 2, centerY + 35);
+
+                // Description below
+                ctx.font = '28px Arial, sans-serif';
+                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                ctx.fillText(ranking.description, canvas.width / 2, centerY + 80);
+
+                // Stats section
+                const statsY = 480;
+                const stats = [
+                    { label: 'NFTs', value: ranking.stats.total },
+                    { label: 'OG Whales', value: ranking.stats.ogCount },
+                    { label: 'Top 100', value: ranking.stats.legendaryCount },
+                    { label: 'Score', value: ranking.stats.score.toLocaleString() }
+                ];
+
+                const statSpacing = 250;
+                const startX = (canvas.width - (stats.length - 1) * statSpacing) / 2;
+
+                stats.forEach((stat, i) => {
+                    const x = startX + (i * statSpacing);
+                    
+                    // Value
+                    ctx.font = 'bold 42px Arial, sans-serif';
+                    ctx.fillStyle = '#00f5d4';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(stat.value.toString(), x, statsY);
+                    
+                    // Label
+                    ctx.font = '18px Arial, sans-serif';
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    ctx.fillText(stat.label, x, statsY + 32);
+                });
+
+                // Footer
+                ctx.font = '22px Arial, sans-serif';
+                ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                ctx.textAlign = 'center';
+                ctx.fillText('whale-gallery.vercel.app', canvas.width / 2, 590);
+
+                // Convert to blob
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+                const dataUrl = URL.createObjectURL(blob);
+
+                loadingModal.remove();
+
+                // Show result modal
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                    background: rgba(0,0,0,0.95); z-index: 2000;
+                    display: flex; align-items: center; justify-content: center;
+                    padding: 2rem; overflow: auto;
+                `;
+
+                const container = document.createElement('div');
+                container.style.cssText = `
+                    background: linear-gradient(180deg, #0a1628 0%, #0f2847 100%);
+                    border-radius: 24px; padding: 2rem; max-width: 90%;
+                    max-height: 90vh; overflow: auto; position: relative;
+                `;
+
+                container.innerHTML = `
+                    <div style="position: absolute; top: 20px; right: 20px; cursor: pointer; color: white; font-size: 2rem; z-index: 10;" onclick="closeStatusModal(this, '${dataUrl}')">×</div>
+                    <h2 style="color: #00f5d4; margin-bottom: 1.5rem; text-align: center;">Your Collector Status Card</h2>
+                    <div style="background: #020817; padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem;">
+                        <img src="${dataUrl}" style="max-width: 100%; height: auto; border-radius: 8px; display: block;">
+                    </div>
+                    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                        <button class="search-btn" onclick="downloadStatusCard('${dataUrl}')">
+                            💾 Download Card
+                        </button>
+                        <button class="search-btn" style="background: var(--glass); border: 1px solid var(--glass-border);" onclick="closeStatusModal(this, '${dataUrl}')">
+                            Close
+                        </button>
+                    </div>
+                    <p style="text-align: center; margin-top: 1rem; color: rgba(255,255,255,0.5); font-size: 0.9rem;">
+                        ✅ Safe to download - Generated in your browser
+                    </p>
+                `;
+
+                modal.appendChild(container);
+                document.body.appendChild(modal);
+
+            } catch (error) {
+                console.error('Error generating status card:', error);
+                loadingModal.remove();
+                alert('Error generating status card: ' + error.message);
+            }
+        }
+
+        // Close status modal properly
+        function closeStatusModal(element, dataUrl) {
+            const modal = element.closest('.modal') || element.parentElement.parentElement;
+            if (modal) {
+                modal.remove();
+            }
+            URL.revokeObjectURL(dataUrl);
+        }
+
+        // Download status card
+        function downloadStatusCard(dataUrl) {
+            const link = document.createElement('a');
+            link.download = `ssow-collector-status-${Date.now()}.png`;
+            link.href = dataUrl;
+            link.click();
+        }
+
+        // Show ranking info modal
+        function showRankingInfo() {
+            const ranking = window.currentRanking;
+            
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.9);
+                z-index: 2000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+            `;
+            
+            const container = document.createElement('div');
+            container.style.cssText = `
+                background: linear-gradient(135deg, #0a1628 0%, #0f2847 100%);
+                border: 1px solid var(--bioluminescent);
+                border-radius: 24px;
+                padding: 2.5rem;
+                max-width: 600px;
+                width: 100%;
+                position: relative;
+                max-height: 80vh;
+                overflow-y: auto;
+            `;
+            
+            let content = `
+                <div style="position: absolute; top: 20px; right: 20px; cursor: pointer; color: white; font-size: 2rem;" onclick="this.parentElement.parentElement.remove()">×</div>
+                <h2 style="color: var(--bioluminescent); margin-bottom: 1.5rem; text-align: center;">🏆 Collector Rankings</h2>
+            `;
+            
+            if (ranking) {
+                content += `
+                    <div style="background: rgba(0,245,212,0.1); border: 2px solid ${ranking.color}; border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem; text-align: center;">
+                        <div style="font-size: 3rem; margin-bottom: 0.5rem;">${ranking.emoji}</div>
+                        <div style="font-size: 1.8rem; font-weight: 700; color: ${ranking.color}; margin-bottom: 0.5rem;">${ranking.rank}</div>
+                        <div style="color: rgba(255,255,255,0.7);">${ranking.description}</div>
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                            <div style="font-size: 0.9rem; color: rgba(255,255,255,0.5);">Your Stats:</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">
+                                <div style="text-align: left;">Total NFTs: <strong>${ranking.stats.total}</strong></div>
+                                <div style="text-align: right;">OG Whales: <strong>${ranking.stats.ogCount}</strong></div>
+                                <div style="text-align: left;">Top 100: <strong>${ranking.stats.legendaryCount}</strong></div>
+                                <div style="text-align: right;">Top 500: <strong>${ranking.stats.epicCount}</strong></div>
+                                <div style="text-align: left;" colspan="2">Top 2000: <strong>${ranking.stats.rareCount}</strong></div>
+                            </div>
+                            <div style="margin-top: 1rem; font-size: 1.5rem; color: ${ranking.color};">
+                                Score: <strong>${ranking.stats.score.toLocaleString()}</strong>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            content += `
+                <div style="color: rgba(255,255,255,0.9); line-height: 1.6;">
+                    <h3 style="color: var(--bioluminescent); margin-bottom: 1rem; font-size: 1.3rem;">Ranking Tiers:</h3>
+                    
+                    <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(255,215,0,0.1); border-left: 3px solid #FFD700; border-radius: 8px;">
+                        <div style="font-size: 1.2rem; margin-bottom: 0.3rem;">👑 <strong>Whale God</strong></div>
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.7);">10+ Top 100 whales OR 15,000+ score</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(255,107,157,0.1); border-left: 3px solid #FF6B9D; border-radius: 8px;">
+                        <div style="font-size: 1.2rem; margin-bottom: 0.3rem;">⭐ <strong>Legendary Collector</strong></div>
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.7);">5+ Top 100 whales OR 10,000+ score</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(157,78,221,0.1); border-left: 3px solid #9D4EDD; border-radius: 8px;">
+                        <div style="font-size: 1.2rem; margin-bottom: 0.3rem;">💎 <strong>Epic Collector</strong></div>
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.7);">1+ Top 100 OR 5+ Top 500 OR 5,000+ score</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(59,130,246,0.1); border-left: 3px solid #3B82F6; border-radius: 8px;">
+                        <div style="font-size: 1.2rem; margin-bottom: 0.3rem;">🌟 <strong>Rare Collector</strong></div>
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.7);">5+ Top 2000 OR 20+ OG whales OR 2,000+ score</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(0,245,212,0.1); border-left: 3px solid #00F5D4; border-radius: 8px;">
+                        <div style="font-size: 1.2rem; margin-bottom: 0.3rem;">🐋 <strong>Whale Enthusiast</strong></div>
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.7);">5+ OG whales</div>
+                    </div>
+                    
+                    <div style="padding: 1rem; background: rgba(96,165,250,0.1); border-left: 3px solid #60A5FA; border-radius: 8px;">
+                        <div style="font-size: 1.2rem; margin-bottom: 0.3rem;">🐳 <strong>Whale Friend</strong></div>
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.7);">Starting your collection</div>
+                    </div>
+                    
+                    <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                        <h4 style="color: var(--bioluminescent); margin-bottom: 0.5rem;">Scoring:</h4>
+                        <ul style="font-size: 0.9rem; color: rgba(255,255,255,0.7); margin: 0; padding-left: 1.5rem;">
+                            <li>Top 100 whale: +1,000 points</li>
+                            <li>Top 500 whale: +500 points</li>
+                            <li>Top 2000 whale: +100 points</li>
+                            <li>Each OG whale: +10 points</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <button class="search-btn" style="width: 100%; margin-top: 1.5rem;" onclick="this.parentElement.parentElement.remove()">
+                    Close
+                </button>
+            `;
+            
+            container.innerHTML = content;
+            modal.appendChild(container);
+            document.body.appendChild(modal);
+        }
+
+        // Toggle collection filter
+        // Share gallery
+        function shareGallery() {
+            // Build URL with all wallets
+            let url;
+            if (window.currentWallets && window.currentWallets.length > 1) {
+                url = `${window.location.origin}${window.location.pathname}?wallets=${window.currentWallets.join(',')}`;
+            } else {
+                url = `${window.location.origin}${window.location.pathname}?wallet=${window.currentWallet}`;
+            }
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'SSoW Whale Gallery',
+                    text: `Check out this Secret Society of Whales collection! 🐋`,
+                    url: url
+                });
+            } else {
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('Gallery link copied to clipboard!');
+                });
+            }
+        }
+
+        // Share on X/Twitter
+        function shareOnX() {
+            let url;
+            if (window.currentWallets && window.currentWallets.length > 1) {
+                url = `${window.location.origin}${window.location.pathname}?wallets=${window.currentWallets.join(',')}`;
+            } else {
+                url = `${window.location.origin}${window.location.pathname}?wallet=${window.currentWallet}`;
+            }
+            
+            const nftCount = window.currentNFTs ? window.currentNFTs.length : 0;
+            const ranking = window.currentRanking;
+            
+            let text;
+            if (ranking) {
+                text = `Check out my Secret Society of Whales collection! ${ranking.emoji}\n\n${ranking.rank} | ${nftCount} NFTs | Score: ${ranking.stats.score.toLocaleString()}\n\n#SSoW #TogetherWeWhale #NFT`;
+            } else {
+                text = `Check out my Secret Society of Whales collection! 🐋\n\n${nftCount} NFTs in my pod\n\n#SSoW #TogetherWeWhale #NFT`;
+            }
+            
+            const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+            window.open(twitterUrl, '_blank', 'width=550,height=420');
+        }
+
+        // Check URL params on load
+        function checkUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            const wallet = params.get('wallet');
+            const wallets = params.get('wallets');
+            
+            if (wallets) {
+                // Multiple wallets - load first, then add others
+                const walletList = wallets.split(',');
+                document.getElementById('walletInput').value = walletList[0];
+                searchWallet().then(() => {
+                    // Add remaining wallets
+                    walletList.slice(1).forEach(async (w, i) => {
+                        setTimeout(async () => {
+                            document.getElementById('addWalletInput').value = w;
+                            await addWallet();
+                        }, i * 500);
+                    });
+                });
+            } else if (wallet) {
+                document.getElementById('walletInput').value = wallet;
+                searchWallet();
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initParticles();
+            
+            // Show loading indicator
+            const loadingIndicator = document.getElementById('dataLoadingIndicator');
+            const searchButton = document.getElementById('searchButton');
+            const progressText = document.getElementById('dataLoadingProgress');
+            
+            loadingIndicator.style.display = 'block';
+            searchButton.disabled = true;
+            searchButton.style.opacity = '0.5';
+            
+            // Simulate progress (since we can't track actual script loading)
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                if (window.WHALE_TRAITS) {
+                    progress = 100;
+                    progressText.textContent = progress;
+                    clearInterval(progressInterval);
+                } else if (progress < 90) {
+                    progress += 10;
+                    progressText.textContent = progress;
+                }
+            }, 200);
+            
+            // Check if rarity data is loaded
+            const checkDataLoaded = setInterval(() => {
+                if (window.WHALE_TRAITS) {
+                    console.log('✅ Rarity data loaded:', Object.keys(window.WHALE_TRAITS).length, 'whales');
+                    clearInterval(checkDataLoaded);
+                    clearInterval(progressInterval);
+                    
+                    // Hide loading indicator
+                    loadingIndicator.style.display = 'none';
+                    searchButton.disabled = false;
+                    searchButton.style.opacity = '1';
+                    progressText.textContent = '100';
+                    
+                    // Now check URL params
+                    checkUrlParams();
+                }
+            }, 100);
+            
+            // Timeout after 15 seconds
+            setTimeout(() => {
+                if (!window.WHALE_TRAITS) {
+                    console.error('❌ Rarity data failed to load after 15 seconds');
+                    clearInterval(checkDataLoaded);
+                    clearInterval(progressInterval);
+                    loadingIndicator.innerHTML = '<div style="color: var(--coral-pink);">⚠️ Failed to load rarity data. Please refresh the page.</div>';
+                }
+            }, 15000);
+            
+            // Enter key to search
+            document.getElementById('walletInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') searchWallet();
+            });
+            
+            // Enter key to add wallet
+            document.getElementById('addWalletInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') addWallet();
+            });
+        });
+
+        // Close modal on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                // Also close any share modals
+                const shareModal = document.querySelector('.share-preview-modal');
+                if (shareModal) shareModal.remove();
+            }
+        });
+
+        // Cleanup function to remove any lingering modals
+        function cleanupAllModals() {
+            // Remove any modals that might be lingering
+            const modals = document.querySelectorAll('[style*="position: fixed"][style*="z-index: 2000"], [style*="position: fixed"][style*="z-index: 2001"]');
+            modals.forEach(modal => modal.remove());
+        }
+
+        // Run cleanup on page load
+        window.addEventListener('load', cleanupAllModals);
+    </script>
+
+
+    <footer class="gallery-footer">
+        Whale Gallery &nbsp;·&nbsp; Fan-made &nbsp;·&nbsp;
+        <a href="/privacy.html">Privacy Policy</a>
+        &nbsp;·&nbsp; #TogetherWeWhale
+    </footer>
+
+    <!-- Load rarity data asynchronously at the end for better page load performance -->
+    <script src="rarity-data.js" defer></script>
+    <script src="trait-rarities.js" defer></script>
+    <script src="badge-system.js?t=1738651000" defer></script>
+</body>
+</html>
