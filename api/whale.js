@@ -10,7 +10,7 @@
 // If you never deploy this file, the map still works -- it just shows the
 // placeholder instead of the artwork.
 
-const CONTRACT = process.env.SSOW_CONTRACT || '0x42d2b41c5bb1f73f06d5adaa85e23b44f75c4cd2';
+const CONTRACT = process.env.SSOW_CONTRACT || '0x88091012eedf8dba59d08e27ed7b22008f5d6fe5';
 const CHAIN = 'ethereum';
 
 module.exports = async function handler(req, res) {
