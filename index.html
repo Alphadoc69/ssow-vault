@@ -681,8 +681,7 @@ async function fetchAllNFTs(wallet){
 async function fetchWhales(){
   const wallet=$('walletInput').value.trim();
   if(!wallet)return;
-  if(!wallet.startsWith('0x')||wallet.length<10){setStatus('Please enter a valid Ethereum wallet address.',true);return;}
-  $('searchBtn').disabled=true;
+if(!/^0x[a-fA-F0-9]{40}$/.test(wallet)){setStatus('Please enter a valid Ethereum wallet address.',true);return;}  $('searchBtn').disabled=true;
   $('emptyState').style.display='none';
   $('resultsSection').style.display='none';
   $('cardGrid').innerHTML='';
