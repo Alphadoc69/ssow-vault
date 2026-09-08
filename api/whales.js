@@ -37,10 +37,10 @@ export default async function handler(req, res) {
   if (!wallet) {
     return res.status(400).json({ error: 'Missing wallet address' });
   }
-  // Basic wallet format check
-  if (!wallet.startsWith('0x') || wallet.length < 10) {
-    return res.status(400).json({ error: 'Invalid wallet address' });
-  }
+// Validate Ethereum wallet address
+if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+  return res.status(400).json({ error: 'Invalid wallet address' });
+}
 
   // --- rate limit per visitor (skips gracefully if Redis is unavailable) ---
   const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
