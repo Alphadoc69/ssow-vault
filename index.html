@@ -194,6 +194,42 @@
     footer p{font-size:0.6rem;letter-spacing:0.18em;color:rgba(80,180,220,0.45);text-transform:uppercase}
     footer a{color:rgba(100,200,235,0.65);text-decoration:none}
     footer a:hover{color:rgba(180,240,255,1)}
+
+    /* Security + disclaimer */
+    .wallet-security{
+      margin-top:10px;
+      font-size:0.58rem;
+      line-height:1.6;
+      letter-spacing:0.05em;
+      color:rgba(120,210,240,0.65);
+    }
+    .security-panel{
+      max-width:760px;
+      margin:0 auto 2rem;
+      padding:18px 22px;
+      border:0.5px solid rgba(80,180,220,0.2);
+      background:rgba(0,30,60,0.22);
+      border-radius:4px;
+      text-align:left;
+    }
+    .security-panel h3{
+      font-family:var(--font-serif);
+      font-weight:300;
+      font-size:1.1rem;
+      letter-spacing:0.15em;
+      color:rgba(180,235,255,0.9);
+      text-transform:uppercase;
+      margin-bottom:10px;
+    }
+    .security-panel p{
+      font-size:0.6rem;
+      line-height:1.8;
+      letter-spacing:0.04em;
+      color:rgba(130,195,225,0.65);
+      text-transform:none;
+      margin-bottom:8px;
+    }
+    .security-panel p:last-child{margin-bottom:0}
     @media(max-width:640px){.site-wrap{padding:0 1.2rem}header{padding:3rem 0 2rem}.card-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:2rem}.results-header{flex-direction:column;gap:0.4rem}}
   </style>
 </head>
@@ -223,6 +259,7 @@
       <input type="text" id="walletInput" placeholder="0x…" autocomplete="off" spellcheck="false" />
       <button class="search-btn" id="searchBtn" onclick="fetchWhales()">Dive In</button>
     </div>
+    <p class="wallet-security">🔒 SSoW Vault will never ask for your seed phrase, private key, recovery phrase, or wallet password.</p>
     <p class="status" id="status"></p>
   </section>
 
@@ -240,6 +277,14 @@
   </div>
 
   <footer>
+    <div class="security-panel">
+      <h3>Security &amp; Disclaimer</h3>
+      <p><strong>Read-only experience.</strong> SSoW Vault uses public blockchain wallet addresses to display Secret Society of Whales NFTs. It does not connect to your wallet or initiate blockchain transactions.</p>
+      <p><strong>Protect your wallet.</strong> SSoW Vault will never ask for your seed phrase, private key, recovery phrase, or wallet password.</p>
+      <p><strong>Informational only.</strong> SSoW Vault is a fan-made community tool and does not provide financial, investment, legal, or tax advice.</p>
+      <p>NFT ownership, traits, rarity information, marketplace data, and other blockchain information may be provided by third-party services and may occasionally be delayed, incomplete, or inaccurate.</p>
+      <p>External marketplaces, wallets, websites, and other third-party services are subject to their own terms, policies, and security practices.</p>
+    </div>
     <p>SSoW Vault &nbsp;·&nbsp; Fan-made &nbsp;·&nbsp; <a href="https://www.secretsocietyofwhales.com/" target="_blank" rel="noopener">Secret Society of Whales</a> &nbsp;·&nbsp; #TogetherWeWhale</p>
   </footer>
 </div>
