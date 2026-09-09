@@ -148,14 +148,6 @@
     <div class="rarity-row"><div class="rarity-chip" style="background:#5bb0ff">RARE</div><div class="guide-meta"><b>Top 40%</b><span>Ranks 1,501–4,000</span></div></div>
     <div class="rarity-row"><div class="rarity-chip" style="background:#7fdd6a">COMMON</div><div class="guide-meta"><b>Remaining 60%</b><span>Ranks 4,001–10,000</span></div></div>
   </div>
-  <div class="guide-sec">
-    <div class="guide-sub">DEPTH DISTRICTS</div>
-    <p class="guide-copy">The map gets deeper and rarer as you move down. Each depth band now has its own atmosphere and graphics.</p>
-    <div class="depth-row"><div class="depth-icon surface"></div><div class="guide-meta"><b>SHALLOWS</b><span>Bright surface water and open-ocean neighborhoods for the most common skins.</span></div></div>
-    <div class="depth-row"><div class="depth-icon twilight"></div><div class="guide-meta"><b>TWILIGHT</b><span>Mid-depth waters with coral gardens, harbors, and glowing residential detail.</span></div></div>
-    <div class="depth-row"><div class="depth-icon midnight"></div><div class="guide-meta"><b>MIDNIGHT</b><span>Darker elite districts with crystal glow, heat vents, and deep-water mood.</span></div></div>
-    <div class="depth-row"><div class="depth-icon deep"></div><div class="guide-meta"><b>THE DEEP</b><span>The rarest trench and vault districts at the bottom of the sea.</span></div></div>
-  </div>
 </div>
 
 <div class="readout">SECRET SOCIETY OF WHALES · <b id="ro">10,000</b> whales · zoned by skin + rarity</div>
@@ -336,7 +328,6 @@ function drawAmbientBackdrop(t,W,H,topY,botY){
 
 function drawAdventureWallpaper(t,W,H,topY,botY){
   // broad depth-band graphics behind the map so the wallpaper feels adventurous
-  drawDepthBands(t);
   // distant reef / island silhouettes near top corners
   ctx.save();
   const topFade=ctx.createLinearGradient(0,0,0,H*.25);topFade.addColorStop(0,'rgba(6,35,43,.75)');topFade.addColorStop(1,'rgba(6,35,43,0)');
@@ -349,42 +340,6 @@ function drawAdventureWallpaper(t,W,H,topY,botY){
   // faint compass emblem in lower-left open water
   const cx=W*.11,cy=H*.74,r=Math.min(W,H)*.06;ctx.strokeStyle='rgba(190,240,248,.08)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();for(let i=0;i<8;i++){const a=i*Math.PI/4;ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*r*.45,cy+Math.sin(a)*r*.45);ctx.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);ctx.stroke();}
   ctx.restore();
-}
-
-function drawDepthBands(t){
-  const bands=[
-    {name:'SHALLOWS', y0:WORLD.minY, y1:560, tint:'rgba(91,214,255,.05)', accent:'#b8f2ff', kind:'surface'},
-    {name:'TWILIGHT', y0:560, y1:970, tint:'rgba(116,160,235,.035)', accent:'#ffb7de', kind:'twilight'},
-    {name:'MIDNIGHT', y0:970, y1:1380, tint:'rgba(92,108,196,.04)', accent:'#9bd1ff', kind:'midnight'},
-    {name:'THE DEEP', y0:1380, y1:WORLD.maxY, tint:'rgba(245,196,81,.03)', accent:'#f5c451', kind:'deep'}
-  ];
-  bands.forEach((b,idx)=>{const [sx0,sy0]=w2s(WORLD.minX,b.y0),[sx1,sy1]=w2s(WORLD.maxX,b.y1);const top=Math.min(sy0,sy1),bottom=Math.max(sy0,sy1),h=bottom-top,left=sx0,right=sx1;
-    ctx.save();ctx.fillStyle=b.tint;ctx.fillRect(left,top,right-left,h);
-    ctx.strokeStyle='rgba(220,245,250,.05)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(left,top);ctx.lineTo(right,top);ctx.stroke();
-    // graphics by depth band
-    if(b.kind==='surface'){
-      ctx.strokeStyle='rgba(184,242,255,.08)';for(let y=top+10;y<top+Math.min(50,h*.26);y+=12){ctx.beginPath();for(let x=left;x<=right;x+=22){const yy=y+Math.sin(x*.02+t*.8)*2.4;x===left?ctx.moveTo(x,yy):ctx.lineTo(x,yy);}ctx.stroke();}
-    } else if(b.kind==='twilight'){
-      ctx.strokeStyle='rgba(255,183,222,.08)';ctx.fillStyle='rgba(255,183,222,.06)';for(let x=left+14;x<right;x+=90){ctx.beginPath();ctx.moveTo(x,bottom-8);ctx.lineTo(x+8,bottom-24);ctx.lineTo(x+16,bottom-8);ctx.lineTo(x+24,bottom-34);ctx.lineTo(x+32,bottom-8);ctx.stroke();}
-    } else if(b.kind==='midnight'){
-      ctx.fillStyle='rgba(155,209,255,.08)';for(let x=left+35;x<right;x+=120){const y=top+40+((x/120)%2)*24;ctx.beginPath();ctx.arc(x,y,2.2,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x+16,y+18,1.4,0,Math.PI*2);ctx.fill();}
-    } else if(b.kind==='deep'){
-      ctx.strokeStyle='rgba(245,196,81,.08)';for(let x=left+20;x<right;x+=105){ctx.strokeRect(x,bottom-28,26,12);for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(x+4+i*5,bottom-17,1.3,0,Math.PI*2);ctx.stroke();}}
-    }
-    // left-side band badge
-    const bx=left-8*cam.scale, by=top+Math.max(18,Math.min(40,h*.18));
-    if(cam.scale>.26){ctx.font=`700 ${Math.max(8,9.6*cam.scale)}px "Silkscreen",monospace`;const tw=ctx.measureText(b.name).width,pw=tw+40,ph=Math.max(20,14*cam.scale);
-      ctx.save();roundRect(bx,by,pw,ph,9);ctx.fillStyle='rgba(3,18,29,.86)';ctx.fill();ctx.strokeStyle=hexA(b.accent,.45);ctx.lineWidth=1;ctx.stroke();
-      // icon
-      const ix=bx+12, iy=by+ph/2;ctx.strokeStyle=hexA(b.accent,.9);ctx.fillStyle=hexA(b.accent,.6);ctx.lineWidth=1;
-      if(b.kind==='surface'){ctx.beginPath();ctx.moveTo(ix-4,iy);ctx.lineTo(ix-1,iy-3);ctx.lineTo(ix+2,iy);ctx.lineTo(ix+5,iy-3);ctx.stroke();}
-      if(b.kind==='twilight'){ctx.beginPath();ctx.moveTo(ix-5,iy+3);ctx.lineTo(ix-2,iy-2);ctx.lineTo(ix+1,iy+3);ctx.lineTo(ix+4,iy-5);ctx.stroke();}
-      if(b.kind==='midnight'){ctx.beginPath();ctx.arc(ix,iy,2.2,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(ix+5,iy-4,1.3,0,Math.PI*2);ctx.fill();}
-      if(b.kind==='deep'){ctx.strokeRect(ix-5,iy-4,10,8);}
-      ctx.fillStyle='#eefcff';ctx.textBaseline='middle';ctx.fillText(b.name,bx+24,iy+.2);ctx.restore();
-    }
-    ctx.restore();
-  });
 }
 
 function drawRegionTheme(r,t){
@@ -516,18 +471,16 @@ function draw(now){
   // zone labels — compact plaques that stay clear of the lot grids
   REGIONS.forEach(r=>{const [lx,ly]=w2s(r.label[0],r.label[1]);const pad=Math.max(5,6.4*cam.scale),fs=Math.max(8.2,11.2*cam.scale);
     const showSub=cam.scale>.52;
-    const showDepth=cam.scale>.92;
-    const sub=r.count.toLocaleString()+' WHALES',depth=r.poly[0][1]>=1380?'DEEP VAULT':r.poly[0][1]>=970?'MIDNIGHT':r.poly[0][1]>=560?'TWILIGHT':'SHALLOWS';
+    const sub=r.count.toLocaleString()+' WHALES';
     ctx.font=`700 ${fs}px "Silkscreen",monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
     let tw=ctx.measureText(r.name).width;
     if(showSub)tw=Math.max(tw,ctx.measureText(sub).width);
-    if(showDepth){ctx.font=`500 ${Math.max(6.2,fs*.48)}px "Space Grotesk",sans-serif`;tw=Math.max(tw,ctx.measureText(depth).width);}
-    const lines=1+(showSub?1:0)+(showDepth?1:0),boxW=tw+pad*2.2,boxH=fs*(1.15+lines*.72)+pad*.8;
+    const lines=1+(showSub?1:0),boxW=tw+pad*2.2,boxH=fs*(1.15+lines*.72)+pad*.8;
     ctx.save();roundRect(lx-boxW/2,ly-boxH/2,boxW,boxH,8);const pg=ctx.createLinearGradient(lx-boxW/2,ly-boxH/2,lx+boxW/2,ly+boxH/2);pg.addColorStop(0,'rgba(2,16,27,.90)');pg.addColorStop(1,hexA(r.color,.085));ctx.fillStyle=pg;ctx.shadowColor=r.color;ctx.shadowBlur=selected===r?16:6;ctx.fill();ctx.lineWidth=selected===r?1.6:.75;ctx.strokeStyle=hexA(r.color,selected===r?.92:.48);ctx.stroke();ctx.restore();
-    let y=ly-(showSub||showDepth?fs*.5:0);
+    let y=ly-(showSub?fs*.5:0);
     ctx.font=`700 ${fs}px "Silkscreen",monospace`;ctx.fillStyle='#f3fcff';ctx.fillText(r.name,lx,y);
     if(showSub){y+=fs*.9;ctx.font=`700 ${fs*.78}px "Silkscreen",monospace`;ctx.fillStyle=r.color;ctx.fillText(sub,lx,y);}
-    if(showDepth){y+=fs*.72;ctx.font=`500 ${Math.max(6.2,fs*.48)}px "Space Grotesk",sans-serif`;ctx.fillStyle='rgba(169,207,219,.42)';ctx.fillText(depth,lx,y);}if(r.mine>0&&cam.scale>.34){const txt='YOU: '+r.mine;ctx.font=`700 ${Math.max(6.4,fs*.58)}px "Silkscreen",monospace`;const tw2=ctx.measureText(txt).width,pw=tw2+12,ph=Math.max(14,fs*.95),py=ly+boxH/2+4;ctx.save();roundRect(lx-pw/2,py,pw,ph,7);ctx.fillStyle='rgba(4,18,31,.92)';ctx.shadowColor=r.color;ctx.shadowBlur=10;ctx.fill();ctx.strokeStyle=hexA(r.color,.72);ctx.lineWidth=.9;ctx.stroke();ctx.fillStyle=r.color;ctx.textBaseline='middle';ctx.fillText(txt,lx,py+ph/2+0.2);ctx.restore();}});
+    if(r.mine>0&&cam.scale>.34){const txt='YOU: '+r.mine;ctx.font=`700 ${Math.max(6.4,fs*.58)}px "Silkscreen",monospace`;const tw2=ctx.measureText(txt).width,pw=tw2+12,ph=Math.max(14,fs*.95),py=ly+boxH/2+4;ctx.save();roundRect(lx-pw/2,py,pw,ph,7);ctx.fillStyle='rgba(4,18,31,.92)';ctx.shadowColor=r.color;ctx.shadowBlur=10;ctx.fill();ctx.strokeStyle=hexA(r.color,.72);ctx.lineWidth=.9;ctx.stroke();ctx.fillStyle=r.color;ctx.textBaseline='middle';ctx.fillText(txt,lx,py+ph/2+0.2);ctx.restore();}});
 
   requestAnimationFrame(draw);
 }
