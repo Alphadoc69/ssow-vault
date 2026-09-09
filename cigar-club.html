@@ -83,6 +83,18 @@
   .card .traits span{font-size:11px;color:var(--ink);background:linear-gradient(135deg,rgba(66,243,208,.11),rgba(99,207,255,.07));border:1px solid rgba(94,231,218,.24);border-radius:8px;padding:4px 8px}
   .card .cta{font-family:var(--map);font-size:12px;color:var(--abyss);background:linear-gradient(135deg,#8bffe9,#42f3d0 58%,#5fd7ff);border:0;border-radius:11px;padding:11px 16px;box-shadow:0 0 20px rgba(66,243,208,.18);cursor:pointer;font-weight:700}
   .card .cta:hover{filter:brightness(1.08)}
+  .district-panel,.pod-breakdown{margin:0 0 14px;padding:12px 12px 11px;border:1px solid rgba(94,231,218,.18);border-radius:12px;background:linear-gradient(135deg,rgba(66,243,208,.06),rgba(99,207,255,.03))}
+  .district-panel[hidden],.pod-breakdown[hidden]{display:none}
+  .sec-title{font-family:var(--map);font-size:10px;letter-spacing:.12em;color:var(--ink-dim);margin:0 0 8px}
+  .home-blurb{font-size:12px;line-height:1.45;color:#d9f4ff;margin:0 0 8px}
+  .signature-traits,.count-grid{display:flex;flex-wrap:wrap;gap:7px}
+  .signature-traits span{font-size:11px;color:var(--ink);background:rgba(255,255,255,.05);border:1px solid rgba(94,231,218,.18);border-radius:999px;padding:5px 8px}
+  .count-chip{min-width:86px;padding:8px 9px;border-radius:10px;border:1px solid rgba(94,231,218,.18);background:rgba(255,255,255,.04)}
+  .count-chip b{display:block;font-family:var(--map);font-size:15px;color:#f5fdff}
+  .count-chip span{display:block;font-size:11px;color:#d9f4ff;line-height:1.2;margin-top:2px}
+  .count-chip small{display:block;font-size:10px;color:var(--ink-dim);line-height:1.2;margin-top:4px}
+  .legrow .lots{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-dim)}
+  .own-badge{font-family:var(--map);font-size:10px;color:#04121f;background:linear-gradient(135deg,#8bffe9,#42f3d0 58%,#5fd7ff);padding:4px 7px;border-radius:999px;box-shadow:0 0 14px rgba(66,243,208,.18)}
 
   .hint{position:fixed;bottom:14px;right:16px;z-index:5;font-size:11px;color:var(--ink-dim);pointer-events:none}
   @media (max-width:560px){ .brand{max-width:48vw;padding:9px 10px}.brand h1{font-size:17px}.brand p{display:none} .hint{display:none} .finder{top:58px}.finder input{width:132px} .legend{width:224px;top:108px;max-height:60vh}.status{top:108px}.readout{font-size:10px;bottom:10px;max-width:55vw}.card{right:10px;bottom:10px;width:calc(100vw - 20px)} }
@@ -121,6 +133,15 @@
     <div class="stat"><div class="k" id="kLots">Whales</div><div class="v" id="cLots">—</div></div>
     <div class="stat"><div class="k" id="kShare">Share</div><div class="v" id="cShare">—</div></div>
     <div class="stat"><div class="k" id="kBg">Skin</div><div class="v" id="cBg">—</div></div>
+  </div>
+  <div class="district-panel" id="districtPanel">
+    <div class="sec-title">NEIGHBORHOOD HOME</div>
+    <div class="home-blurb" id="homeBlurb"></div>
+    <div class="signature-traits" id="zoneTraits"></div>
+  </div>
+  <div class="pod-breakdown" id="podBreakdown" hidden>
+    <div class="sec-title">YOUR WHALES BY SKIN</div>
+    <div class="count-grid" id="countGrid"></div>
   </div>
   <div class="whale" id="whalePanel">
     <img id="wImg" alt="whale" />
@@ -184,10 +205,37 @@ const REGIONS=[
 REGIONS.forEach(r=>{r.centroid=polyCentroid(r.poly);const b=polyBounds(r.poly);r.label=[r.centroid[0],b.minY+38];r.mine=0;});
 const byKey=Object.fromEntries(REGIONS.map(r=>[r.key,r]));
 const skinToRegion={}; REGIONS.forEach(r=>skinToRegion[r.skin]=r);
+const REGION_STORIES={
+  bigblue:{blurb:'Open-water estates, bright lagoon courtyards, and long blue promenades make this the social center of the pod.'},
+  fog:{blurb:'Quiet glass villas drift through cool mist here, giving Light Gray whales a calm, private shoreline.'},
+  sandbar:{blurb:'A sunny coastal district with boardwalk lounges, soft sand lots, and a members-only beach-club feel.'},
+  slate:{blurb:'Industrial-marina homes, polished docks, and clean modern harbor lofts give this district its cool edge.'},
+  pearl:{blurb:'Elegant white-marble homes, pearl-lined paths, and serene water gardens make Pearl Bay feel refined.'},
+  flamingo:{blurb:'This district is playful and glamorous, with pink coral courtyards and flashy resort-style homes.'},
+  abyss:{blurb:'Shadowy cliffside homes glow softly in the dark, built for whales who like privacy and deep-water mystique.'},
+  sapphire:{blurb:'Blue-crystal terraces and glowing tide pools make Sapphire Sound feel rich, deep, and polished.'},
+  crimson:{blurb:'Warm red-lit homes and volcanic accents give this neighborhood its fast, fiery energy.'},
+  thunder:{blurb:'Charged vault homes and neon-lit platforms make Thunder Trench feel electric and elite.'},
+  kaleido:{blurb:'A surreal pocket of the map with prismatic homes, playful shapes, and dreamlike decor.'},
+  machine:{blurb:'A cyber district of circuit walls, engineered habitats, and high-tech rooms built for Mega Bot whales.'},
+  glacier:{blurb:'Frosted halls and ice-carved homes create a quiet luxury enclave for the coldest whales in the sea.'},
+  gold:{blurb:'The crown jewel: a vault-like district of gilded mansions, treasure rooms, and prestige homes for Gold whales.'}
+};
+function topTraitName(obj){let best='',n=-1;for(const k in obj){if(obj[k]>n){n=obj[k];best=k;}}return best;}
+function inc(map,key){if(!key)return;key=String(key).trim();if(!key||key==='None')return;map[key]=(map[key]||0)+1;}
 
 function normSkin(s){s=(s||'').trim();const map={'Lightnig':'Lightning','Ligthning':'Lightning','Ligh Blue':'Light Blue'};return map[s]||s;}
 function computeCounts(){const T=window.WHALE_TRAITS;if(!T)return;REGIONS.forEach(r=>r.count=0);
   for(const id in T){const r=skinToRegion[normSkin(T[id].skin)];if(r)r.count++;}}
+function computeRegionProfiles(){
+  REGIONS.forEach(r=>r.profile={outfit:'',hat:'',eyes:'',mouth:'',background:''});
+  const T=window.WHALE_TRAITS;if(!T)return;
+  const bag={};REGIONS.forEach(r=>bag[r.key]={outfit:{},hat:{},eyes:{},mouth:{},background:{}});
+  for(const id in T){const row=T[id],region=skinToRegion[normSkin(row.skin)];if(!region)continue;const b=bag[region.key];
+    inc(b.outfit,row.outfit);inc(b.hat,row.hat);inc(b.eyes,row.eyes);inc(b.mouth,row.mouth);inc(b.background,row.background);
+  }
+  REGIONS.forEach(r=>{const b=bag[r.key];r.profile={outfit:topTraitName(b.outfit),hat:topTraitName(b.hat),eyes:topTraitName(b.eyes),mouth:topTraitName(b.mouth),background:topTraitName(b.background)};});
+}
 
 const CURRENTS=[
   ['fog','bigblue'],['fog','sandbar'],['fog','pearl','Main Current'],
@@ -398,7 +446,7 @@ function draw(now){
     let y=ly-(showSub||showDepth?fs*.5:0);
     ctx.font=`700 ${fs}px "Silkscreen",monospace`;ctx.fillStyle='#f3fcff';ctx.fillText(r.name,lx,y);
     if(showSub){y+=fs*.9;ctx.font=`700 ${fs*.78}px "Silkscreen",monospace`;ctx.fillStyle=r.color;ctx.fillText(sub,lx,y);}
-    if(showDepth){y+=fs*.72;ctx.font=`500 ${Math.max(6.2,fs*.48)}px "Space Grotesk",sans-serif`;ctx.fillStyle='rgba(169,207,219,.42)';ctx.fillText(depth,lx,y);}});
+    if(showDepth){y+=fs*.72;ctx.font=`500 ${Math.max(6.2,fs*.48)}px "Space Grotesk",sans-serif`;ctx.fillStyle='rgba(169,207,219,.42)';ctx.fillText(depth,lx,y);}if(r.mine>0&&cam.scale>.34){const txt='YOU: '+r.mine;ctx.font=`700 ${Math.max(6.4,fs*.58)}px "Silkscreen",monospace`;const tw2=ctx.measureText(txt).width,pw=tw2+12,ph=Math.max(14,fs*.95),py=ly+boxH/2+4;ctx.save();roundRect(lx-pw/2,py,pw,ph,7);ctx.fillStyle='rgba(4,18,31,.92)';ctx.shadowColor=r.color;ctx.shadowBlur=10;ctx.fill();ctx.strokeStyle=hexA(r.color,.72);ctx.lineWidth=.9;ctx.stroke();ctx.fillStyle=r.color;ctx.textBaseline='middle';ctx.fillText(txt,lx,py+ph/2+0.2);ctx.restore();}});
 
   drawDepthRail();
   requestAnimationFrame(draw);
@@ -499,28 +547,56 @@ async function fetchImage(id){try{const r=await fetch(`/api/whale?id=${id}`,{hea
 
 /* ---------- card ---------- */
 function setK(a,b,c){document.getElementById('kLots').textContent=a;document.getElementById('kShare').textContent=b;document.getElementById('kBg').textContent=c;}
+function regionOwnedCount(r){return owned.filter(o=>o.region===r).length;}
+function renderRegionHome(r){
+  const story=REGION_STORIES[r.key]||{blurb:'A distinctive home district for this pod.'};
+  const mine=regionOwnedCount(r),profile=r.profile||{};
+  let blurb=story.blurb+' ';
+  blurb += mine?`You own ${mine} ${r.skin} whale${mine===1?'':'s'} here.`:`You do not currently own a ${r.skin} whale in this district.`;
+  document.getElementById('homeBlurb').textContent=blurb;
+  const traits=[];
+  if(profile.outfit)traits.push('Top outfit: '+profile.outfit);
+  if(profile.hat)traits.push('Top hat: '+profile.hat);
+  if(profile.eyes)traits.push('Top eyes: '+profile.eyes);
+  if(profile.mouth)traits.push('Top mouth: '+profile.mouth);
+  document.getElementById('zoneTraits').innerHTML=traits.slice(0,4).map(t=>`<span>${t}</span>`).join('');
+  document.getElementById('districtPanel').hidden=false;
+}
+function renderPodBreakdown(){
+  const box=document.getElementById('podBreakdown'),grid=document.getElementById('countGrid');
+  const rows=REGIONS.map(r=>({r,n:regionOwnedCount(r)})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n||a.r.count-b.r.count);
+  if(!rows.length){box.hidden=true;grid.innerHTML='';return;}
+  box.hidden=false;
+  grid.innerHTML=rows.map(({r,n})=>`<div class="count-chip"><b>${n}</b><span>${r.skin}</span><small>${r.name}</small></div>`).join('');
+}
+function hidePodBreakdown(){document.getElementById('podBreakdown').hidden=true;document.getElementById('countGrid').innerHTML='';}
 function selectRegion(r,fly){selected=r;
   document.getElementById('whalePanel').classList.remove('show');
   document.getElementById('cEye').textContent='ZONE · '+r.skin.toUpperCase();
   const chip=document.getElementById('cEyeChip');chip.style.color=r.color;chip.style.background=r.color;
   document.getElementById('cName').textContent=r.name;
   document.getElementById('cTag').textContent=r.tag;
-  document.getElementById('cDesc').textContent=`Home to every whale with a ${r.skin} skin — ${r.count.toLocaleString()} of the 10,000.`;
+  const mine=regionOwnedCount(r);
+  document.getElementById('cDesc').textContent=`Home to every whale with a ${r.skin} skin — ${r.count.toLocaleString()} of the 10,000.`+(mine?` Your pod has ${mine} here.`:'');
   setK('Whales','Share','Skin');
   document.getElementById('cLots').textContent=r.count.toLocaleString();
   document.getElementById('cShare').textContent=(r.count/100).toFixed(1)+'%';
   document.getElementById('cBg').textContent=r.skin;
+  renderRegionHome(r);
+  renderPodBreakdown();
   document.getElementById('cEnter').textContent='VIEW ON OPENSEA →';
   document.getElementById('cEnter').onclick=()=>window.open(COLLECTION,'_blank');
   document.getElementById('card').classList.add('show');
   if(fly)flyTo(r.centroid[0],r.centroid[1],Math.max(0.7,cam.scale));}
-function closeCard(){selected=null;document.getElementById('card').classList.remove('show');}
+function closeCard(){selected=null;document.getElementById('card').classList.remove('show');document.getElementById('whalePanel').classList.remove('show');hidePodBreakdown();}
 document.getElementById('cardX').onclick=closeCard;
 
 async function openWhale(id,knownImage,knownContract){const w=getWhale(id);if(!w){setStatus('Whale data is unavailable right now. Please refresh and try again.');return;}const r=skinToRegion[w.skin];if(!r){setStatus('This whale has an unrecognized skin trait.');return;}const contract=knownContract||CONTRACT;
   selectRegion(r,true);
   document.getElementById('cEye').textContent='WHALE #'+id.toLocaleString()+' · '+r.name;
   document.getElementById('cDesc').textContent=`Whale #${id.toLocaleString()} has a ${w.skin} skin, so it lives in ${r.name}.`;
+  renderRegionHome(r);
+  renderPodBreakdown();
   document.getElementById('whalePanel').classList.add('show');
   const tier=rarityTier(w.rank),tEl=document.getElementById('wTier'),img=document.getElementById('wImg');
   img.onerror=function(){this.onerror=null;this.src=IMG_FALLBACK;};img.src=knownImage||IMG_FALLBACK;
@@ -544,24 +620,29 @@ async function fetchPod(wallet){let all=[],next=null,guard=0;
 function processPod(nfts){owned=[];
   nfts.forEach(nft=>{const id=parseInt(nft.identifier||nft.token_id,10);if(!id)return;const w=getWhale(id);if(!w)return;const r=skinToRegion[w.skin];if(!r)return;
     owned.push({id,image:nft.display_image_url||nft.image_url||'',rank:w.rank,skin:w.skin,region:r,contract:nft.contract||CONTRACT});});
-  placeOwned();loadImages();}
+  placeOwned();loadImages();buildChrome();}
 function showPodSummary(wallet){if(!owned.length){setStatus('No SSoW whales in that wallet.');return;}
   owned.sort((a,b)=>a.rank-b.rank);const zones=new Set(owned.map(o=>o.region.key)).size;
+  const topZone=REGIONS.map(r=>({r,n:regionOwnedCount(r)})).sort((a,b)=>b.n-a.n)[0];
   selected=null;document.getElementById('whalePanel').classList.remove('show');
   const chip=document.getElementById('cEyeChip');chip.style.color=GLOW;chip.style.background=GLOW;
   document.getElementById('cEye').textContent='YOUR POD · '+shortAddr(wallet);
   document.getElementById('cName').textContent=owned.length+' WHALE'+(owned.length>1?'S':'');
   document.getElementById('cTag').textContent='Across '+zones+' zone'+(zones>1?'s':'');
-  document.getElementById('cDesc').textContent='Rarest is Whale #'+owned[0].id+' (rank #'+owned[0].rank.toLocaleString()+'). Tap any whale on the map to inspect it.';
+  document.getElementById('cDesc').textContent='Rarest is Whale #'+owned[0].id+' (rank #'+owned[0].rank.toLocaleString()+'). Your strongest home district is '+topZone.r.name+' with '+topZone.n+' whale'+(topZone.n===1?'':'s')+'. Tap any whale on the map to inspect it.';
   setK('Whales','Zones','Top rank');
   document.getElementById('cLots').textContent=owned.length;
   document.getElementById('cShare').textContent=zones;
   document.getElementById('cBg').textContent='#'+owned[0].rank.toLocaleString();
+  document.getElementById('homeBlurb').textContent='Your pod now lights up each home district on the map. Use the breakdown below to see how many whales you own in each skin neighborhood.';
+  document.getElementById('zoneTraits').innerHTML=[topZone.r.skin+' home base', topZone.n+' in '+topZone.r.name].map(t=>`<span>${t}</span>`).join('');
+  document.getElementById('districtPanel').hidden=false;
+  renderPodBreakdown();
   document.getElementById('cEnter').textContent='CLEAR POD';
   document.getElementById('cEnter').onclick=clearPod;
   document.getElementById('card').classList.add('show');
   flyTo((WORLD.minX+WORLD.maxX)/2,(WORLD.minY+WORLD.maxY)/2,fitScale());}
-function clearPod(){owned=[];REGIONS.forEach(r=>r.mine=0);setStatus('');closeCard();}
+function clearPod(){owned=[];REGIONS.forEach(r=>r.mine=0);buildChrome();setStatus('');closeCard();}
 
 async function loadWallet(wallet){const btn=document.getElementById('findBtn');btn.disabled=true;setStatus('Surfacing your pod…');
   try{const nfts=await fetchPod(wallet);processPod(nfts);
@@ -580,12 +661,12 @@ document.getElementById('whaleNum').addEventListener('keydown',e=>{if(e.key==='E
 /* ---------- legend + boot ---------- */
 function buildChrome(){document.getElementById('legTitle').textContent=REGIONS.length+' SKIN ZONES · COMMON → RARE';
   const rows=document.getElementById('legrows');rows.innerHTML='';
-  REGIONS.forEach(r=>{const d=document.createElement('div');d.className='legrow';
-    d.innerHTML=`<span class="chip" style="color:${r.color};background:${r.color}"></span><span class="nm">${r.name}</span><span class="lots">${r.count.toLocaleString()}</span>`;
+  REGIONS.forEach(r=>{const d=document.createElement('div');d.className='legrow';const mine=regionOwnedCount(r);
+    d.innerHTML=`<span class="chip" style="color:${r.color};background:${r.color}"></span><span class="nm">${r.name}</span><span class="lots">${r.count.toLocaleString()}${mine?`<span class="own-badge">YOU ${mine}</span>`:''}</span>`;
     d.onclick=()=>{selectRegion(r,true);document.getElementById('legend').classList.remove('open');};rows.appendChild(d);});}
 document.getElementById('legendBtn').onclick=()=>document.getElementById('legend').classList.toggle('open');
 
-buildSlots();buildChrome();
+buildSlots();computeRegionProfiles();buildChrome();
 document.querySelector('.hint').textContent=window.WHALE_TRAITS?('live · '+Object.keys(window.WHALE_TRAITS).length.toLocaleString()+' whales'):'rarity data unavailable';if(!window.WHALE_TRAITS)setStatus('Rarity data failed to load. Refresh the page before searching.');
 resize();requestAnimationFrame(draw);
 flyTo((WORLD.minX+WORLD.maxX)/2,(WORLD.minY+WORLD.maxY)/2,fitScale());
