@@ -625,13 +625,24 @@ function closeCard(){selected=null;document.getElementById('card').classList.rem
 document.getElementById('cardX').onclick=closeCard;
 
 async function openWhale(id,knownImage,knownContract){const w=getWhale(id);if(!w){setStatus('Whale data is unavailable right now. Please refresh and try again.');return;}const r=skinToRegion[w.skin];if(!r){setStatus('This whale has an unrecognized skin trait.');return;}const contract=knownContract||CONTRACT;
+  const tier=rarityTier(w.rank);
   selectRegion(r,true);
+
+  // Whale-only mode: hide wallet-wide and neighborhood-wide information.
+  document.getElementById('districtPanel').hidden=true;
+  hidePodBreakdown();
+
   document.getElementById('cEye').textContent='WHALE #'+id.toLocaleString()+' · '+r.name;
-  document.getElementById('cDesc').textContent=`Whale #${id.toLocaleString()} has a ${w.skin} skin, so it lives in ${r.name}.`;
-  renderRegionHome(r);
-  renderPodBreakdown();
+  document.getElementById('cName').textContent='WHALE #'+id.toLocaleString();
+  document.getElementById('cTag').textContent=r.name+' · '+w.skin.toUpperCase()+' SKIN';
+  document.getElementById('cDesc').textContent=`Whale #${id.toLocaleString()} lives in ${r.name} because of its ${w.skin} skin.`;
+  setK('Rank','Rarity','Skin');
+  document.getElementById('cLots').textContent='#'+w.rank.toLocaleString();
+  document.getElementById('cShare').textContent=tier.name;
+  document.getElementById('cBg').textContent=w.skin;
+
   document.getElementById('whalePanel').classList.add('show');
-  const tier=rarityTier(w.rank),tEl=document.getElementById('wTier'),img=document.getElementById('wImg');
+  const tEl=document.getElementById('wTier'),img=document.getElementById('wImg');
   img.onerror=function(){this.onerror=null;this.src=IMG_FALLBACK;};img.src=knownImage||IMG_FALLBACK;
   document.getElementById('wName').textContent='Whale #'+id.toLocaleString();
   tEl.textContent=tier.name;tEl.style.background=tier.color;tEl.style.color='#04121f';tEl.style.display='';
