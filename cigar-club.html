@@ -480,7 +480,7 @@ function draw(now){
     let y=ly-(showSub?fs*.5:0);
     ctx.font=`700 ${fs}px "Silkscreen",monospace`;ctx.fillStyle='#f3fcff';ctx.fillText(r.name,lx,y);
     if(showSub){y+=fs*.9;ctx.font=`700 ${fs*.78}px "Silkscreen",monospace`;ctx.fillStyle=r.color;ctx.fillText(sub,lx,y);}
-    if(r.mine>0&&cam.scale>.34){const txt='YOU: '+r.mine;ctx.font=`700 ${Math.max(6.4,fs*.58)}px "Silkscreen",monospace`;const tw2=ctx.measureText(txt).width,pw=tw2+12,ph=Math.max(14,fs*.95),py=ly+boxH/2+4;ctx.save();roundRect(lx-pw/2,py,pw,ph,7);ctx.fillStyle='rgba(4,18,31,.92)';ctx.shadowColor=r.color;ctx.shadowBlur=10;ctx.fill();ctx.strokeStyle=hexA(r.color,.72);ctx.lineWidth=.9;ctx.stroke();ctx.fillStyle=r.color;ctx.textBaseline='middle';ctx.fillText(txt,lx,py+ph/2+0.2);ctx.restore();}});
+    if(r.mine>0&&cam.scale>.34){const txt=String(r.mine);ctx.font=`700 ${Math.max(6.4,fs*.58)}px "Silkscreen",monospace`;const tw2=ctx.measureText(txt).width,pw=tw2+12,ph=Math.max(14,fs*.95),py=ly+boxH/2+4;ctx.save();roundRect(lx-pw/2,py,pw,ph,7);ctx.fillStyle='rgba(4,18,31,.92)';ctx.shadowColor=r.color;ctx.shadowBlur=10;ctx.fill();ctx.strokeStyle=hexA(r.color,.72);ctx.lineWidth=.9;ctx.stroke();ctx.fillStyle=r.color;ctx.textBaseline='middle';ctx.fillText(txt,lx,py+ph/2+0.2);ctx.restore();}});
 
   requestAnimationFrame(draw);
 }
@@ -706,7 +706,7 @@ document.getElementById('whaleNum').addEventListener('keydown',e=>{if(e.key==='E
 function buildChrome(){document.getElementById('legTitle').textContent=REGIONS.length+' SKIN ZONES · COMMON → RARE';
   const rows=document.getElementById('legrows');rows.innerHTML='';
   REGIONS.forEach(r=>{const d=document.createElement('div');d.className='legrow';const mine=regionOwnedCount(r);
-    d.innerHTML=`<span class="chip" style="color:${r.color};background:${r.color}"></span><span class="nm">${r.name}</span><span class="lots">${r.count.toLocaleString()}${mine?`<span class="own-badge">YOU ${mine}</span>`:''}</span>`;
+    d.innerHTML=`<span class="chip" style="color:${r.color};background:${r.color}"></span><span class="nm">${r.name}</span><span class="lots">${r.count.toLocaleString()}${mine?`<span class="own-badge">${mine}</span>`:''}</span>`;
     d.onclick=()=>{selectRegion(r,true);document.getElementById('legend').classList.remove('open');};rows.appendChild(d);});}
 document.getElementById('legendBtn').onclick=()=>{document.getElementById('guide').classList.remove('open');document.getElementById('legend').classList.toggle('open');};
 document.getElementById('guideBtn').onclick=()=>{document.getElementById('legend').classList.remove('open');document.getElementById('guide').classList.toggle('open');};
