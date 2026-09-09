@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Cigar Club — My Residence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#eefbff;--dim:#9dc2cf;--teal:#4debd0;--cyan:#5ecbf5;--gold:#e6bf64;
+  --abyss:#020a12;--deep:#061b29;--panel:rgba(4,18,29,.93);--line:rgba(93,232,215,.24);
+  --map:"Silkscreen",monospace;--body:"Space Grotesk",system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:#020a12;color:var(--ink);font-family:var(--body)}
+body{overflow-x:hidden}
+button,input{font:inherit}
+button{cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.45}
+.hidden{display:none!important}
+
+/* shell */
+.app{min-height:100vh;background:
+ radial-gradient(circle at 50% -10%,rgba(44,179,185,.27),transparent 38%),
+ linear-gradient(180deg,#092838 0%,#041725 40%,#020a12 100%);position:relative;overflow:hidden}
+.app:before{content:"";position:fixed;inset:0;pointer-events:none;background:
+ linear-gradient(110deg,transparent 0 14%,rgba(111,240,231,.025) 17%,transparent 22% 100%),
+ radial-gradient(circle at 10% 30%,rgba(111,229,245,.04),transparent 18%),
+ radial-gradient(circle at 88% 72%,rgba(25,105,137,.06),transparent 24%)}
+.topbar{height:76px;padding:13px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;position:relative;z-index:30;border-bottom:1px solid rgba(95,229,218,.10);background:linear-gradient(180deg,rgba(2,11,19,.72),rgba(2,11,19,.35));backdrop-filter:blur(13px)}
+.brand-kicker{font-family:var(--map);font-size:9px;color:var(--teal);letter-spacing:.15em}
+.brand-title{font-family:var(--map);font-size:20px;margin-top:4px;letter-spacing:.05em;text-shadow:0 0 16px rgba(77,235,208,.35)}
+.nav-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.pill-btn{border:1px solid var(--line);background:rgba(4,21,32,.82);color:var(--ink);border-radius:12px;padding:9px 12px;font-family:var(--map);font-size:10px;box-shadow:0 9px 28px rgba(0,0,0,.24)}
+.pill-btn:hover{border-color:rgba(77,235,208,.55)}
+.pill-btn.primary{background:linear-gradient(135deg,#a5fff0,#4debd0 58%,#65d4ff);color:#04121f;border:0;font-weight:700}
+
+/* dashboard */
+.dashboard{padding:12px 18px;display:grid;grid-template-columns:1fr repeat(4,minmax(105px,150px));gap:10px;position:relative;z-index:20;max-width:1500px;margin:0 auto}
+.identity-card,.metric{background:linear-gradient(145deg,rgba(5,25,38,.9),rgba(2,13,23,.8));border:1px solid rgba(91,226,215,.16);border-radius:14px;padding:11px 13px;box-shadow:0 12px 34px rgba(0,0,0,.18)}
+.identity-card{min-width:250px}
+.eyebrow{font-family:var(--map);font-size:8px;letter-spacing:.13em;color:var(--dim);text-transform:uppercase}
+.identity-name{font-family:var(--map);font-size:13px;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.metric .n{font-family:var(--map);font-size:18px;margin-top:5px}
+.metric .sub{font-size:10px;color:var(--dim);margin-top:3px}
+.metric.credit .n{color:#f4d787}
+.metric.home .n{color:#9ff7dc}
+.metric.away .n{color:#ffb0a4}
+
+/* room viewport */
+.residence-wrap{max-width:1500px;margin:0 auto;padding:4px 18px 110px;position:relative;z-index:10}
+.room-shell{position:relative;width:min(1180px,100%);height:min(70vw,700px);min-height:520px;max-height:700px;margin:0 auto;border:1px solid rgba(93,232,215,.18);border-radius:24px;overflow:hidden;box-shadow:0 34px 100px rgba(0,0,0,.5),0 0 80px rgba(48,173,181,.07);background:#071b27;isolation:isolate}
+.room-shell:after{content:"";position:absolute;inset:0;pointer-events:none;z-index:25;border:1px solid rgba(255,255,255,.035);border-radius:24px;box-shadow:inset 0 0 90px rgba(0,0,0,.32)}
+
+/* illustrated architecture */
+.ceiling{position:absolute;left:0;right:0;top:0;height:11%;z-index:2;background:linear-gradient(180deg,#122735,#091a26);clip-path:polygon(0 0,100% 0,94% 100%,6% 100%);box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.wall{position:absolute;left:5%;right:5%;top:8%;height:50%;z-index:1;background:linear-gradient(180deg,#112b3b 0%,#0b2230 70%,#071a26 100%);clip-path:polygon(4% 0,96% 0,100% 100%,0 100%)}
+.wall-trim{position:absolute;left:7%;right:7%;top:52%;height:2px;background:linear-gradient(90deg,transparent,rgba(231,196,113,.38),transparent);z-index:4}
+.floor{position:absolute;left:0;right:0;bottom:0;height:49%;z-index:1;background:
+ linear-gradient(90deg,transparent 49.8%,rgba(215,191,135,.08) 50%,transparent 50.3%),
+ repeating-linear-gradient(90deg,rgba(255,255,255,.018) 0 2px,transparent 2px 92px),
+ linear-gradient(180deg,#133141,#071a25 85%);clip-path:polygon(9% 0,91% 0,100% 100%,0 100%)}
+.floor:after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(165deg,transparent 0 58px,rgba(218,191,127,.045) 59px 60px)}
+
+/* window */
+.window-bank{position:absolute;left:15%;right:15%;top:12%;height:38%;z-index:3;border:6px solid #122f3d;border-bottom-width:9px;border-radius:8px 8px 3px 3px;background:#063248;box-shadow:0 0 0 1px rgba(213,185,111,.22),0 18px 45px rgba(0,0,0,.24),inset 0 0 55px rgba(33,178,194,.14);overflow:hidden}
+.ocean{position:absolute;inset:0;background:
+ radial-gradient(circle at 28% 20%,rgba(148,248,236,.26),transparent 14%),
+ radial-gradient(circle at 78% 66%,rgba(25,124,155,.16),transparent 22%),
+ linear-gradient(180deg,#137082 0%,#0b4e65 36%,#073649 68%,#052839 100%)}
+.ocean:after{content:"";position:absolute;left:-10%;right:-10%;bottom:-4%;height:34%;background:linear-gradient(180deg,transparent,#05202f 85%);clip-path:polygon(0 62%,7% 42%,14% 65%,22% 30%,30% 59%,40% 34%,52% 62%,64% 37%,77% 68%,86% 38%,100% 61%,100% 100%,0 100%)}
+.bubble{position:absolute;border:1px solid rgba(204,255,250,.28);border-radius:50%;animation:floatBubble 7s linear infinite}
+@keyframes floatBubble{from{transform:translateY(70px);opacity:0}15%{opacity:1}to{transform:translateY(-190px);opacity:0}}
+.window-mullion{position:absolute;top:0;bottom:0;width:5px;background:#173443;z-index:5;box-shadow:0 0 0 1px rgba(255,255,255,.03)}
+.window-mullion.m1{left:33.33%}.window-mullion.m2{left:66.66%}
+.window-glow{position:absolute;inset:0;background:linear-gradient(110deg,rgba(255,255,255,.07),transparent 25% 68%,rgba(117,240,236,.05));pointer-events:none}
+
+/* fixed architectural accents */
+.left-column,.right-column{position:absolute;top:10%;height:48%;width:7%;z-index:4;background:linear-gradient(90deg,#081923,#173241 55%,#081a25);border-left:1px solid rgba(224,195,119,.11);border-right:1px solid rgba(224,195,119,.11)}
+.left-column{left:7%}.right-column{right:7%}
+.sconce{position:absolute;width:12px;height:22px;border-radius:8px;background:linear-gradient(#f5d887,#987032);box-shadow:0 0 22px rgba(244,204,101,.38);z-index:7}
+.sconce.s1{left:10.1%;top:29%}.sconce.s2{right:10.1%;top:29%}
+
+/* furniture visual primitives */
+.furniture{position:absolute;z-index:11;transform-origin:50% 100%;filter:drop-shadow(0 14px 13px rgba(0,0,0,.25));transition:transform .18s ease,filter .18s ease}
+.editing .furniture:hover{filter:drop-shadow(0 14px 13px rgba(0,0,0,.25)) drop-shadow(0 0 10px rgba(77,235,208,.24));transform:translateY(-2px)}
+.furniture[data-clickable="1"]{cursor:pointer}
+.item-label{display:none;position:absolute;left:50%;bottom:-25px;transform:translateX(-50%);white-space:nowrap;padding:4px 7px;background:rgba(2,12,21,.9);border:1px solid var(--line);border-radius:7px;font-family:var(--map);font-size:7px;color:#dffcff;z-index:40}
+.editing .furniture:hover .item-label{display:block}
+
+/* positions */
+.slot-rug{left:33%;top:63%;width:35%;height:20%;z-index:5}
+.slot-sofa{left:36%;top:50%;width:29%;height:24%;z-index:12}
+.slot-table{left:45%;top:66%;width:15%;height:13%;z-index:14}
+.slot-tv{left:13%;top:48%;width:17%;height:24%;z-index:12}
+.slot-curtains{left:13%;top:10%;width:74%;height:43%;z-index:6;pointer-events:none}
+.editing .slot-curtains{pointer-events:auto}
+.slot-bed{right:9%;top:56%;width:26%;height:28%;z-index:13}
+.slot-desk{left:8%;top:62%;width:23%;height:22%;z-index:13}
+.slot-laptop{left:15%;top:63%;width:9%;height:8%;z-index:15}
+.slot-lamp{right:32%;top:50%;width:7%;height:24%;z-index:14}
+.slot-art{left:8%;top:18%;width:10%;height:18%;z-index:8}
+.slot-aquarium{right:8%;top:19%;width:12%;height:22%;z-index:8}
+.slot-display{right:8%;top:39%;width:11%;height:16%;z-index:9}
+
+/* item renderings */
+.rug{width:100%;height:100%;clip-path:polygon(14% 0,86% 0,100% 100%,0 100%);background:radial-gradient(ellipse at center,rgba(94,203,245,.15),transparent 55%),linear-gradient(135deg,#183b4a,#0c2735);border:1px solid rgba(111,221,230,.15)}
+.rug.trippy{background:repeating-radial-gradient(circle at 50% 50%,#d267ff 0 8px,#2edac6 9px 16px,#ff7cba 17px 24px,#201550 25px 32px);opacity:.8}
+.sofa{width:100%;height:100%;position:relative}
+.sofa:before{content:"";position:absolute;left:6%;right:6%;top:25%;height:48%;border-radius:22px 22px 10px 10px;background:linear-gradient(180deg,#24526a,#112f42);border:1px solid rgba(255,255,255,.08);box-shadow:inset 0 -15px 25px rgba(0,0,0,.24)}
+.sofa:after{content:"";position:absolute;left:1%;right:1%;bottom:4%;height:30%;border-radius:12px;background:linear-gradient(180deg,#183b50,#0a2638);border:1px solid rgba(255,255,255,.06)}
+.sofa.gold:before,.sofa.gold:after{background:linear-gradient(180deg,#6f5724,#2c2418);border-color:rgba(242,205,105,.5);box-shadow:inset 0 -15px 25px rgba(0,0,0,.28),0 0 18px rgba(226,191,100,.15)}
+.sofa.thunder:before,.sofa.thunder:after{background:linear-gradient(180deg,#342f4e,#161630);border-color:rgba(255,224,77,.35);box-shadow:0 0 18px rgba(255,224,77,.14)}
+.table{width:100%;height:100%;position:relative}
+.table:before{content:"";position:absolute;left:4%;right:4%;top:20%;height:36%;background:linear-gradient(160deg,#66543a,#2d281f);clip-path:polygon(12% 0,88% 0,100% 45%,88% 100%,12% 100%,0 45%);border:1px solid rgba(226,190,115,.12)}
+.table:after{content:"";position:absolute;left:22%;right:22%;top:50%;height:40%;background:#171b1d;clip-path:polygon(0 0,100% 0,82% 100%,18% 100%)}
+.tv{width:100%;height:100%;position:relative}
+.tv:before{content:"";position:absolute;left:5%;right:5%;top:5%;height:57%;border-radius:5px;background:linear-gradient(145deg,#071018,#0d2633);border:4px solid #172b34;box-shadow:inset 0 0 30px rgba(69,215,220,.07)}
+.tv:after{content:"";position:absolute;left:14%;right:14%;bottom:10%;height:31%;background:linear-gradient(180deg,#25343a,#111b20);clip-path:polygon(5% 0,95% 0,100% 100%,0 100%)}
+.tv.holo:before{background:linear-gradient(145deg,rgba(69,246,204,.27),rgba(50,128,206,.19));border-color:#4ee0c5;box-shadow:0 0 25px rgba(78,224,197,.3),inset 0 0 35px rgba(94,203,245,.22)}
+.curtains{width:100%;height:100%;position:relative}
+.curtains:before,.curtains:after{content:"";position:absolute;top:0;bottom:0;width:14%;background:repeating-linear-gradient(90deg,#173e50 0 8px,#0d2d3d 9px 16px);border:1px solid rgba(255,255,255,.04);filter:drop-shadow(0 6px 8px rgba(0,0,0,.25))}
+.curtains:before{left:0;clip-path:polygon(0 0,100% 4%,76% 100%,0 100%)}
+.curtains:after{right:0;clip-path:polygon(0 4%,100% 0,100% 100%,24% 100%)}
+.curtains.gold:before,.curtains.gold:after{background:repeating-linear-gradient(90deg,#725f2d 0 8px,#3e351d 9px 16px)}
+.bed{width:100%;height:100%;position:relative}
+.bed:before{content:"";position:absolute;left:5%;right:9%;top:19%;height:56%;background:linear-gradient(150deg,#e0e5e2,#93a3a5);clip-path:polygon(12% 0,100% 15%,88% 100%,0 80%);border:1px solid rgba(255,255,255,.13)}
+.bed:after{content:"";position:absolute;left:7%;right:26%;top:16%;height:22%;background:linear-gradient(145deg,#f3f3ed,#c5d1cf);border-radius:8px;transform:rotate(5deg)}
+.bed.ice:before{background:linear-gradient(150deg,rgba(218,249,255,.92),rgba(114,187,218,.7));box-shadow:0 0 22px rgba(183,239,255,.23)}
+.desk{width:100%;height:100%;position:relative}
+.desk:before{content:"";position:absolute;left:3%;right:3%;top:21%;height:30%;background:linear-gradient(160deg,#674d33,#2e241c);clip-path:polygon(8% 0,92% 0,100% 50%,92% 100%,8% 100%,0 50%)}
+.desk:after{content:"";position:absolute;left:11%;right:10%;top:46%;height:46%;background:linear-gradient(90deg,#1d2222 0 18%,transparent 19% 78%,#1d2222 79%)}
+.desk.cyber:before{background:linear-gradient(160deg,#17453e,#102a31);border:1px solid rgba(78,224,197,.4);box-shadow:0 0 18px rgba(78,224,197,.15)}
+.laptop{width:100%;height:100%;position:relative}
+.laptop:before{content:"";position:absolute;left:14%;right:14%;top:0;height:58%;background:linear-gradient(#0b1822,#183d4b);border:2px solid #263b43;border-radius:3px;transform:skewX(-4deg);box-shadow:inset 0 0 12px rgba(78,224,197,.1)}
+.laptop:after{content:"";position:absolute;left:6%;right:6%;bottom:9%;height:22%;background:#71828a;clip-path:polygon(8% 0,92% 0,100% 100%,0 100%)}
+.laptop.cyber:before{background:linear-gradient(#071b1d,#0e5952);border-color:#56e4c9;box-shadow:0 0 14px rgba(86,228,201,.25),inset 0 0 12px rgba(86,228,201,.2)}
+.lamp{width:100%;height:100%;position:relative}
+.lamp:before{content:"";position:absolute;left:45%;top:20%;bottom:10%;width:8%;background:#ae8b4c}
+.lamp:after{content:"";position:absolute;left:18%;right:18%;top:4%;height:30%;border-radius:50% 50% 12% 12%;background:linear-gradient(#f7df9c,#c49745);box-shadow:0 0 30px rgba(245,215,139,.25)}
+.lamp.lightning:after{background:linear-gradient(#fff36a,#e8ba18);box-shadow:0 0 35px rgba(255,231,49,.55)}
+.art{width:100%;height:100%;position:relative;background:linear-gradient(145deg,#1c2e34,#0a1820);border:7px solid #7a6031;box-shadow:0 8px 18px rgba(0,0,0,.25)}
+.art:after{content:"🐋";position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(22px,4vw,44px);background:radial-gradient(circle at center,rgba(72,196,203,.18),transparent 55%)}
+.art.gold{border-color:#d4ab4f;box-shadow:0 0 18px rgba(212,171,79,.18)}
+.aquarium{width:100%;height:100%;position:relative;background:linear-gradient(180deg,rgba(57,183,206,.58),rgba(6,67,91,.72));border:5px solid #283c42;border-radius:7px;box-shadow:inset 0 0 25px rgba(117,240,236,.18)}
+.aquarium:before{content:"";position:absolute;left:10%;right:10%;bottom:10%;height:25%;background:radial-gradient(circle at 30% 20%,#f58e8e 0 4px,transparent 5px),radial-gradient(circle at 65% 40%,#ffce7a 0 3px,transparent 4px),linear-gradient(180deg,transparent,#123d45)}
+.aquarium:after{content:"◁  ◁";position:absolute;left:0;right:0;top:32%;text-align:center;color:#b6fbf0;font-size:14px;letter-spacing:12px;opacity:.65}
+.display{width:100%;height:100%;position:relative;border:4px solid #26353b;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(6,17,25,.2));border-radius:5px}
+.display:before{content:"";position:absolute;left:8%;right:8%;top:46%;height:2px;background:rgba(255,255,255,.2);box-shadow:0 -28px 0 rgba(255,255,255,.15),0 28px 0 rgba(255,255,255,.1)}
+.display.gold{border-color:#987632;box-shadow:0 0 20px rgba(226,191,100,.16)}
+
+/* featured resident portrait */
+.resident-frame{position:absolute;left:44%;top:15%;width:12%;height:20%;z-index:9;background:#0b151b;border:7px solid #634f2f;box-shadow:0 12px 25px rgba(0,0,0,.35);display:none}
+.resident-frame.show{display:block}
+.resident-frame img{width:100%;height:100%;object-fit:cover;display:block}
+.resident-plaque{position:absolute;left:50%;bottom:-20px;transform:translateX(-50%);white-space:nowrap;background:#1b1710;color:#dfc373;padding:3px 7px;font-family:var(--map);font-size:6px;border:1px solid #604f2b}
+
+/* editing slot buttons */
+.slot-marker{display:none;position:absolute;z-index:24;border:1px dashed rgba(100,239,220,.55);background:rgba(13,78,83,.16);border-radius:10px;color:#b7fff0;font-family:var(--map);font-size:8px;text-align:center;padding:5px;box-shadow:0 0 18px rgba(77,235,208,.08);cursor:pointer}
+.editing .slot-marker{display:grid;place-items:center}
+.sm-sofa{left:39%;top:52%;width:23%;height:17%}.sm-rug{left:35%;top:68%;width:30%;height:12%}.sm-table{left:46%;top:68%;width:13%;height:8%}.sm-tv{left:15%;top:50%;width:14%;height:18%}.sm-curtains{left:16%;top:12%;width:68%;height:10%}.sm-bed{right:10%;top:59%;width:22%;height:20%}.sm-desk{left:10%;top:65%;width:18%;height:15%}.sm-laptop{left:15%;top:64%;width:10%;height:8%}.sm-lamp{right:33%;top:53%;width:6%;height:18%}.sm-art{left:9%;top:20%;width:8%;height:14%}.sm-aquarium{right:9%;top:21%;width:10%;height:17%}.sm-display{right:9%;top:41%;width:9%;height:13%}
+
+/* bottom toolbar */
+.toolbar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:50;display:flex;gap:8px;padding:8px;border:1px solid rgba(93,232,215,.20);border-radius:16px;background:rgba(3,15,25,.9);backdrop-filter:blur(16px);box-shadow:0 18px 45px rgba(0,0,0,.38);max-width:calc(100vw - 20px)}
+.tool{border:0;border-radius:10px;padding:10px 13px;background:rgba(255,255,255,.055);color:#e9fbff;font-family:var(--map);font-size:9px;white-space:nowrap}
+.tool:hover{background:rgba(77,235,208,.10)}
+.tool.active{background:linear-gradient(135deg,#a5fff0,#4debd0);color:#04121f}
+.credit-counter{display:flex;align-items:center;padding:0 12px;color:#f5d581;font-family:var(--map);font-size:10px;border-left:1px solid rgba(255,255,255,.09)}
+
+/* drawer/modal */
+.drawer{position:fixed;right:0;top:0;bottom:0;width:min(460px,100vw);z-index:100;background:linear-gradient(160deg,rgba(5,25,38,.985),rgba(2,11,19,.985));border-left:1px solid rgba(93,232,215,.22);box-shadow:-25px 0 70px rgba(0,0,0,.45);transform:translateX(103%);transition:transform .28s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column}
+.drawer.open{transform:translateX(0)}
+.drawer-head{padding:18px;border-bottom:1px solid rgba(93,232,215,.14);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.drawer-title{font-family:var(--map);font-size:15px}.drawer-sub{font-size:11px;color:var(--dim);margin-top:5px}
+.close{border:1px solid var(--line);background:transparent;color:var(--ink);width:36px;height:36px;border-radius:10px;font-size:20px}
+.drawer-tabs{display:flex;gap:6px;padding:10px 14px;border-bottom:1px solid rgba(93,232,215,.1);overflow:auto}
+.tab{border:1px solid rgba(93,232,215,.14);background:rgba(255,255,255,.03);color:var(--dim);border-radius:999px;padding:7px 10px;font-family:var(--map);font-size:8px;white-space:nowrap}
+.tab.active{background:rgba(77,235,208,.12);color:#dffff6;border-color:rgba(77,235,208,.35)}
+.drawer-body{padding:14px;overflow:auto;flex:1}
+.catalog{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.product{border:1px solid rgba(93,232,215,.14);border-radius:13px;background:rgba(255,255,255,.035);padding:10px;min-width:0}
+.product-preview{height:92px;border-radius:10px;background:radial-gradient(circle at 50% 30%,rgba(80,224,208,.13),transparent 45%),#071923;display:grid;place-items:center;overflow:hidden;position:relative;margin-bottom:9px}
+.product-name{font-family:var(--map);font-size:9px;line-height:1.35}.product-meta{font-size:10px;color:var(--dim);margin-top:4px;min-height:26px}.price{font-family:var(--map);font-size:9px;color:#f5d581;margin-top:8px}.buy{width:100%;border:0;border-radius:8px;margin-top:8px;padding:8px;background:linear-gradient(135deg,#9ff7e8,#4debd0);color:#04121f;font-family:var(--map);font-size:8px;font-weight:700}.buy.locked{background:#17242b;color:#78929c}.buy.owned{background:rgba(94,203,245,.13);color:#a9e8ff;border:1px solid rgba(94,203,245,.2)}
+.inventory-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.inv{border:1px solid rgba(93,232,215,.14);border-radius:12px;padding:11px;background:rgba(255,255,255,.035)}
+.inv b{display:block;font-family:var(--map);font-size:9px}.inv span{display:block;color:var(--dim);font-size:10px;margin-top:4px}.inv button{margin-top:8px;border:0;background:rgba(77,235,208,.14);color:#d7fff8;border-radius:8px;padding:7px 9px;font-family:var(--map);font-size:8px}
+
+/* welcome */
+.welcome{position:fixed;inset:0;z-index:300;background:radial-gradient(circle at 50% 10%,rgba(49,174,181,.22),transparent 35%),rgba(1,8,14,.94);display:grid;place-items:center;padding:20px;backdrop-filter:blur(14px)}
+.welcome-card{width:min(560px,100%);border:1px solid rgba(93,232,215,.26);border-radius:22px;background:linear-gradient(145deg,rgba(6,30,43,.96),rgba(2,13,23,.96));padding:30px;box-shadow:0 30px 100px rgba(0,0,0,.55),0 0 80px rgba(77,235,208,.07);text-align:center}
+.welcome-kicker{font-family:var(--map);font-size:9px;color:var(--teal);letter-spacing:.15em}.welcome h1{font-family:var(--map);font-size:28px;margin:12px 0 8px}.welcome p{color:var(--dim);font-size:13px;line-height:1.55;max-width:440px;margin:0 auto 20px}
+.wallet-row{display:flex;gap:8px}.wallet-row input{flex:1;min-width:0;background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:11px;padding:12px;color:#ecfbff;outline:none}.wallet-row button{border:0;border-radius:11px;background:linear-gradient(135deg,#a5fff0,#4debd0 58%,#65d4ff);color:#04121f;padding:0 16px;font-family:var(--map);font-size:9px;font-weight:700}
+.welcome-note{font-size:10px!important;margin-top:12px!important;color:#7796a1!important}
+
+.toast{position:fixed;top:88px;left:50%;transform:translate(-50%,-12px);z-index:400;padding:10px 14px;border:1px solid rgba(93,232,215,.25);border-radius:10px;background:rgba(3,17,27,.96);color:#e7fbff;font-size:11px;opacity:0;pointer-events:none;transition:.2s}.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media(max-width:900px){
+ .dashboard{grid-template-columns:repeat(4,1fr)}.identity-card{grid-column:1/-1}.room-shell{height:680px}.brand-title{font-size:16px}.nav-actions .pill-btn:not(.primary){display:none}
+ .slot-rug{left:25%;width:50%}.slot-sofa{left:30%;width:40%}.slot-bed{right:4%;width:31%}.slot-desk{left:4%;width:27%}.slot-tv{left:6%;width:22%}
+}
+@media(max-width:600px){
+ .topbar{height:auto;min-height:66px;padding:10px 12px}.dashboard{padding:8px 10px;grid-template-columns:repeat(2,1fr)}.identity-card{grid-column:1/-1}.metric{padding:9px}.metric .n{font-size:14px}.residence-wrap{padding:2px 8px 92px}.room-shell{height:620px;border-radius:16px}
+ .window-bank{left:10%;right:10%}.left-column{left:3%}.right-column{right:3%}.sconce.s1{left:6%}.sconce.s2{right:6%}
+ .slot-sofa{left:22%;top:51%;width:51%;height:24%}.slot-rug{left:18%;top:65%;width:58%;height:19%}.slot-table{left:42%;top:68%;width:22%;height:12%}.slot-tv{left:4%;top:48%;width:27%;height:22%}.slot-bed{right:2%;top:58%;width:39%;height:26%}.slot-desk{left:1%;top:66%;width:34%;height:20%}.slot-laptop{left:9%;top:66%;width:14%}.slot-lamp{right:34%;top:49%;width:10%}.slot-art{left:4%;top:20%;width:14%}.slot-aquarium{right:4%;top:20%;width:17%}.slot-display{right:3%;top:40%;width:16%}.resident-frame{left:41%;width:18%}
+ .toolbar{bottom:8px;padding:6px}.tool{padding:9px 9px;font-size:8px}.credit-counter{display:none}.catalog,.inventory-grid{grid-template-columns:1fr}.welcome-card{padding:22px 16px}.wallet-row{flex-direction:column}.wallet-row button{padding:12px}.brand-kicker{font-size:7px}.brand-title{font-size:13px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div>
+      <div class="brand-kicker">SECRET SOCIETY OF WHALES · CIGAR CLUB</div>
+      <div class="brand-title">MY RESIDENCE</div>
+    </div>
+    <div class="nav-actions">
+      <button class="pill-btn" id="mapBtn">← MAP</button>
+      <button class="pill-btn" id="visitBtn">VISITOR MODE</button>
+      <button class="pill-btn primary" id="connectBtn">CONNECT & EDIT</button>
+    </div>
+  </header>
+
+  <section class="dashboard">
+    <div class="identity-card">
+      <div class="eyebrow">RESIDENCE</div>
+      <div class="identity-name" id="resName">Guest Residence</div>
+    </div>
+    <div class="metric"><div class="eyebrow">WHALES OWNED</div><div class="n" id="ownedN">—</div><div class="sub">OG SSoW</div></div>
+    <div class="metric home"><div class="eyebrow">HOME</div><div class="n" id="homeN">—</div><div class="sub">unlisted</div></div>
+    <div class="metric away"><div class="eyebrow">AWAY</div><div class="n" id="awayN">—</div><div class="sub">listed</div></div>
+    <div class="metric credit"><div class="eyebrow">CREDITS / DAY</div><div class="n" id="rateN">—</div><div class="sub" id="creditStatus">verification required</div></div>
+  </section>
+
+  <main class="residence-wrap">
+    <div class="room-shell" id="room">
+      <div class="ceiling"></div><div class="wall"></div><div class="floor"></div><div class="wall-trim"></div>
+      <div class="window-bank">
+        <div class="ocean" id="ocean"></div>
+        <div class="window-mullion m1"></div><div class="window-mullion m2"></div><div class="window-glow"></div>
+      </div>
+      <div class="left-column"></div><div class="right-column"></div><div class="sconce s1"></div><div class="sconce s2"></div>
+      <div class="resident-frame" id="residentFrame"><img id="residentImg" alt="Featured Whale"><div class="resident-plaque" id="residentPlaque">FEATURED RESIDENT</div></div>
+
+      <div class="furniture slot-curtains" id="f-curtains" data-slot="curtains" data-clickable="1"><div class="item-label">Curtains</div></div>
+      <div class="furniture slot-rug" id="f-rug" data-slot="rug" data-clickable="1"><div class="item-label">Rug</div></div>
+      <div class="furniture slot-sofa" id="f-sofa" data-slot="sofa" data-clickable="1"><div class="item-label">Sofa</div></div>
+      <div class="furniture slot-table" id="f-table" data-slot="table" data-clickable="1"><div class="item-label">Coffee Table</div></div>
+      <div class="furniture slot-tv" id="f-tv" data-slot="tv" data-clickable="1"><div class="item-label">Television</div></div>
+      <div class="furniture slot-bed" id="f-bed" data-slot="bed" data-clickable="1"><div class="item-label">Bed</div></div>
+      <div class="furniture slot-desk" id="f-desk" data-slot="desk" data-clickable="1"><div class="item-label">Desk</div></div>
+      <div class="furniture slot-laptop" id="f-laptop" data-slot="laptop" data-clickable="1"><div class="item-label">Computer</div></div>
+      <div class="furniture slot-lamp" id="f-lamp" data-slot="lamp" data-clickable="1"><div class="item-label">Lamp</div></div>
+      <div class="furniture slot-art" id="f-art" data-slot="art" data-clickable="1"><div class="item-label">Wall Art</div></div>
+      <div class="furniture slot-aquarium" id="f-aquarium" data-slot="aquarium" data-clickable="1"><div class="item-label">Aquarium</div></div>
+      <div class="furniture slot-display" id="f-display" data-slot="display" data-clickable="1"><div class="item-label">Display Case</div></div>
+
+      <div class="slot-marker sm-curtains" data-slot="curtains">CURTAINS</div><div class="slot-marker sm-rug" data-slot="rug">RUG</div><div class="slot-marker sm-sofa" data-slot="sofa">SOFA</div><div class="slot-marker sm-table" data-slot="table">TABLE</div><div class="slot-marker sm-tv" data-slot="tv">TV</div><div class="slot-marker sm-bed" data-slot="bed">BED</div><div class="slot-marker sm-desk" data-slot="desk">DESK</div><div class="slot-marker sm-laptop" data-slot="laptop">COMPUTER</div><div class="slot-marker sm-lamp" data-slot="lamp">LAMP</div><div class="slot-marker sm-art" data-slot="art">ART</div><div class="slot-marker sm-aquarium" data-slot="aquarium">AQUARIUM</div><div class="slot-marker sm-display" data-slot="display">DISPLAY</div>
+    </div>
+  </main>
+
+  <div class="toolbar">
+    <button class="tool" id="editBtn">EDIT</button>
+    <button class="tool" id="shopBtn">SHOP</button>
+    <button class="tool" id="inventoryBtn">INVENTORY</button>
+    <button class="tool" id="podBtn">MY POD</button>
+    <button class="tool" id="claimBtn">CLAIM DAILY</button>
+    <div class="credit-counter"><span id="creditsN">500</span>&nbsp; CREDITS</div>
+  </div>
+</div>
+
+<div class="drawer" id="drawer">
+  <div class="drawer-head"><div><div class="drawer-title" id="drawerTitle">FURNISHINGS</div><div class="drawer-sub" id="drawerSub">Make the residence yours.</div></div><button class="close" id="drawerClose">×</button></div>
+  <div class="drawer-tabs" id="drawerTabs"></div>
+  <div class="drawer-body" id="drawerBody"></div>
+</div>
+
+<div class="welcome" id="welcome">
+  <div class="welcome-card">
+    <div class="welcome-kicker">CIGAR CLUB</div>
+    <h1>WELCOME HOME</h1>
+    <p>Your whales unlock the residence. Unlisted whales are <strong>Home</strong> and can earn Credits; listed whales are <strong>Away</strong>.</p>
+    <div class="wallet-row"><input id="walletInput" placeholder="0x wallet address" autocomplete="off" spellcheck="false"><button id="enterBtn">ENTER RESIDENCE</button></div>
+    <p class="welcome-note">Viewing is read-only. Editing uses a wallet signature only — no transaction, gas, seed phrase, or private key.</p>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="rarity-data.js"></script>
+<script>
+const CONTRACT='0x88091012eedf8dba59d08e27ed7b22008f5d6fe5';
+const STARTER_CREDITS=500;
+const CREDIT_BY_TIER={COMMON:10,RARE:15,EPIC:25,LEGENDARY:40,MYTHIC:75};
+const $=id=>document.getElementById(id);
+const qs=s=>document.querySelector(s), qsa=s=>[...document.querySelectorAll(s)];
+let wallet='',owned=[],listedIds=new Set(),listingVerified=false,editing=false,authenticated=false,currentSlot=null;
+let state=null;
+
+const STARTER_PLACED={curtains:'ocean-curtains',rug:'deep-rug',sofa:'navy-sofa',table:'walnut-table',tv:'club-tv',bed:'ocean-bed',desk:'walnut-desk',laptop:'club-laptop',lamp:'club-lamp',art:'whale-print',aquarium:'lux-aquarium',display:'collector-case'};
+const STARTER_OWNED=Object.values(STARTER_PLACED);
+
+const CATALOG=[
+ {id:'club-lamp',slot:'lamp',cat:'Living',name:'Club Floor Lamp',price:75,render:'lamp'},
+ {id:'ocean-curtains',slot:'curtains',cat:'Living',name:'Ocean Curtains',price:125,render:'curtains'},
+ {id:'whale-print',slot:'art',cat:'Decor',name:'Framed Whale Print',price:150,render:'art'},
+ {id:'walnut-table',slot:'table',cat:'Living',name:'Walnut Coffee Table',price:200,render:'table'},
+ {id:'deep-rug',slot:'rug',cat:'Living',name:'Deep-Sea Rug',price:250,render:'rug'},
+ {id:'walnut-desk',slot:'desk',cat:'Office',name:'Walnut Executive Desk',price:350,render:'desk'},
+ {id:'club-tv',slot:'tv',cat:'Living',name:'Club Television',price:400,render:'tv'},
+ {id:'ocean-bed',slot:'bed',cat:'Bedroom',name:'Ocean Bed',price:450,render:'bed'},
+ {id:'navy-sofa',slot:'sofa',cat:'Living',name:'Navy Sectional Sofa',price:500,render:'sofa'},
+ {id:'club-laptop',slot:'laptop',cat:'Office',name:'Club Laptop',price:600,render:'laptop'},
+ {id:'lux-aquarium',slot:'aquarium',cat:'Decor',name:'Luxury Aquarium',price:800,render:'aquarium'},
+ {id:'collector-case',slot:'display',cat:'Decor',name:'Collector Display Cabinet',price:1200,render:'display'},
+ {id:'gold-art',slot:'art',cat:'Trait',name:'Gold Framed Art',price:800,render:'art gold',req:{field:'skin',value:'Gold',count:1}},
+ {id:'gold-curtains',slot:'curtains',cat:'Trait',name:'Gilded Curtains',price:1200,render:'curtains gold',req:{field:'skin',value:'Gold',count:1}},
+ {id:'gold-sofa',slot:'sofa',cat:'Trait',name:'Gold Manor Sofa',price:1500,render:'sofa gold',req:{field:'skin',value:'Gold',count:1}},
+ {id:'gold-display',slot:'display',cat:'Trait',name:'Gold Vault Display',price:2500,render:'display gold',req:{field:'skin',value:'Gold',count:2}},
+ {id:'lightning-lamp',slot:'lamp',cat:'Trait',name:'Lightning Neon Lamp',price:600,render:'lamp lightning',req:{field:'skin',value:'Lightning',count:1}},
+ {id:'thunder-sofa',slot:'sofa',cat:'Trait',name:'Thunder Lounge',price:1800,render:'sofa thunder',req:{field:'skin',value:'Lightning',count:3}},
+ {id:'holo-tv',slot:'tv',cat:'Trait',name:'Holographic Television',price:1600,render:'tv holo',req:{field:'skin',value:'Mega Bot',count:1}},
+ {id:'cyber-desk',slot:'desk',cat:'Trait',name:'Cyber Workstation',price:3000,render:'desk cyber',req:{field:'skin',value:'Mega Bot',count:3}},
+ {id:'cyber-laptop',slot:'laptop',cat:'Trait',name:'Quantum Terminal',price:1800,render:'laptop cyber',req:{field:'skin',value:'Mega Bot',count:1}},
+ {id:'ice-bed',slot:'bed',cat:'Trait',name:'Frozen Glass Bed',price:2500,render:'bed ice',req:{field:'skin',value:'Ice',count:3}},
+ {id:'trippy-rug',slot:'rug',cat:'Trait',name:'Psychedelic Rug',price:900,render:'rug trippy',req:{field:'skin',value:'Trippy',count:1}},
+ {id:'cigar-display',slot:'display',cat:'Trait',name:'Cigar Humidor Display',price:700,render:'display gold',req:{field:'mouth',value:'Cigar',count:1}},
+ {id:'coding-laptop',slot:'laptop',cat:'Trait',name:'Coding Battlestation',price:1400,render:'laptop cyber',req:{field:'outfit',value:'Software Engineer',count:1}},
+ {id:'tech-desk',slot:'desk',cat:'Trait',name:'Executive Tech Desk',price:1600,render:'desk cyber',req:{field:'outfit',value:'Tech CEO',count:1}},
+ {id:'fishbowl-aquarium',slot:'aquarium',cat:'Trait',name:'Premium Fish Tank',price:1200,render:'aquarium',req:{field:'hat',value:'Fish Bowl',count:1}}
+];
+const byId=Object.fromEntries(CATALOG.map(x=>[x.id,x]));
+
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2400)}
+function short(a){return a?a.slice(0,6)+'…'+a.slice(-4):''}
+function validWallet(v){return /^0x[a-fA-F0-9]{40}$/.test(v)}
+function rarityTier(rank){if(!rank)return'COMMON';const p=rank/10000;if(p<=.01)return'MYTHIC';if(p<=.05)return'LEGENDARY';if(p<=.15)return'EPIC';if(p<=.40)return'RARE';return'COMMON'}
+function normSkin(s){s=(s||'').trim();return({'Lightnig':'Lightning','Ligthning':'Lightning','Ligh Blue':'Light Blue'}[s]||s)}
+function whaleData(id){const T=window.WHALE_TRAITS?.[String(id)];if(!T)return null;return{id:+id,rank:+T.rank,skin:normSkin(T.skin),mouth:(T.mouth||'').trim(),hat:(T.hat||'').trim(),outfit:(T.outfit||'').trim(),eyes:(T.eyes||'').trim(),background:(T.background||'').trim()}}
+function storageKey(){return 'ssow-residence:'+wallet.toLowerCase()}
+function loadState(){
+ const fallback={credits:STARTER_CREDITS,lastClaim:0,purchased:[...STARTER_OWNED],placed:{...STARTER_PLACED},featured:null};
+ try{const raw=localStorage.getItem(storageKey());if(!raw)return fallback;const s=JSON.parse(raw);return{...fallback,...s,purchased:[...new Set([...(s.purchased||[]),...STARTER_OWNED])],placed:{...STARTER_PLACED,...(s.placed||{})}}}catch{return fallback}
+}
+function saveState(){if(!wallet||!state)return;localStorage.setItem(storageKey(),JSON.stringify(state))}
+
+async function fetchAllWhales(addr){let all=[],next=null,guard=0;do{const p=new URLSearchParams({wallet:addr});if(next)p.set('next',next);const r=await fetch('/api/whales?'+p);const d=await r.json();if(!r.ok)throw new Error(d.error||'Unable to load whales');all.push(...(d.nfts||[]));next=d.next||null;guard++}while(next&&guard<50);return all}
+async function fetchListed(addr){
+ try{const r=await fetch('/api/residence-status?wallet='+encodeURIComponent(addr));const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||'Listing check unavailable');listingVerified=true;return new Set((d.listedTokenIds||[]).map(String))}
+ catch(e){listingVerified=false;toast('Listing verification unavailable — Credit claims disabled.');return new Set()}
+}
+function hydrateOwned(nfts){owned=nfts.map(n=>{const id=parseInt(n.identifier||n.token_id,10),w=whaleData(id);if(!id||!w)return null;return{...w,image:n.display_image_url||n.image_url||'',contract:n.contract||CONTRACT,listed:listedIds.has(String(id))}}).filter(Boolean)}
+function rate(){return owned.reduce((sum,w)=>sum+(w.listed?0:CREDIT_BY_TIER[rarityTier(w.rank)]),0)}
+function homeCount(){return owned.filter(w=>!w.listed).length}
+function traitCount(field,value){return owned.filter(w=>String(w[field]||'').trim()===value).length}
+function reqText(req){return req?`${req.count} ${req.value} ${req.field==='skin'?'whale'+(req.count>1?'s':''):req.field}`:''}
+function unlocked(item){return !item.req||traitCount(item.req.field,item.req.value)>=item.req.count}
+function owns(id){return state?.purchased?.includes(id)}
+
+function updateDashboard(){
+ $('resName').textContent=wallet?short(wallet).toUpperCase()+"'S RESIDENCE":'Guest Residence';
+ $('ownedN').textContent=owned.length||'0';$('homeN').textContent=listingVerified?homeCount():'—';$('awayN').textContent=listingVerified?(owned.length-homeCount()):'—';$('rateN').textContent=listingVerified?rate().toLocaleString():'—';$('creditStatus').textContent=listingVerified?'eligible today':'listing check unavailable';$('creditsN').textContent=(state?.credits??STARTER_CREDITS).toLocaleString();
+ $('claimBtn').disabled=!authenticated||!listingVerified||!owned.length;
+}
+function renderFurniture(){
+ for(const slot of Object.keys(STARTER_PLACED)){
+   const host=$('f-'+slot),id=state?.placed?.[slot],item=byId[id];
+   host.innerHTML='<div class="item-label">'+slot.toUpperCase()+'</div>';
+   if(item){const d=document.createElement('div');d.className=item.render;host.prepend(d);host.style.display='block'}else host.style.display='none';
+ }
+ renderResident();updateDashboard();
+}
+function renderResident(){
+ const f=$('residentFrame');if(!state?.featured){f.classList.remove('show');return}
+ const w=owned.find(x=>x.id===+state.featured);if(!w||!w.image){f.classList.remove('show');return}
+ $('residentImg').src=w.image;$('residentPlaque').textContent='WHALE #'+w.id+' · '+rarityTier(w.rank);f.classList.add('show')
+}
+
+function toggleEdit(force){
+ if(!authenticated){toast('Connect and sign with the residence wallet to edit.');return}
+ editing=typeof force==='boolean'?force:!editing;$('room').classList.toggle('editing',editing);$('editBtn').classList.toggle('active',editing);$('editBtn').textContent=editing?'DONE':'EDIT';
+}
+function openDrawer(mode,slot=null){
+ currentSlot=slot;$('drawer').classList.add('open');
+ if(mode==='shop'){renderShop(slot)}else if(mode==='inventory'){renderInventory(slot)}else if(mode==='pod'){renderPod()}
+}
+function closeDrawer(){$('drawer').classList.remove('open');currentSlot=null}
+function tabs(categories,active,onClick){$('drawerTabs').innerHTML='';categories.forEach(c=>{const b=document.createElement('button');b.className='tab'+(c===active?' active':'');b.textContent=c;b.onclick=()=>onClick(c);$('drawerTabs').appendChild(b)})}
+
+function productPreview(item){return `<div class="product-preview"><div style="width:${item.slot==='curtains'?'85%':'70%'};height:70%;position:relative"><div class="${item.render}" style="position:absolute;inset:0"></div></div></div>`}
+function renderShop(slot=null,cat='All'){
+ $('drawerTitle').textContent=slot?slot.toUpperCase()+' SHOP':'FURNISHINGS';$('drawerSub').textContent='Credits buy furnishings. Traits unlock exclusive collections.';
+ const cats=['All','Living','Bedroom','Office','Decor','Trait'];tabs(cats,cat,c=>renderShop(slot,c));
+ let items=CATALOG.filter(x=>(!slot||x.slot===slot)&&(cat==='All'||x.cat===cat));
+ $('drawerBody').innerHTML=`<div class="catalog">${items.map(item=>{
+  const isOwned=owns(item.id),ok=unlocked(item),canBuy=ok&&!isOwned&&(state?.credits||0)>=item.price;
+  const meta=item.req?(ok?'✓ Unlocked · '+reqText(item.req):'🔒 Requires '+reqText(item.req)):'Club furnishing';
+  let label=isOwned?'OWNED':!ok?'LOCKED':canBuy?'BUY':'NOT ENOUGH CREDITS';
+  let cls=isOwned?'owned':!ok||!canBuy?'locked':'';
+  return `<div class="product">${productPreview(item)}<div class="product-name">${item.name}</div><div class="product-meta">${meta}</div><div class="price">${item.price.toLocaleString()} CREDITS</div><button class="buy ${cls}" data-buy="${item.id}" ${isOwned||!ok||!canBuy?'disabled':''}>${label}</button></div>`}).join('')}</div>`;
+ qsa('[data-buy]').forEach(b=>b.onclick=()=>buyItem(b.dataset.buy));
+}
+function buyItem(id){const item=byId[id];if(!item||owns(id)||!unlocked(item)||state.credits<item.price)return;state.credits-=item.price;state.purchased.push(id);state.placed[item.slot]=id;saveState();renderFurniture();renderShop(currentSlot);toast(item.name+' purchased and placed.')}
+
+function renderInventory(slot=null){
+ $('drawerTitle').textContent=slot?slot.toUpperCase()+' INVENTORY':'INVENTORY';$('drawerSub').textContent='Everything you have purchased stays in your collection.';$('drawerTabs').innerHTML='';
+ const list=state.purchased.map(id=>byId[id]).filter(Boolean).filter(x=>!slot||x.slot===slot);
+ $('drawerBody').innerHTML=`<div class="inventory-grid">${list.map(x=>`<div class="inv"><b>${x.name}</b><span>${x.slot}</span><button data-place="${x.id}">${state.placed[x.slot]===x.id?'PLACED':'PLACE'}</button></div>`).join('')}</div>`;
+ qsa('[data-place]').forEach(b=>b.onclick=()=>placeItem(b.dataset.place));
+}
+function placeItem(id){const item=byId[id];if(!item||!owns(id))return;state.placed[item.slot]=id;saveState();renderFurniture();renderInventory(currentSlot);toast(item.name+' placed.')}
+
+function renderPod(){
+ $('drawerTitle').textContent='MY POD';$('drawerSub').textContent='Choose a Featured Resident. Home whales earn Credits; Away whales are listed.';$('drawerTabs').innerHTML='';
+ const rows=[...owned].sort((a,b)=>a.rank-b.rank);
+ $('drawerBody').innerHTML=rows.length?rows.map(w=>`<div class="inv" style="display:grid;grid-template-columns:58px 1fr auto;gap:10px;align-items:center;margin-bottom:8px"><img src="${escapeAttr(w.image)}" style="width:58px;height:58px;border-radius:9px;object-fit:cover;background:#071923"><div><b>Whale #${w.id}</b><span>Rank #${w.rank.toLocaleString()} · ${rarityTier(w.rank)} · ${w.skin}</span><span style="color:${w.listed?'#ffad9f':'#8bf0d4'}">${w.listed?'AWAY · LISTED':'HOME · +'+CREDIT_BY_TIER[rarityTier(w.rank)]+' / DAY'}</span></div><button data-feature="${w.id}">${state.featured===w.id?'FEATURED':'FEATURE'}</button></div>`).join(''):'<p style="color:var(--dim)">No whales found.</p>';
+ qsa('[data-feature]').forEach(b=>b.onclick=()=>{state.featured=+b.dataset.feature;saveState();renderResident();renderPod();toast('Featured resident updated.')});
+}
+function escapeAttr(s){return String(s||'').replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;')}
+
+async function loadResidence(addr){
+ if(!validWallet(addr)){toast('Enter a valid Ethereum wallet address.');return}
+ wallet=addr;$('enterBtn').disabled=true;$('enterBtn').textContent='LOADING…';
+ try{
+   const nfts=await fetchAllWhales(wallet);listedIds=await fetchListed(wallet);hydrateOwned(nfts);state=loadState();
+   $('welcome').classList.add('hidden');renderFurniture();seedBubbles();
+   if(!owned.length)toast('No SSoW whales found in this wallet.');
+ }catch(e){toast(e.message||'Unable to load residence.');wallet=''}finally{$('enterBtn').disabled=false;$('enterBtn').textContent='ENTER RESIDENCE'}
+}
+
+async function connectAndAuthenticate(){
+ if(!wallet){toast('Load a residence first.');return}
+ if(!window.ethereum){toast('No browser wallet detected. You can still visit in read-only mode.');return}
+ try{
+   const accounts=await ethereum.request({method:'eth_requestAccounts'});const acct=(accounts[0]||'').toLowerCase();if(acct!==wallet.toLowerCase()){toast('Connect the same wallet as this Residence.');return}
+   const msg='Cigar Club Residence\n\nSign in to edit your virtual residence.\nNo transaction or blockchain approval will occur.\n\nWallet: '+wallet;
+   await ethereum.request({method:'personal_sign',params:[msg,wallet]});authenticated=true;$('connectBtn').textContent='EDITING ENABLED';$('connectBtn').disabled=true;updateDashboard();toast('Residence editing unlocked for this session.');
+ }catch(e){toast('Wallet signature was not completed.')}
+}
+function claimDaily(){
+ if(!authenticated||!listingVerified)return;
+ const now=Date.now(),day=86400000,last=state.lastClaim||0;if(last&&now-last<day){const hours=Math.ceil((day-(now-last))/3600000);toast('Next daily claim in about '+hours+'h.');return}
+ const earned=rate();state.credits+=earned;state.lastClaim=now;saveState();updateDashboard();toast('+'+earned.toLocaleString()+' Credits claimed from '+homeCount()+' Home whales.')
+}
+
+function seedBubbles(){const o=$('ocean');qsa('.bubble').forEach(x=>x.remove());for(let i=0;i<14;i++){const b=document.createElement('i');b.className='bubble';const s=3+(i%5)*2;b.style.width=b.style.height=s+'px';b.style.left=((i*71)%97)+'%';b.style.bottom=(-20-(i%4)*22)+'px';b.style.animationDelay=(-i*.8)+'s';b.style.animationDuration=(6+(i%5))+'s';o.appendChild(b)}}
+
+$('enterBtn').onclick=()=>loadResidence($('walletInput').value.trim());$('walletInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('enterBtn').click()});
+$('connectBtn').onclick=connectAndAuthenticate;$('editBtn').onclick=()=>toggleEdit();$('shopBtn').onclick=()=>openDrawer('shop');$('inventoryBtn').onclick=()=>openDrawer('inventory');$('podBtn').onclick=()=>openDrawer('pod');$('claimBtn').onclick=claimDaily;$('drawerClose').onclick=closeDrawer;
+$('mapBtn').onclick=()=>location.href='/cigar-club.html';$('visitBtn').onclick=()=>{authenticated=false;editing=false;$('room').classList.remove('editing');$('editBtn').classList.remove('active');$('connectBtn').disabled=false;$('connectBtn').textContent='CONNECT & EDIT';updateDashboard();toast('Visitor mode: read-only.')};
+qsa('.slot-marker').forEach(m=>m.onclick=()=>openDrawer('inventory',m.dataset.slot));qsa('.furniture[data-clickable="1"]').forEach(f=>f.onclick=()=>{if(editing)openDrawer('inventory',f.dataset.slot)});
+
+// Optional deep link: /residence.html?wallet=0x...
+const qWallet=new URLSearchParams(location.search).get('wallet');if(qWallet&&validWallet(qWallet)){$('walletInput').value=qWallet;loadResidence(qWallet)}
+seedBubbles();
+</script>
+</body>
+</html>
