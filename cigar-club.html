@@ -181,7 +181,7 @@ const REGIONS=[
   {key:'glacier', name:'GLACIER DEEP',   skin:'Ice',        color:'#bfe9ff', count:86,   tag:'The frozen elite',           mark:'beacon', poly:[[1404,1380],[1764,1380],[1764,1620],[1404,1620]]},
   {key:'gold',    name:'THE GOLD VAULT', skin:'Gold',       color:'#f5c451', count:49,   tag:'49 whales. Rarest skin in the sea.', mark:'vault', poly:[[1792,1380],[2160,1380],[2160,1620],[1792,1620]]},
 ];
-REGIONS.forEach(r=>{r.centroid=polyCentroid(r.poly);const b=polyBounds(r.poly);r.label=[r.centroid[0],b.minY+48];r.mine=0;});
+REGIONS.forEach(r=>{r.centroid=polyCentroid(r.poly);const b=polyBounds(r.poly);r.label=[r.centroid[0],b.minY+38];r.mine=0;});
 const byKey=Object.fromEntries(REGIONS.map(r=>[r.key,r]));
 const skinToRegion={}; REGIONS.forEach(r=>skinToRegion[r.skin]=r);
 
@@ -300,21 +300,28 @@ function draw(now){
   if(!podActive)REGIONS.forEach(drawMark);
   if(podActive)drawOwned(t);
 
-  // zone labels — glass plaques with rarity depth cue
-  REGIONS.forEach(r=>{const [lx,ly]=w2s(r.label[0],r.label[1]);const pad=Math.max(6,8*cam.scale),fs=Math.max(8.5,12.5*cam.scale);
-    ctx.font=`700 ${fs}px "Silkscreen",monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
+  // zone labels — compact plaques that stay clear of the lot grids
+  REGIONS.forEach(r=>{const [lx,ly]=w2s(r.label[0],r.label[1]);const pad=Math.max(5,6.4*cam.scale),fs=Math.max(8.2,11.2*cam.scale);
+    const showSub=cam.scale>.52;
+    const showDepth=cam.scale>.92;
     const sub=r.count.toLocaleString()+' WHALES',depth=r.poly[0][1]>=1380?'DEEP VAULT':r.poly[0][1]>=970?'MIDNIGHT':r.poly[0][1]>=560?'TWILIGHT':'SHALLOWS';
-    const tw=Math.max(ctx.measureText(r.name).width,ctx.measureText(sub).width);const boxW=tw+pad*2.35,boxH=fs*2.65+pad*.9;
-    ctx.save();roundRect(lx-boxW/2,ly-boxH/2,boxW,boxH,9);const pg=ctx.createLinearGradient(lx-boxW/2,ly-boxH/2,lx+boxW/2,ly+boxH/2);pg.addColorStop(0,'rgba(2,16,27,.95)');pg.addColorStop(1,hexA(r.color,.105));ctx.fillStyle=pg;ctx.shadowColor=r.color;ctx.shadowBlur=selected===r?18:8;ctx.fill();ctx.lineWidth=selected===r?1.8:.8;ctx.strokeStyle=hexA(r.color,selected===r?.95:.52);ctx.stroke();ctx.restore();
-    ctx.fillStyle='#f3fcff';ctx.fillText(r.name,lx,ly-fs*.48);ctx.font=`700 ${fs*.82}px "Silkscreen",monospace`;ctx.fillStyle=r.color;ctx.fillText(sub,lx,ly+fs*.50);
-    if(cam.scale>.50){ctx.font=`500 ${Math.max(6.5,fs*.50)}px "Space Grotesk",sans-serif`;ctx.fillStyle='rgba(169,207,219,.47)';ctx.fillText(depth,lx,ly+fs*1.16);}});
+    ctx.font=`700 ${fs}px "Silkscreen",monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
+    let tw=ctx.measureText(r.name).width;
+    if(showSub)tw=Math.max(tw,ctx.measureText(sub).width);
+    if(showDepth){ctx.font=`500 ${Math.max(6.2,fs*.48)}px "Space Grotesk",sans-serif`;tw=Math.max(tw,ctx.measureText(depth).width);}
+    const lines=1+(showSub?1:0)+(showDepth?1:0),boxW=tw+pad*2.2,boxH=fs*(1.15+lines*.72)+pad*.8;
+    ctx.save();roundRect(lx-boxW/2,ly-boxH/2,boxW,boxH,8);const pg=ctx.createLinearGradient(lx-boxW/2,ly-boxH/2,lx+boxW/2,ly+boxH/2);pg.addColorStop(0,'rgba(2,16,27,.90)');pg.addColorStop(1,hexA(r.color,.085));ctx.fillStyle=pg;ctx.shadowColor=r.color;ctx.shadowBlur=selected===r?16:6;ctx.fill();ctx.lineWidth=selected===r?1.6:.75;ctx.strokeStyle=hexA(r.color,selected===r?.92:.48);ctx.stroke();ctx.restore();
+    let y=ly-(showSub||showDepth?fs*.5:0);
+    ctx.font=`700 ${fs}px "Silkscreen",monospace`;ctx.fillStyle='#f3fcff';ctx.fillText(r.name,lx,y);
+    if(showSub){y+=fs*.9;ctx.font=`700 ${fs*.78}px "Silkscreen",monospace`;ctx.fillStyle=r.color;ctx.fillText(sub,lx,y);}
+    if(showDepth){y+=fs*.72;ctx.font=`500 ${Math.max(6.2,fs*.48)}px "Space Grotesk",sans-serif`;ctx.fillStyle='rgba(169,207,219,.42)';ctx.fillText(depth,lx,y);}});
 
   drawDepthRail();
   requestAnimationFrame(draw);
 }
 
 /* ---------- lot grid: one cell per whale (10,000 total) ---------- */
-function layoutZoneSlots(r){const b=polyBounds(r.poly),padX=22,padTop=64,padBot=22;
+function layoutZoneSlots(r){const b=polyBounds(r.poly),padX=22,padTop=92,padBot=22;
   const iw=b.maxX-b.minX-padX*2,ih=b.maxY-b.minY-padTop-padBot,n=Math.max(1,r.count);
   const cols=Math.max(1,Math.round(Math.sqrt(n*iw/ih))),rows=Math.ceil(n/cols);
   r.grid={x0:b.minX+padX,y0:b.minY+padTop,cols,rows,cw:iw/cols,ch:ih/rows,cell:Math.min(iw/cols,ih/rows)};}
@@ -323,13 +330,15 @@ function buildSlots(){const T=window.WHALE_TRAITS;REGIONS.forEach(r=>{r.slots=[]
   if(T){for(const id in T){const r=skinToRegion[normSkin(T[id].skin)];if(r)r.slots.push(+id);}
     REGIONS.forEach(r=>{r.slots.sort((a,b)=>(T[a].rank||9e9)-(T[b].rank||9e9));r.count=r.slots.length;r.slotIndex=new Map(r.slots.map((id,i)=>[id,i]));});}
   REGIONS.forEach(layoutZoneSlots);}
-function drawSlots(r){const G=r.grid;if(!G)return;const sz=Math.min(G.cw,G.ch)*0.78*cam.scale;if(sz<1.25)return;
-  const alpha=cam.scale>1.2?.19:cam.scale>.55?.13:.085;ctx.fillStyle=hexA(r.color,alpha);
+function drawSlots(r){const G=r.grid;if(!G)return;const sz=Math.min(G.cw,G.ch)*0.82*cam.scale;if(sz<1.25)return;
+  const fillAlpha=cam.scale>1.25?.24:cam.scale>.75?.19:cam.scale>.45?.145:.11;
+  const strokeAlpha=cam.scale>1.45?.26:cam.scale>.95?.16:0;
+  ctx.fillStyle=hexA(r.color,fillAlpha);
   for(let i=0;i<r.count;i++){const gx=i%G.cols,gy=Math.floor(i/G.cols);const [sx,sy]=w2s(G.x0+G.cw*(gx+0.5),G.y0+G.ch*(gy+0.5));
     if(sx<-20||sx>cv.clientWidth+20||sy<-20||sy>cv.clientHeight+20)continue;
     if(sz<3){ctx.fillRect(sx-sz/2,sy-sz/2,sz,sz);continue;}
-    ctx.beginPath();const rr=Math.min(2.2,sz*.22);roundRect(sx-sz/2,sy-sz/2,sz,sz,rr);ctx.fill();
-    if(cam.scale>1.55&&i%4===0){ctx.strokeStyle=hexA(r.color,.12);ctx.lineWidth=.55;ctx.stroke();}}
+    ctx.beginPath();const rr=Math.min(2,sz*.18);roundRect(sx-sz/2,sy-sz/2,sz,sz,rr);ctx.fill();
+    if(strokeAlpha){ctx.strokeStyle=hexA(r.color,strokeAlpha);ctx.lineWidth=.65;ctx.stroke();}}
 }
 function hitSlot(sx,sy){const [wx,wy]=s2w(sx,sy);const r=REGIONS.find(z=>pointInPoly(wx,wy,z.poly));
   if(!r||!r.grid||!r.slots.length)return null;const G=r.grid;
