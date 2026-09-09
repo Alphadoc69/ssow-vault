@@ -59,10 +59,10 @@
 
   .card{position:fixed;right:14px;bottom:14px;transform:translateY(180%);z-index:8;
     width:min(420px,calc(100vw - 28px));background:var(--panel);border:1px solid rgba(94,231,218,.34);
-    border-radius:18px;padding:18px 19px;backdrop-filter:blur(18px);transition:transform .32s cubic-bezier(.22,1,.36,1);
+    border-radius:18px;padding:18px 19px;max-height:calc(100vh - 28px);max-height:calc(100dvh - 28px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;backdrop-filter:blur(18px);transition:transform .32s cubic-bezier(.22,1,.36,1);
     box-shadow:inset 0 1px rgba(255,255,255,.045),0 22px 65px rgba(0,0,0,.44),0 0 34px rgba(66,243,208,.06)}
   .card.show{transform:translateY(0)}
-  .card .x{position:absolute;top:12px;right:14px;color:var(--ink-dim);cursor:pointer;font-size:20px;line-height:1}
+  .card .x{position:sticky;top:0;float:right;margin:-4px -4px 0 0;color:var(--ink-dim);cursor:pointer;font-size:22px;line-height:1;z-index:2}
   .card .eyebrow{display:flex;align-items:center;gap:8px;font-family:var(--map);font-size:11px;color:var(--ink-dim)}
   .card .eyebrow .chip{width:11px;height:11px;border-radius:3px;box-shadow:0 0 8px currentColor}
   .card h3{font-family:var(--map);font-size:20px;margin:8px 0 2px;text-shadow:0 0 12px rgba(55,230,201,.4)}
@@ -114,7 +114,7 @@
   .depth-icon.deep::before{content:'';position:absolute;left:3px;right:3px;bottom:3px;top:3px;border:1px solid rgba(245,196,81,.75);border-radius:3px;box-shadow:0 0 8px rgba(245,196,81,.22) inset}
 
   .hint{position:fixed;bottom:14px;right:16px;z-index:5;font-size:11px;color:var(--ink-dim);pointer-events:none}
-  @media (max-width:560px){ .brand{max-width:48vw;padding:9px 10px}.brand h1{font-size:17px}.brand p{display:none} .hint{display:none} .finder{top:58px}.finder input{width:132px} .legend,.guide{width:224px;top:108px;max-height:60vh}.guide{top:152px}.status{top:108px}.readout{font-size:10px;bottom:10px;max-width:55vw}.card{right:10px;bottom:10px;width:calc(100vw - 20px)} }
+  @media (max-width:560px){ .brand{max-width:48vw;padding:9px 10px}.brand h1{font-size:17px}.brand p{display:none} .hint{display:none} .finder{top:58px}.finder input{width:132px} .legend,.guide{width:224px;top:108px;max-height:60vh}.guide{top:152px}.status{top:108px}.readout{font-size:10px;bottom:10px;max-width:55vw}.card{right:10px;bottom:10px;width:calc(100vw - 20px);max-height:calc(100vh - 20px);max-height:calc(100dvh - 20px)} }
   @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}.btn,.legrow{transition:none!important}}
 </style>
 </head>
